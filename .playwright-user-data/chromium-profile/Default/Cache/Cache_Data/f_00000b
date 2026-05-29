@@ -1,0 +1,1038 @@
+/**
+ * @fileoverview D&eacute;fini l'objet <b>ECW.Calendar</b> (calendrier)
+ * @author David Rouchy (david.rouchy@mpsa.com)
+ * @version $Revision: 1.36.4.1 $
+ */
+  
+/**
+ * D&eacute;fini l'objet <b>ECW.Calendar</b>
+ * @private
+ */
+ECW.Calendar = function(noeud, ui, layout) {
+  ecwStartTimer("ECW.Calendar");
+  ecwSetAttribute(this, "noeudDOM", noeud);
+  ecwSetAttribute(this, "ecwUI", ui);
+  ecwSetAttribute(this, "ecwLayout", layout); 
+  /* Chargement de la langue */
+  if (!window.Calendar._DN) {
+  if (window.ecwLocale) {
+      this.loadLanguage(window.ecwLocale);
+    } else {
+      this.loadLanguage(new ECW.I18N().getNavigatorLanguage());
+    }
+  }
+  this.constructeur();
+  ecwStopTimer("ECW.Calendar");
+}
+
+/**
+ * Constante Temps "standard" (equivalent heure d'hiver) 
+ */
+ECW.Calendar.TIME_STANDARD="S";
+
+/**
+ * Constante Temps "Daylight" (equivalent heure d'ete) 
+ */
+ECW.Calendar.TIME_DAYLIGHT="D";
+
+/**
+ * Pattern de la date au format UTC (ref. ISO 8601)
+ */
+ECW.Calendar.PATTERN_DATE_ISO="YYYY-MM-DDThh:mm:ssTZD";
+
+/**
+ * Noeud portant sur le calendar
+ * @private
+ */
+ECW.Calendar.prototype.noeudDOM = null;
+
+/**
+ * Objet ECW.UI d'appartenance
+ * @private
+ */
+ECW.Calendar.prototype.ecwUI = null;
+
+/**
+ * Objet ECW.Layout d'appartenance
+ * @private
+ */
+ECW.Calendar.prototype.ecwLayout = null;
+
+/**
+ * IFrame utilise pour parer un bug IE :
+ * probleme d'affichage des balises &lt;select&gt; sur une div
+ * @private
+ */
+ECW.Calendar.prototype.iframe = null;
+
+/**
+ * Implementation du calendrier (Calendrier Dynarch)
+ * @private
+ */
+ECW.Calendar.prototype.ecwCalendar = null;
+
+/**
+ * Input contenant la saisie portant le calendrier
+ * @private
+ */
+ECW.Calendar.prototype.input = null;
+
+/**
+ * Template d'affichage de la date
+ * @private
+ */
+ECW.Calendar.prototype.pattern = null;
+
+/**
+ * Image inseree apres l'input. Contient l'image de l'icone calendrier
+ * @private
+ */
+ECW.Calendar.prototype.image = null;
+
+/**
+ * jsCalendar
+ * @private
+ */
+ECW.Calendar.prototype.jsCal = null;
+
+/**
+ * DIV contenant l'input, l'image et le jsCalendar
+ * @private
+ */
+ECW.Calendar.prototype.cal = null;
+
+/**
+ * Permet de savoir si le calendrier est affiche
+ * @private
+ */
+ECW.Calendar.prototype.isDisplay = false;
+
+/**
+ * Ev&egrave;nement d&eacute;clench&eacute; lors de la s&eacute;lection
+ * d'un &eacute;l&eacute;ment dans le calendrier
+ * @type Function
+ */
+ECW.Calendar.prototype.onSelect = null;
+
+/**
+ * Constructeur de ECW.Calendar
+ * @private
+ */
+ECW.Calendar.prototype.constructeur = function() {
+
+  /* On recherche l'input attache au calendrier */
+  if (this.noeudDOM.getElementsByTagName("input") != null) {
+    /* Normalement c'est le seul (donc premier) input dans la div */
+    ecwSetAttribute(this, "input", this.noeudDOM.getElementsByTagName("input")[0]);
+    /* Double linkage */
+    ecwSetAttribute(this.input, "ecwCalendar", this);
+    /* Desactivation de l'autocompletion du navigateur sur le champ */
+    this.input.setAttribute("autocomplete", "off");
+    
+    //[MA - E370022] recopier si pas d'id
+    if(!this.input.id) {
+    	this.input.id = this.input.name;
+    }
+  }
+  /* Creation de l'image du calendrier */
+  ecwSetAttribute(this, "image", document.createElement("SPAN"));
+  addClass(this.image, "ecwImageCalendar");
+  /* Double linkage */
+  ecwSetAttribute(this.image, "ecwCalendar", this);
+  /* L'id de l'image est celui du champ + _img */
+  this.image.id = this.input.id + "_img";
+
+  /* Gestion des evenements clavier */
+  this.input.onkeydown = OnKey;
+
+  /* Activation onclick sur l'image */
+  this.activateImageOnClick();
+  
+    /* Recuperation du pattern de la date */
+  this.pattern = this.noeudDOM.getAttribute("ecwPattern");
+  if (!this.pattern) {
+	  this.pattern=Calendar._TT["DEF_DATE_FORMAT"];
+  }
+  
+  /* Si 'ecwDisplayPattern' est positionne a 'true', on definit le helpContent. */
+  var displayPattern = this.noeudDOM.getAttribute("ecwDisplayPattern");
+  if (null != displayPattern && "true" == displayPattern.trim().toLowerCase()) {
+    this.input.ecwHelpContent = this.translatePattern(this.pattern);
+  }
+
+  var container = this.input.id + "_cal_container";
+  /* Creation de la DIV contenant le calendrier */
+  this.noeudDOM.appendChild(this.image);
+
+  ecwSetAttribute(this, "cal", document.createElement("DIV"));  
+  this.cal.id = container;
+  this.cal.style.display = "none";
+  this.cal.style.position = "absolute";
+  /* Affichage devant les onglets et les listes */
+  this.cal.style.zIndex = 100;
+
+  /* Positionnement de la DIV juste en dessous du champ input attache */
+  this.noeudDOM.insertBefore(this.cal, this.input);
+  this.cal.style.marginTop = this.input.offsetHeight;
+
+  /* Ajout d'un iframe pour parer au bug IE laissant apparaitre */
+  /* une liste deroulante (<select>) par dessus une DIV */
+  if (ECW_isIE) {
+    var iframe = document.createElement("IFRAME");
+    /* iframe invisible */
+    iframe.style.display = "none";
+    ecwSetAttribute(this, "iframe", iframe);
+    /* Ajout de l'iframe en tant que premier noeud pour eviter de devoir
+     * retrancher la largeur du champ INPUT lors de l'affichage. */
+    this.noeudDOM.insertBefore(this.iframe, this.noeudDOM.firstChild);
+  }
+  /*------------------Modification DATE UTC-----------------------------*/
+  //SI UTILISATION DE LA DATE UTC : ecwTimeZone a true
+  var attrShowsTime = this.noeudDOM.getAttribute("ecwShowsTime");
+  var attrTimeZone = this.noeudDOM.getAttribute("ecwTimeZone");
+  if (attrShowsTime == "true" && attrTimeZone == "true") {
+  	this.ecwTimeZone=true;
+  	//creation d'un champ permettant le stockage de la date au format UTC + fuseau
+  	var idInputIso = this.input.id+"_ISO";
+  	if (ECW_isIE) {  		
+  		ecwSetAttribute(this, "inputISO", document.createElement("<input name='"+idInputIso+"'>"));  		
+  	} else {
+  		ecwSetAttribute(this, "inputISO", document.createElement("INPUT"));
+  		this.inputISO.name=idInputIso;
+  	}  	
+  	this.inputISO.id=idInputIso;
+  	this.inputISO.type="hidden";  
+  	this.noeudDOM.appendChild(this.inputISO);  	
+  	/*  
+	  * plusieurs cas de figure peuvent se produir
+	  * 1) le champ date est vide : creation d'une nouvelle date ISO au fuseau UTC (GMT) 
+	  * 	je considere la date comme local au poste client 
+	  *
+	  * 2) le champ date est present :	
+	  *		a) la date est au format normal : afficher la date telle quelle et mettre a jour le champ
+	  * 		cache date ISO avec le fuseau horaire local du poste client
+	  *		b) la date est au format ISO : stocker cette date ISO dans le champ cache Date ISO 
+	  * 		puis afficher la date en appliquant le fuseau horaire du poste client
+	  * 
+	  * FORMAT ISO : The formats are as follows. Exactly the components shown 
+	  * here must be present, with exactly this punctuation. Note that the "T" appears 
+	  * literally in the string, to indicate the beginning of the time element, 
+	  * as specified in ISO 8601.
+	  *	  
+	  * Complete date plus hours, minutes and seconds:
+	  * YYYY-MM-DDThh:mm:ssTZD (eg 1997-07-16T19:20:30+01:00)
+	  * 
+	  * YYYY = four-digit year
+	  *  MM   = two-digit month (01=January, etc.)
+	  *  DD   = two-digit day of month (01 through 31)
+	  *  hh   = two digits of hour (00 through 23) (am/pm NOT allowed)
+	  *  mm   = two digits of minute (00 through 59)
+	  *  ss   = two digits of second (00 through 59)  
+	  *  TZD  = time zone designator (Z or +hh:mm or -hh:mm)
+	  * 
+	  * This profile defines two ways of handling time zone offsets:
+	  *	
+	  *  1. Times are expressed in UTC (Coordinated Universal Time), with a special UTC designator ("Z").
+	  *  2. Times are expressed in local time, together with a time zone offset in hours and minutes. 
+	  *     A time zone offset of "+hh:mm" indicates that the date/time uses a local 
+	  *     time zone which is "hh" hours and "mm" minutes ahead of UTC. A time zone 
+	  *     offset of "-hh:mm" indicates that the date/time uses a local time zone which 
+	  *     is "hh" hours and "mm" minutes behind UTC. 
+	  * 
+	  * example
+	  * 1994-11-05T08:15:30-05:00 corresponds to November 5, 1994, 8:15:30 am, US Eastern Standard Time.
+	  * 1994-11-05T13:15:30Z corresponds to the same instant.
+	  * 
+	  * Attention a l'heure d'ete / hiver
+	  * si heure d'ete alors (pour Paris) GMT +2
+	  * si heure d'hiver alors (pour Paris) GMT +1
+	  * 
+	  * Quelques exemples :
+	  * 
+	  * 2009-06-24T12:00:00Z = 24/06/2009 12:00:00 UTC mais dans le fuseau local 
+	  * (par exemple en France) cela donne la date 24/06/2009 14:00:00
+	  *
+	  * 2009-06-24T12:00:00+03:00 = 24/06/2009 12:00:00 a Moscou mais dans le fuseau local
+	  * (par exemple en France) cela donne la date du 24/06/2009 11:00:00 (heure d'ete)
+	  * Explication : 2009-06-24T12:00:00+03:00 correspond a la date UTC + 3
+	  * donc la date UTC = 24/06/2009 09:00:00. Cette date sur le fuseau local (poste client)
+	  * est 24/06/2009 11:00:00 ( decalage de +2 car nous sommes en heure d'ete)
+	  * 
+	  * 
+	 */	 
+	this.setLocaleTimeZone();		
+    var currentDateTxt = this.getValue();
+    if (currentDateTxt && currentDateTxt!="") {    	
+	    if (this.isIsoDate(currentDateTxt)) {
+	    	//c'est une date au format ISO => ECW.Calendar.PATTERN_DATE_ISO
+	    	//transformer la date en date standard en prenant le fuseau horaire local
+	    	this.inputISO.value=currentDateTxt;
+	    	var dateLocale = this.convertIsoToDate(this.inputISO.value);
+	    	this.input.value = dateLocale.print(this.pattern);	    	
+	    } else {
+	    	//c'est une date standard, alors je considere que c'est la date avec le fuseau horaire
+	    	// local au poste    	
+	    	var dateUtc = Date.parseDate(currentDateTxt,this.pattern);	   
+	    	var txtDateUtc = dateFormat(dateUtc,'isoUtcDateTime',true);
+	    	this.inputISO.value = txtDateUtc;	    		
+	    }
+    }    
+  }
+}
+
+/**
+ * Initialise les variables concernant la timezone
+ * @private
+ */
+ECW.Calendar.prototype.setLocaleTimeZone = function() {
+	var rightNow = new Date();
+	var jan1 = new Date(rightNow.getFullYear(), 0, 1, 0, 0, 0, 0);  // jan 1st
+	var june1 = new Date(rightNow.getFullYear(), 6, 1, 0, 0, 0, 0); // june 1st
+	var temp = jan1.toGMTString();
+	var jan2 = new Date(temp.substring(0, temp.lastIndexOf(" ")-1));
+	temp = june1.toGMTString();
+	var june2 = new Date(temp.substring(0, temp.lastIndexOf(" ")-1));
+	var std_time_offset = (jan1 - jan2) / (1000 * 60 * 60);
+	var daylight_time_offset = (june1 - june2) / (1000 * 60 * 60);	
+	ecwSetAttribute(this, "ecwCalLocalTimeOffset",std_time_offset);   
+    ecwSetAttribute(this, "ecwCalStandardTimeOffset",std_time_offset);
+    ecwSetAttribute(this, "ecwCalDaylightTimeOffset",daylight_time_offset);	
+	if (std_time_offset == daylight_time_offset) {		
+		ecwSetAttribute(this, "ecwCalSavingTime",false);// daylight savings time is NOT observed
+	} else {
+		// positive is southern, negative is northern hemisphere
+		var hemisphere = std_time_offset - daylight_time_offset;
+		ecwSetAttribute(this, "ecwCalSavingTimeOffset","+"+(-hemisphere));
+		if (hemisphere >= 0) {
+			std_time_offset = daylight_time_offset;
+			ecwSetAttribute(this, "ecwCalSavingTimeOffset",(-hemisphere));
+		}
+		ecwSetAttribute(this, "ecwCalSavingTime",true); // daylight savings time is observed		
+	} 
+	ecwSetAttribute(this, "ecwCalCurrentOffset",std_time_offset);
+	var idx = findIndexTableTimeZone(this.ecwCalStandardTimeOffset);		
+	this.setTitleCalendarImage(messageTimeZone(idx));
+}
+
+
+ECW.Calendar.prototype.translatePattern = function() {
+  var specialChar = new Array();
+  specialChar["%%"] = "%";
+  specialChar["%n"] = "\n";
+  specialChar["%t"] = "\t";
+  var str = this.pattern;
+  var re = /%./g;
+  var a = str.match(re);
+  for (var i = 0; i < a.length; i++) {
+    var tmp = ECW.traduction["calendar_" + a[i]];
+    if (!tmp) {
+      tmp = specialChar[a[i]];
+    }
+    if (tmp) {
+      re = new RegExp(a[i], 'g');
+      str = str.replace(re, tmp);
+    }
+  }
+  return str;
+}
+
+/**
+ * Actions des touches du clavier
+ * @private
+ */
+ECW.Calendar.prototype.onKey = function(action, event) {
+
+  if (action == "esc") {  	  	
+    this.hide();
+    return false;
+  }
+  else if (action == "pageDown") {
+    this.show();
+  }
+  else {
+    if (this.isDisplay) {
+      /* Gestion des touches clavier assuree par jsCalendar */
+      Calendar._keyEvent(event);
+    }
+  }
+}
+
+/**
+ * Evenement execute lorsque une date est selectionnee dans le calendrier
+ * @param cal (Calendar) Calendrier jsCalendar contenant les parametres
+ * @private
+ */
+ECW.Calendar.prototype.dateChanged = function(cal) {
+  /* On met en forme la date selectionnee grace au pattern */
+  cal.ECWcalendar.input.value = cal.date.print(cal.ECWcalendar.pattern); 
+  if (cal.ECWcalendar.ecwTimeZone) {
+  	// Mettre a jour la Date ISO
+  	cal.ECWcalendar.updateDateIso();  		  	
+  }	
+  /* Evenement onSelect() */
+  if (cal.ECWcalendar.onSelect) {
+    cal.ECWcalendar.onSelect();
+  }
+}
+
+/**
+ * Masque le calendrier
+ * @private
+ */
+ECW.Calendar.prototype.hide = function() {	
+  /* On masque la DIV */
+  this.cal.style.display = "none";  
+  /* On demande a jsCalendar de se masquer (relache les evenements clavier) */  
+  if (this.jsCal) {
+    this.jsCal.hide();    
+  }
+  /* Si l'iframe existe (pour IE), on cache l'iframe */
+  if (this.iframe) 
+    this.iframe.style.display = "none";
+  /* On memorise le fait que le calendrier est masque */
+  this.isDisplay = false;
+}
+
+/**
+ * Affiche le calendrier
+ * @private
+ */
+ECW.Calendar.prototype.show = function() {
+  /* Creation du calendar uniquement sur demande */
+  if (!this.jsCal) {
+
+    /* Affichage de la saisie des heures */
+    var paramShowsTime = (this.noeudDOM.getAttribute("ecwShowsTime") == "true");
+    var paramTimeZone = (this.noeudDOM.getAttribute("ecwTimeZone") == "true");
+	
+    /* Creation du calendrier */
+    ecwStartTimer("ECW.Calendar.setup");
+    Calendar.setup( { flat: this.cal.id, flatCallback: this.dateChanged, ECWcalendar: this, cache: true, showsTime: paramShowsTime, timeZone: paramTimeZone} );
+    ecwStopTimer("ECW.Calendar.setup");
+
+    /* Recuperation du calendrier cree par jsCalendar */
+    ecwSetAttribute(this, "jsCal", this.cal.firstChild.firstChild.calendar);
+
+    /* Mise du pattern */
+    this.jsCal.setDateFormat(this.pattern);
+
+    /* Double linkage */
+    ecwSetAttribute(this.jsCal, "ECWcalendar", this);
+
+    /* Permet d'activer la navigation au clavier */
+    this.jsCal.isPopup = true;
+  }
+
+  /* Positionnement de la date */
+  var valueDate = this.input.value;
+  if (valueDate) {
+   //[MA - E370022] Setting default time value at 12:00:00 (Old value is 00:00:00) 
+  //valueDate += " 12:00:00";
+  //	var fmt = Calendar._TT["DEF_DATE_FORMAT"] + " %l:%M:%S"; 
+    this.jsCal.parseDate(valueDate,this.pattern);
+  }
+
+  // on affiche la DIV en dehors de l'ecran pour obtenir ses dimensions
+  this.cal.style.display = "block";
+  this.cal.style.top = "0px";
+  this.cal.style.left = "-2000px";
+  /* Afficher le jsCalendar (+ intercepte les evenements clavier) */  
+  this.jsCal.show();  
+  /* Avant d'afficher le calendrier je regarde s'il sera visible completement dans la page
+   ceci en comparant ses positions et ses largeur - hauteur par rapport a la largeur et la hauteur de la page */
+  
+  var largeurPage = this.ecwLayout.noeudDOM.clientWidth;
+  var hauteurPage = this.ecwLayout.noeudDOM.clientHeight;
+  var largeurCal = this.jsCal.element.offsetWidth;
+  var hauteurCal = this.jsCal.element.offsetHeight;
+  var xCal = getAbsolutePos(this.input).x;
+  var yCal = getAbsolutePos(this.input).y + this.input.offsetHeight;
+  var largeurInput = this.input.offsetWidth;
+
+  // on controle si l'affichage du calendrier tient dans la page, en le placant a droite du champ input
+  // si ce n'est pas le cas on le place a gauche du champ    
+  if(((xCal + largeurCal)>=largeurPage) && (xCal-largeurCal>0)){
+    this.cal.style.marginLeft = - largeurCal + largeurInput;
+  }
+  // on controle si l'affichage du calendrier tient dans la page, en le placant sous le champ input
+  // si ce n'est pas le cas on le place au dessus du champ    
+  if(((yCal+hauteurCal)>=hauteurPage) && (yCal-hauteurCal>0)){
+    this.cal.style.marginTop = - hauteurCal;
+  }
+  
+  // on annule le positionnement hors-ecran
+  this.cal.style.top = "";
+  this.cal.style.left = "";
+
+  // on verifie que la table ne sort pas a droite / au dessus du layout
+  var posCal = getAbsolutePos(this.jsCal.element);
+  var posRoot = getAbsolutePos(this.ecwLayout.noeudDOM);
+  if (posCal.y < posRoot.y) {
+    this.cal.style.marginTop = this.input.offsetHeight;
+  }
+  if (posCal.x < posRoot.x) {
+    this.cal.style.marginLeft = "";
+  }
+
+  /* Si l'iframe existe (pour IE) */
+  if (this.iframe) {
+    this.iframe.style.height = this.cal.offsetHeight;
+    this.iframe.style.width = this.cal.offsetWidth;
+    this.iframe.style.marginLeft = this.cal.style.marginLeft;
+    this.iframe.style.marginTop = this.cal.style.marginTop;
+    this.iframe.style.border = "0";
+    this.iframe.style.position = "absolute";
+    this.iframe.style.display = "block";
+  }
+
+  /* On memorise le fait que le calendrier est affiche */
+  this.isDisplay = true;
+  //Setter le title de l'icone TimeZone
+  if (this.ecwTimeZone) {
+  	var idx = findIndexTableTimeZone(this.ecwCalStandardTimeOffset);		
+  	this.setTitleTimeZoneImage(messageTimeZone(idx));
+  }
+}
+
+/**
+ * D&eacute;sactive le Calendar et rend le champ disabled
+ */
+ECW.Calendar.prototype.setDisable = function() {
+  /* Ajoute style disable */
+  addClass(this.image, "ecwImageDisable");
+  
+  /* Positionne le champ disable */
+  this.input.ecwControl.setDisable();
+  
+  /* Desactivation onclick sur l'image */
+  this.desactivateImageOnClick();
+}
+
+/**
+ * Active le Calendar et rend le champ saisissable
+ */
+ECW.Calendar.prototype.setEnable = function() {
+  /* Enleve style disable */
+  removeClass(this.image, "ecwImageDisable");
+  
+  /* Positionne le champ enable */
+  this.input.ecwControl.setEnable();
+
+  /* Activation onclick sur l'image */
+  this.activateImageOnClick();
+}
+
+/**
+ * Active l'evenement onclick sur l'image du Calendar
+ * @private
+ */
+ECW.Calendar.prototype.activateImageOnClick = function() {
+  /* Lors du clic sur l'image */
+  /* On bascule l'affichage du calendrier */
+  this.image.onclick = ecwCalImageOnClick;
+}
+
+/**
+ * Methode appelee sur le click sur une image.
+ * this reference l'image de l'ECW.Calendar.
+ * @private
+ */
+function ecwCalImageOnClick() {
+  if (this.ecwCalendar.isDisplay) {
+    this.ecwCalendar.hide();
+  } else {
+    this.ecwCalendar.show();
+  }
+  /* On met le focus sur l'input associe */
+  this.ecwCalendar.input.ecwControl.setFocus();
+}
+
+/**
+ * Desactive l'evenement onclick sur l'image du Calendar
+ * @private
+ */
+ECW.Calendar.prototype.desactivateImageOnClick = function() {
+  /* onclick */
+  this.image.onclick = ecwEmptyFunction;
+}
+
+/**
+ * Renvoie la valeur
+ */
+ECW.Calendar.prototype.getValue = function() {
+  return (this.input.value);
+}
+
+/**
+ * Renvoie l'identifiant du calendar (id de l'input)
+ * @private
+ */
+ECW.Calendar.prototype.getIdCalendar = function() {
+  return (this.input.id);
+}
+
+/**
+ * Renvoie l'identifiant du DIV calendar (id du DIV)
+ * @private
+ */
+ECW.Calendar.prototype.getIdDivCalendar = function() {
+  return (this.noeudDOM.id);
+}
+
+/**
+ * Renvoie l'objet input du calendar
+ * @private
+ */
+ECW.Calendar.prototype.getInputCalendar = function() {
+  return (this.input);
+}
+
+/**
+ * Renvoie l'objet input du calendar
+ * @private
+ */
+ECW.Calendar.prototype.setTitleCalendarImage = function(message) {  
+  this.image.title=message;
+}
+
+/**
+ * Renvoie le pattern pour les dates ISO
+ */
+ECW.Calendar.prototype.getIsoPattern = function() {  
+  return this.PATTERN_DATE_ISO;
+}
+
+/**
+ * Renvoie la date courante au format ISO
+ */
+ECW.Calendar.prototype.getIsoDate = function() {  
+  return this.inputISO.value;
+}
+
+/**
+ * Renvoie l'objet inputIso du calendar
+ */
+ECW.Calendar.prototype.getInputIsoDate = function() {  
+  return (this.inputISO);
+}
+
+/**
+ * Renvoie le fuseau courant en numerique
+ */
+ECW.Calendar.prototype.getCurrentTimeZone = function() {  
+  return (this.ecwCalStandardTimeOffset);
+}
+
+/**
+ * Charge en memoire une langue a partir de son code
+ * @param lang code langue a charger
+ * @private
+ */
+ECW.Calendar.prototype.loadLanguage = function(lang) {
+  
+  /* Chargement du fichier lang du calendrier via AJAX */
+  var cheminLang = ecwBaseRef + "ext/calendar/lang/" + lang + ".js";
+  
+  if (window.XMLHttpRequest) {
+    req = new XMLHttpRequest();
+  } else if (window.ActiveXObject) {
+    req = new ActiveXObject("Microsoft.XMLHTTP");
+  }
+  req.open("GET", cheminLang, false); // synchrone !
+  req.send(null);
+
+  if (req.readyState == 4) {
+    eval(req.responseText);
+  }
+ 
+  ecwLog("");
+  ecwLog("Traductions calendrier chargees (" + cheminLang + ")");
+  ecwLog("");
+}
+
+/**
+ * change la zone de la date affiche
+ * @selectZone la zone a appliquer
+ * @private
+ */
+ECW.Calendar.prototype.changeDateTimeZone = function(selectZone) {
+	//attention il y a desynchronisation entre la date affiche et le format iso
+	// 	pour simuler le changement de zone
+	this.ecwCalStandardTimeOffset=selectZone;
+	var tmpDateUtc = this.inputISO.value;
+	if (tmpDateUtc && tmpDateUtc.length>0) {	   
+		var dateLocale = this.convertIsoToDate(this.inputISO.value);		
+		var tabOffset;
+		var signe="+";
+		if(selectZone*1<0) signe="-";
+		if(selectZone.indexOf('.')>0) {
+			tabOffset = selectZone.split('.');
+			if (tabOffset[0]<0) tabOffset[1]=-tabOffset[1];
+		} else {
+			tabOffset = [selectZone,0];
+		}
+		dateLocale.setMinutes(dateLocale.getMinutes()+(tabOffset[0]*60 + (tabOffset[1]*1)));	
+		var txtDateIso = dateFormat(dateLocale,'isoUtcDateTime',true);	
+		//Ajouter l'Offset a la date ISO
+		if (selectZone*1!=0) {
+			var dateIsoZone =  txtDateIso.split('Z');
+			txtDateIso = dateIsoZone[0]+ this.tranformeTimeZoneToString(selectZone);
+		}	
+		this.inputISO.value = txtDateIso;
+		//this.ecwCalStandardTimeOffset=selectZone;	
+		//Date affiche sur la zone selectionnee
+		dateLocale.setMinutes(dateLocale.getMinutes()-(this.ecwCalLocalTimeOffset*60));	
+		this.input.value = dateLocale.print(this.pattern);
+	}
+	var idx = findIndexTableTimeZone(this.ecwCalStandardTimeOffset);		
+	this.setTitleCalendarImage(messageTimeZone(idx));	
+	return true;	
+}
+
+/**
+ * change la zone de la date affiche
+ * @selectZone la zone a appliquer
+ * @private
+ */
+ECW.Calendar.prototype.updateDateIso = function() {
+	//attention il y a desynchronisation entre la date affiche et le format iso
+	//pour simuler le changement de zone	
+	var dateVisu = Date.parseDate(this.input.value,this.pattern);
+	//attention au decalage horaire (pour la zone du client)		
+	if (this.ecwCalStandardTimeOffset==this.ecwCalLocalTimeOffset && this.ecwCalSavingTime) {		
+		dateVisu.setTime(dateVisu.getTime() - (this.ecwCalSavingTimeOffset*60*60*1000));		
+	}
+	// depuis la date je reconstruit la date ISO	
+	var m = ((dateVisu.getMonth()*1+1)>9)?(dateVisu.getMonth()*1+1)+"":("0"+(dateVisu.getMonth()*1+1));
+	var d = (dateVisu.getDate()*1>9)?dateVisu.getDate()*1+"":("0"+dateVisu.getDate()*1);
+	var h = (dateVisu.getHours()*1>9)?dateVisu.getHours()*1+"":("0"+dateVisu.getHours()*1);
+	var min = (dateVisu.getMinutes()*1>9)?dateVisu.getMinutes()*1+"":("0"+dateVisu.getMinutes()*1);
+	var sec = (dateVisu.getSeconds()*1>9)?dateVisu.getSeconds()*1+"":("0"+dateVisu.getSeconds()*1);
+	var txtDateIso = dateVisu.getFullYear();	
+	txtDateIso += "-" + m;	
+	txtDateIso += "-" + d;	
+	txtDateIso += "T" + h;
+	txtDateIso += ":" + min;
+	txtDateIso += ":" + sec;	
+	//ajouter la time zone de la Date ISO actuelle (ou la zone par defaut : cas de l'initialisation)
+	// si la date ISO n'est pas renseigne alors creer la date ISO
+	var tmpDateIso = this.inputISO.value;
+	var zoneDateIso = this.ecwCalStandardTimeOffset;
+	if (tmpDateIso && tmpDateIso.length>0) {	
+		var zoneDateIso = this.getDateIsoTimeZone(this.inputISO.value);
+		if (this.ecwCalStandardTimeOffset!=zoneDateIso) zoneDateIso = this.ecwCalStandardTimeOffset			
+	}
+	txtDateIso += this.tranformeTimeZoneToString(zoneDateIso);
+	this.inputISO.value = txtDateIso;
+}
+
+/**
+ * Retourne la timezone d'une date au format ISO
+ * @strDateIso la chaine au format ISO
+ * @private
+ */
+ECW.Calendar.prototype.getDateIsoTimeZone = function(strDateIso) {	
+	if(strDateIso.indexOf('Z')>0) {
+		return 0;		
+	} else {
+		var tabOffset = strDateIso.split("T");
+		var sep="-";
+		if (tabOffset[1].indexOf('+')>0) {
+			sep="+";	
+		}
+		var zone = tabOffset[1].split(sep);
+		var numZone = parseInt(zone[1].replace(":","."));
+		return (sep=="-")?-numZone:numZone;		
+	}			
+}
+
+/**
+ * Convertie une chaine au format ISO en Date (heure locale)
+ * @input la chaine au format ISO
+ * @private
+ */
+ECW.Calendar.prototype.convertIsoToDate = function(input) {        
+    if (!this.isIsoDate(input)) return null;
+    var d = input.match(/^(\d{4})-(\d{2})-(\d{2})[T ](\d{2}):(\d{2}):(\d{2}(?:\.\d+)?)(Z|(([+-])(\d{2}):(\d{2})))$/i);    
+    return new Date(
+            Date.UTC(d[1],d[2]-1,d[3],d[4],d[5],d[6]|0,(d[6]*1000-((d[6]|0)*1000))|0,d[7]) +
+            (d[7].toUpperCase() ==="Z" ? 0 : (d[10]*3600 + d[11]*60) * (d[9]==="-" ? 1000 : -1000)));
+}
+
+
+/**
+ * Convertie une chaine au format ISO en Date (heure locale)
+ * @input la chaine au format ISO
+ */
+ECW.Calendar.prototype.isIsoDate = function(input) {	
+	if (!(typeof input === "string")) return false;
+	var d = input.match(/^(\d{4})-(\d{2})-(\d{2})[T ](\d{2}):(\d{2}):(\d{2}(?:\.\d+)?)(Z|(([+-])(\d{2}):(\d{2})))$/i);
+	if (!d) return false;
+	return true;
+}
+
+/**
+ * Retourne la timezone formattee en ISO
+ * @valeur la valeur de la timezone en numerique
+ * @private
+ */
+ECW.Calendar.prototype.tranformeTimeZoneToString = function(valeur) {
+	if (valeur==0) return "Z";	
+	var signe="+";	
+	if (valeur<0) { 
+		valeur = -valeur;
+		signe="-";	
+	}
+	valeur = valeur + "";//transformation en chaine
+	var tableNumber;
+	if (valeur.indexOf('.')>0) {
+		tableNumber = valeur.split(".");
+		tableNumber[0] = (tableNumber[0]*1>9)?tableNumber[0]:"0"+tableNumber[0];
+		tableNumber[1] = (tableNumber[1]*1>9)?tableNumber[1]:"0"+tableNumber[1];
+	} else {
+		tableNumber = new Array();		
+		tableNumber[0] = ((valeur*1)>9)?valeur:"0"+valeur;
+		tableNumber[1] = "00";		
+	}
+	return signe + tableNumber[0]+":"+tableNumber[1];
+}
+
+/**
+ * Set le message du Title de l'icone du calendar
+ * @message le message a afficher dans la bulle d'aide
+ * @private
+ */
+ECW.Calendar.prototype.setTitleTimeZoneImage = function(message) {    
+  if (this.ecwIconTimeZone) this.ecwIconTimeZone.title=message;
+}
+
+/**
+ * Fonction permettant d'afficher le calendar
+ * @idEcwCalendar l'identifiant du calendar
+ * @private
+ */
+showAndFocus = function(idEcwCalendar) {
+	var tmpEcwCal = ecwActiveUI.getCalendar(idEcwCalendar);
+	tmpEcwCal.show();
+	/* On met le focus sur l'input associe */
+  	tmpEcwCal.input.ecwControl.setFocus();
+  	return false;
+}
+
+/**
+ * Fermeture du popup des fuseaux horaires et
+ * ouverture du calendar(en asynchrone)
+ * @idEcwCalendar l'identifiant du calendar
+ * @private
+ */
+closePopupTimeZone = function(idEcwCalendar) {	
+	ecwClosePopup();	
+	setTimeout("showAndFocus('"+idEcwCalendar+"');",1);	
+	return false;
+}
+
+/**
+ * Selection d'un nouveau fuseau horaire
+ * et modification de la date/heure courante
+ * avec ce nouveau fuseau
+ * @objEcwTableTZ une reference sur l'objet Tablev2 ECW 
+ * @idEcwCalendar l'identifiant du calendar
+ * @private
+ */
+selectedTimeZone = function(objEcwTableTZ,idEcwCalendar) {
+	var selectZone = objEcwTableTZ.getKeyVal("timezone");
+	var tmpEcwCal = ecwActiveUI.getCalendar(idEcwCalendar);	
+	if (tmpEcwCal.changeDateTimeZone(selectZone)) {
+		var idTdZone = idEcwCalendar + "EcwTdTZ";
+		var td = document.getElementById(idTdZone);
+		var idx = findIndexTableTimeZone(tmpEcwCal.ecwCalStandardTimeOffset);
+		if (td) td.innerHTML= messageTimeZone(idx);	
+	}
+	return false;	
+}
+
+/**
+ * Contruction du message d'information concernant le
+ * fuseau horaire courant 
+ * @timezone le fuseau horaire selectionne
+ * @private
+ */
+messageTimeZone = function(timezone) {
+	return Calendar._TITLE_TIMEZONETABLE["fuseauCourant"]+" : " + 
+	Calendar._TIMEZONETABLE[timezone][1]+" " +Calendar._TIMEZONETABLE[timezone][3];	
+}
+
+/**
+ * Fonction permettant d'afficher le tableau
+ * des fuseaux horaires
+ * @event evenement recu au declenchement de la fonction
+ * @private
+ */
+showPopupTimeZone = function(event) {	
+	//recuperer l'appelant pour avoir l'identifiant du calendar ECW 
+	// (car traitement asynchrone lie au event)	
+	var el = (ECW_isIE)? window.event.srcElement.parentNode : event.currentTarget;
+	var cal = el.calendar;	
+	var idDivEcwCalendar = cal.ECWcalendar.noeudDOM.id;
+	var idTable = idDivEcwCalendar + "EcwTableTZ";	
+	var idTdZone = idDivEcwCalendar + "EcwTdTZ";
+	var idx = findIndexTableTimeZone(cal.ECWcalendar.ecwCalStandardTimeOffset);
+	var libCurrentZone = messageTimeZone(idx);	
+	var tmpChaine="<html><head><script src='"+ecwBaseRef+"/ecw.js'></script>";
+	tmpChaine+="<script>";
+	tmpChaine+="with(ecwActiveUI){onEscape=function(){closePopupTimeZone('"+idDivEcwCalendar+"');return false;}}";
+	tmpChaine+=" ecwActiveUI.getTable('"+idTable+"').selectLine("+idx+");"		
+	tmpChaine+="with(ecwActiveUI.getTable('"+idTable+"')){onExecute=function(){selectedTimeZone(this,'"+idDivEcwCalendar+"');}}";
+	tmpChaine+="</script>";	
+	tmpChaine+="</head><body>";		
+	tmpChaine+="<table border='0'>";	
+	tmpChaine+="<tr><td id='"+idTdZone+"' class='ecwInfoIhm'>"+libCurrentZone+"</td>";
+	tmpChaine+="<td align='right'><span class='ecwTitleButtonBackIhm' title='Back' onclick=\"javascript:closePopupTimeZone('"+idDivEcwCalendar+"');\" /></td>";		
+	tmpChaine+="</tr><tr><td colspan='2'>";	
+	tmpChaine+="<div id='"+idTable+"' ecwAutoExecuteOnClick='true' class='ecwTable' ecwNbLines='10' ecwAlternateColor='true'>";
+	tmpChaine+="\n <table ecwKeyName0='timezone'>";
+	tmpChaine+="\n <thead>";
+	tmpChaine+="\n <tr>";
+	tmpChaine+="\n <th>"+Calendar._TITLE_TIMEZONETABLE["fuseauHoraire"]+"</th>";
+	tmpChaine+="\n <th>"+Calendar._TITLE_TIMEZONETABLE["decalageLibelle"]+"</th>";
+	tmpChaine+="\n <th>"+Calendar._TITLE_TIMEZONETABLE["ville"]+"</th>";
+	tmpChaine+="\n <th>"+Calendar._TITLE_TIMEZONETABLE["pays"]+"</th>";
+	tmpChaine+="\n </tr>";
+	tmpChaine+="\n </thead>";
+	tmpChaine+="\n <tbody>\n"
+	var nbZone = Calendar._TIMEZONETABLE.length;
+	for(var i=0;i<nbZone;i++) {
+		tmpChaine+="<tr ecwkeyval0='"+Calendar._TIMEZONETABLE[i][0]+"'><td ecwkeyname='timezone'>"+Calendar._TIMEZONETABLE[i][1]+"</td>\n";
+		tmpChaine+="<td>"+Calendar._TIMEZONETABLE[i][2]+"</td>\n";
+		tmpChaine+="<td>"+Calendar._TIMEZONETABLE[i][3]+"</td>\n";
+		tmpChaine+="<td>"+Calendar._TIMEZONETABLE[i][4]+"</td></tr>\n";
+	}
+	tmpChaine+="\n</tbody>";
+	tmpChaine+="\n</table>";
+	tmpChaine+="\n</div>";
+	tmpChaine+="\n</td></tr></table>";
+	tmpChaine+="\n</body></html>";	
+	var idPopupTimeZone =idDivEcwCalendar+"EcwPopup";	
+	ecwOpenPopupHTMLSpecial(tmpChaine,idPopupTimeZone,cal.ECWcalendar.getInputCalendar());
+	return false;	
+}
+
+/**
+ * Recherche de l'index dans le tableau
+ * correspondant au fuseau selectionne
+ * @currentZone la zone selectionnee
+ * @private
+ */
+findIndexTableTimeZone = function(currentZone) {
+	var nbZone = Calendar._TIMEZONETABLE.length;
+	var indexUtc;
+	for(var i=0;i<nbZone;i++) {
+		if (currentZone==Calendar._TIMEZONETABLE[i][0]) return i;
+		if (Calendar._TIMEZONETABLE[i][0]=="0") indexUtc = i;
+	}
+	//sinon par defaut UTC
+	return indexUtc
+}
+
+//----------------------------- Formattage des Dates a la Norme ISO ---------------------------------------------
+/**
+ * Fonction de manipulation des dates ISO / UTC
+ * @private
+ */
+var dateFormat = function () {
+	var	token = /d{1,4}|m{1,4}|yy(?:yy)?|([HhMsTt])\1?|[LloSZ]|"[^"]*"|'[^']*'/g,
+		timezone = /\b(?:[PMCEA][SDP]T|(?:Pacific|Mountain|Central|Eastern|Atlantic) (?:Standard|Daylight|Prevailing) Time|(?:GMT|UTC)(?:[-+]\d{4})?)\b/g,
+		timezoneClip = /[^-+\dA-Z]/g,
+		pad = function (val, len) {
+			val = String(val);
+			len = len || 2;
+			while (val.length < len) val = "0" + val;
+			return val;
+		};
+	// Regexes and supporting functions are cached through closure
+	return function (date, mask, utc) {
+		var dF = dateFormat;
+		// You can't provide utc if you skip other args (use the "UTC:" mask prefix)
+		if (arguments.length == 1 && (typeof date == "string" || date instanceof String) && !/\d/.test(date)) {
+			mask = date;
+			date = undefined;
+		}
+		// Passing date through Date applies Date.parse, if necessary
+		date = date ? new Date(date) : new Date();
+		if (isNaN(date)) throw new SyntaxError("invalid date");
+		mask = String(dF.masks[mask] || mask || dF.masks["default"]);
+		// Allow setting the utc argument via the mask
+		if (mask.slice(0, 4) == "UTC:") {
+			mask = mask.slice(4);
+			utc = true;
+		}
+		var	_ = utc ? "getUTC" : "get",
+			d = date[_ + "Date"](),
+			D = date[_ + "Day"](),
+			m = date[_ + "Month"](),
+			y = date[_ + "FullYear"](),
+			H = date[_ + "Hours"](),
+			M = date[_ + "Minutes"](),
+			s = date[_ + "Seconds"](),
+			L = date[_ + "Milliseconds"](),
+			o = utc ? 0 : date.getTimezoneOffset(),
+			flags = {
+				d:    d,
+				dd:   pad(d),
+				ddd:  dF.i18n.dayNames[D],
+				dddd: dF.i18n.dayNames[D + 7],
+				m:    m + 1,
+				mm:   pad(m + 1),
+				mmm:  dF.i18n.monthNames[m],
+				mmmm: dF.i18n.monthNames[m + 12],
+				yy:   String(y).slice(2),
+				yyyy: y,
+				h:    H % 12 || 12,
+				hh:   pad(H % 12 || 12),
+				H:    H,
+				HH:   pad(H),
+				M:    M,
+				MM:   pad(M),
+				s:    s,
+				ss:   pad(s),
+				l:    pad(L, 3),
+				L:    pad(L > 99 ? Math.round(L / 10) : L),
+				t:    H < 12 ? "a"  : "p",
+				tt:   H < 12 ? "am" : "pm",
+				T:    H < 12 ? "A"  : "P",
+				TT:   H < 12 ? "AM" : "PM",
+				Z:    utc ? "UTC" : (String(date).match(timezone) || [""]).pop().replace(timezoneClip, ""),
+				o:    (o > 0 ? "-" : "+") + pad(Math.floor(Math.abs(o) / 60) * 100 + Math.abs(o) % 60, 4),
+				S:    ["th", "st", "nd", "rd"][d % 10 > 3 ? 0 : (d % 100 - d % 10 != 10) * d % 10]
+			};
+		return mask.replace(token, function ($0) {
+			return $0 in flags ? flags[$0] : $0.slice(1, $0.length - 1);
+		});
+	};
+}();
+// Some common format strings
+dateFormat.masks = {
+	"default":      "ddd mmm dd yyyy HH:MM:ss",
+	shortDate:      "m/d/yy",
+	mediumDate:     "mmm d, yyyy",
+	longDate:       "mmmm d, yyyy",
+	fullDate:       "dddd, mmmm d, yyyy",
+	shortTime:      "h:MM TT",
+	mediumTime:     "h:MM:ss TT",
+	longTime:       "h:MM:ss TT Z",
+	isoDate:        "yyyy-mm-dd",
+	isoTime:        "HH:MM:ss",
+	isoDateTime:    "yyyy-mm-dd'T'HH:MM:ss",
+	isoUtcDateTime: "UTC:yyyy-mm-dd'T'HH:MM:ss'Z'"
+};
+// Internationalization strings
+dateFormat.i18n = {
+	dayNames: [
+		"Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat",
+		"Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"
+	],
+	monthNames: [
+		"Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec",
+		"January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"
+	]
+};

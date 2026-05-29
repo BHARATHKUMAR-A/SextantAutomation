@@ -1,0 +1,10 @@
+{
+    "puttyData": {
+        
+        "devUrl": "http://zg.stxj9.sextant.preprod.inetpsa.com/login.do"
+        
+    },
+    "logFilePath": {
+        "puttyLogFile": "C:\\Users\\SF75684\\Sextent_Automation_Workspace\\Sextent\\test-data\\putty.log"
+    }
+}

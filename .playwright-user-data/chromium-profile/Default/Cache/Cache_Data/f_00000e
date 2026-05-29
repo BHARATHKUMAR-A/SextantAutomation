@@ -1,0 +1,538 @@
+/**
+ * @fileoverview D&eacute;fini l'objet <b>ECW.TimeField</b>, un champ de saisie
+ * contraint qui permet de saisir une heure.
+ * @author Cyrille Klein
+ * @version $Revision: 1.11.6.2 $
+ */
+ 
+/**
+ * Constructeur de l'objet <b>ECW.TimeField</b>.
+ * @param ecwDiv le noeud DOM (div) qui encapsule le champ de saisie.
+ * @private
+ */
+ECW.TimeField = function(ecwDiv) {
+  ecwStartTimer("ECW.TimeField");
+  ecwSetAttribute(this, "noeudDOM", ecwDiv);
+  if (this.noeudDOM.getElementsByTagName("input") != null) {
+    // Normalement c'est le seul (donc premier) input dans la div
+    ecwSetAttribute(this, "input", this.noeudDOM.getElementsByTagName("input")[0]);
+  } else {
+    throw "ElementRequiredException";
+  }
+  ecwSetAttribute(this.input, "ecwTimeField", this);
+  this.emptyChar = '_';
+  var pattern = this.noeudDOM.getAttribute("ecwPattern");
+  if (!pattern) {
+    pattern = "%H:%M";
+  }
+  this.regExp = this.buildRegExp(pattern, this.emptyChar);
+  this.hIndex = pattern.indexOf("%H");
+  this.mIndex = pattern.indexOf("%M");
+  this.sIndex = pattern.indexOf("%S");
+  this.emptyValue = this.buildEmptyValue(pattern, this.emptyChar);
+  this.input.maxlength = this.emptyValue.length;
+  if (!this.validateString(this.input.value)) {
+    this.input.value = this.emptyValue;
+  }
+  if (this.input.onkeydown) {
+    this.input.onkeydownHtml = this.input.onkeydown;
+  }
+  /**
+   * Pour FF 2.0 (au moins sous Linux), le onkeydown ne fournit pas toutes les cles.
+   */
+  if(ECW_isGecko)
+    this.input.onkeypress = this.onKeyDown;
+  else
+    this.input.onkeydown = this.onKeyDown;
+    
+  this.changeFlag=false;   
+  if (this.input.onchange && !ECW_isGecko_1_7_5) {
+  	if (this.input.onblur) this.input.onblurHtml = this.input.onblur;
+  	this.input.onblur = this.onEcwBlur;
+  } 
+  
+  ecwStopTimer("ECW.TimeField");
+};
+
+/**
+ * Construit une expression r&eacute;guli&egrave;re pour tester la
+ * validit&eacute; de la cha&icirc;ne saisie.
+ * @private
+ * @param pattern le mod&egrave;le de la cha&icirc;ne,
+ * @param emptyChar le caract&egrave;re 'vide' qui remplace l'espace.
+ * @return une expression r&eacute;guli&egrave;re.
+ */
+ECW.TimeField.prototype.buildRegExp = function(pattern, emptyChar) {
+  var repl = "[0-9" + emptyChar + "]" + "[0-9" + emptyChar + "]";
+  var regexp = pattern.replace(/%H|%M|%S/g, repl);
+  return new RegExp(regexp);
+};
+
+/**
+ * Construit une cha&icirc;ne correspondante &agrave; la valeur du champ vide.
+ * @private
+ * @param pattern le mod&egrave;le de la cha&icirc;ne,
+ * @param emptyChar le caract&egrave;re 'vide' qui remplace l'espace.
+ * @return une cha&icirc;ne de caract&egrave;re.
+ */
+ECW.TimeField.prototype.buildEmptyValue = function(pattern, emptyChar) {
+  var repl = "" + emptyChar + emptyChar;
+  return pattern.replace(/%H|%M|%S/g, repl);
+};
+
+/**
+ * Supprime les caract&egrave;res de la s&eacute;lection et les remplace par
+ * les caract&egrave;res de la cha&icirc;ne vide.
+ * @private
+ * @param selection l'objet <code>ECW.Selection</code>.
+ */
+ECW.TimeField.prototype.clearSelection = function(selection) {
+  var oldValue = this.input.value;
+  var len = oldValue.length; // must be equal to this.emptyValue.length
+  var start = selection.getStartIndex();
+  var end = selection.getEndIndex();
+  var newValue = oldValue.substring(0, start);
+  newValue += this.emptyValue.substring(start, end);
+  newValue += oldValue.substring(end, len);
+  this.input.value = newValue;
+};
+
+/**
+ * Remplace les caract&egrave;res 'vides' de la cha&icirc;ne par le
+ * caract&egrave;re spr&eacute;cifi&eacute;.
+ * @private
+ * @param str la cha&icirc;ne,
+ * @param c le caract&egrave;re de remplacement.
+ * @return une cha&icirc;ne de caract&egrave;re.
+ */
+ECW.TimeField.prototype.replaceEmpty = function(str, c) {
+  var regexp = new RegExp(this.emptyChar, 'g');
+  return str.replace(regexp, c);
+};
+
+/**
+ * R&eacute;cup&egrave;re l'entier &eacute;crit dans la cha&icirc;ne entre
+ * les indices sp&eacute;cifi&eacute;s.
+ * @private
+ * @param str la cha&icirc;ne,
+ * @param startIndex l'indice de d&eacute;but,
+ * @param endIndex l'indice de fin.
+ * @return un entier
+ */
+ECW.TimeField.prototype.parseInt = function(str, startIndex, endIndex) {
+  // No verification
+  str = str.substring(startIndex, endIndex);
+  str = this.replaceEmpty(str, "");
+  if ("" == str)
+    return 0;
+  else
+    return parseInt(str, 10);
+};
+
+/**
+ * Ecrit un caract&egrave;re &agrave; l'emplacement sp&eacute;cifi&eacute;.
+ * @private
+ * @param c le caract&egrave;re,
+ * @param pos la position.
+ * @return la nouvelle position du curseur, ou <code>-1</code> si la
+ * cha&icirc;ne n'est pas valide avec ce nouveau caract&egrave;re.
+ */
+ECW.TimeField.prototype.setChar = function(c, pos) {
+  var oldValue = this.input.value;
+  var len = this.emptyValue.length; // must be equal to oldValue.length
+  while (this.emptyChar != this.emptyValue.charAt(pos) && pos < len) {
+    ++pos;
+  }
+  if (0 <= pos && pos < len) {
+    var newValue = oldValue.substring(0, pos);
+    newValue += c;
+    ++pos;
+    newValue += oldValue.substring(pos, len);
+    if (this.validateString(newValue)) {
+      this.input.value = newValue;
+      return pos;
+    }
+  }
+  return -1;
+};
+
+/**
+ * R&eacute;cup&egrave;re la valeur correspondante &agrave; l'heure dans
+ * la cha&icirc;ne sp&eacute;cifi&eacute;e.
+ * @private
+ * @param str la cha&icirc;ne &agrave; parser.
+ * @return un entier.
+ */
+ECW.TimeField.prototype.parseHours = function(str) {
+  if (-1 != this.hIndex)
+    return this.parseInt(str, this.hIndex, this.hIndex + 2);
+  else
+    return 0;
+};
+
+/**
+ * Renvoie l'heure saisie dans le contr&ocirc;le.
+ * @return un entier.
+ */
+ECW.TimeField.prototype.getHours = function() {
+  return this.parseHours(this.input.value);
+};
+
+
+/**
+ * R&eacute;cup&egrave;re la valeur correspondante aux minutes dans
+ * la cha&icirc;ne sp&eacute;cifi&eacute;e.
+ * @private
+ * @param str la cha&icirc;ne &agrave; parser.
+ * @return un entier.
+ */
+ECW.TimeField.prototype.parseMinutes = function(str) {
+  if (-1 != this.mIndex)
+    return this.parseInt(str, this.mIndex, this.mIndex + 2);
+  else
+    return 0;
+};
+
+/**
+ * Renvoie les minutes saisies dans le contr&ocirc;le.
+ * @return un entier.
+ */
+ECW.TimeField.prototype.getMinutes = function() {
+  return this.parseMinutes(this.input.value);
+};
+
+
+/**
+ * R&eacute;cup&egrave;re la valeur correspondante aux secondes dans
+ * la cha&icirc;ne sp&eacute;cifi&eacute;e.
+ * @private
+ * @param str la cha&icirc;ne &agrave; parser.
+ * @return un entier.
+ */
+ECW.TimeField.prototype.parseSeconds = function(str) {
+  if (-1 != this.sIndex)
+    return this.parseInt(str, this.sIndex, this.sIndex + 2);
+  else
+    return 0;
+};
+
+/**
+ * Renvoie les secondes saisies dans le contr&ocirc;le.
+ * @return un entier.
+ */
+ECW.TimeField.prototype.getSeconds = function() {
+  return this.parseSeconds(this.input.value);
+};
+
+/**
+ * Teste la validit&eacute; de la cha&icirc;ne sp&eacute;cifi&eacute;e.
+ * @private
+ * @param str la cha&icirc;ne &agrave; tester.
+ * @return un bool&eacute;en.
+ */
+ECW.TimeField.prototype.validateString = function(str) {
+  if (str != str.match(this.regExp))
+    return false;
+  var hh = this.parseHours(str);
+  if (0 > hh || 24 <= hh)
+    return false;
+  var mm = this.parseMinutes(str);
+  if (0 > mm || 60 <= mm)
+    return false;
+  var ss = this.parseSeconds(str);
+  if (0 > ss || 60 <= ss)
+    return false;
+  return true;
+};
+
+/**
+ * Teste la validit&eacute; du champ (saisie complete).
+ * @private
+ * @return un bool&eacute;en.
+ */
+ECW.TimeField.prototype.validate = function() {
+
+  var nbControl = nbSaisie = 0;
+  var value = this.input.value;
+  var str = null;
+  
+  if (-1 != this.hIndex) {
+    nbControl++;
+    str = value.substring(this.hIndex, this.hIndex + 2);
+    if (str.indexOf(this.emptyChar)==-1) {
+    	nbSaisie++;
+    }
+  }
+
+  if (-1 != this.mIndex) {
+    nbControl++;
+    str = value.substring(this.mIndex, this.mIndex + 2);
+    if (str.indexOf(this.emptyChar)==-1) {
+    	nbSaisie++;
+    }
+  }
+
+  if (-1 != this.sIndex) {
+    nbControl++;
+    str = value.substring(this.sIndex, this.sIndex + 2);
+    if (str.indexOf(this.emptyChar)==-1) {
+    	nbSaisie++;
+    }
+  }
+  return (nbControl == nbSaisie || nbSaisie == 0);
+};
+
+/**
+ * M&eacute;thode appel&eacute;e sur l'&eacute;v&egrave;nement <code>onfocus</code>.
+ * <br>
+ * Positionne le curseur au d&eacute;but du champ de saisie.
+ * @private
+ */
+ECW.TimeField.prototype.activer = function() {
+  var selection = new ECW.Selection(this.input);
+  selection.select(0);
+  this.changeFlag=false;
+};
+
+/**
+ * Gestion des &eacute;v&egrave;nements clavier.
+ * @private
+ * @param ecwEvent un &eacute;v&egrave;nement clavier encapsul&eacute; dans
+ * un objet <code>ECW.Event</code>.
+ * @return
+ * <ul>
+ *   <li> 0 : touche interdite </li>
+ *   <li> 1 : touche traitee </li>
+ *   <li> 2 : touche autorisee </li>
+ * </ul>
+ */
+ECW.TimeField.prototype.onKeyEvent = function(ecwEvent) {
+  //Bug fix onchange sur input timefield
+  // selection a initialiser uniquement si necessaire 	
+  //var selection = new ECW.Selection(this.input); 
+  //-------- Pour le DEBUG --------
+  //ui.setMessage("I", "ecwEvent.keyCode : " + ecwEvent.keyCode + " | ecwEvent.action : " + ecwEvent.action);
+  //-------------------------------
+  switch (ecwEvent.action) {
+    case "BACKSPACE" :
+    	var valBefor=this.input.value;
+    	var selection = new ECW.Selection(this.input);
+      if (selection.getStartIndex() == selection.getEndIndex())
+        selection.setStartIndex(selection.getStartIndex() - 1);
+      this.clearSelection(selection);
+      selection.select(selection.getStartIndex());
+      if(valBefor!=this.input.value) this.changeFlag=true;
+      return 1;
+    case "DEL" :
+    	var valBefor=this.input.value;
+    	var selection = new ECW.Selection(this.input);
+      if (selection.getStartIndex() == selection.getEndIndex()) 
+        selection.setEndIndex(selection.getEndIndex() + 1);
+      this.clearSelection(selection);
+      selection.select(selection.getEndIndex());
+      if(valBefor!=this.input.value) this.changeFlag=true;
+      return 1;
+    case "RIGHT" :
+    	var selection = new ECW.Selection(this.input);
+      if (selection.getStartIndex() == selection.getEndIndex())
+        selection.select(selection.getStartIndex() + 1);
+      else
+        selection.select(selection.getEndIndex());
+      return 1;
+    case "SHIFT+RIGHT" :
+    	var selection = new ECW.Selection(this.input);
+      selection.select(selection.getStartIndex(), selection.getEndIndex() + 1);
+      return 1;
+    case "CTRL+RIGHT" :
+    	var selection = new ECW.Selection(this.input);
+      selection.select(selection.getStartIndex(), this.emptyValue.length);
+      return 1;
+    case "LEFT" :
+    	var selection = new ECW.Selection(this.input);
+      if (selection.getStartIndex() == selection.getEndIndex())
+        selection.select(selection.getStartIndex() - 1);
+      else
+        selection.select(selection.getStartIndex());
+      return 1;
+    case "SHIFT+LEFT" :
+    	var selection = new ECW.Selection(this.input);
+      selection.select(selection.getStartIndex() - 1, selection.getEndIndex());
+      return 1;
+    case "CTRL+LEFT" :
+    	var selection = new ECW.Selection(this.input);
+      selection.select(0, selection.getEndIndex());
+      return 1;
+    case "HOME" :
+    	var selection = new ECW.Selection(this.input);
+      selection.select(0);
+      return 1;
+    case "END" :
+    	var selection = new ECW.Selection(this.input);
+      selection.select(this.emptyValue.length);
+      return 1;
+    case "0" :
+    case "1" :
+    case "2" :
+    case "3" :
+    case "4" :
+    case "5" :
+    case "6" :
+    case "7" :
+    case "8" :
+    case "9" :    	
+    	var valBefor=this.input.value;
+    	var selection = new ECW.Selection(this.input);    	 
+      if (selection.getEndIndex() - selection.getStartIndex() > 1)
+        this.clearSelection(selection);
+      selection.select(selection.getStartIndex());
+      var newPos = this.setChar(ecwEvent.action, selection.getStartIndex());      
+      if (-1 != newPos) selection.select(newPos);   
+      if(valBefor!=this.input.value) this.changeFlag=true;     
+      return 1;
+    case "TAB" :
+    case "SHIFT+TAB" :
+    case "ESC" :
+    case "ENTER" :
+    case "CTRL+A" :
+    case "CTRL+C" :
+      return 2;
+    default :
+      return 0;
+  }
+};
+
+/**
+ * Callback sur l'&eacute;v&egrave;nement <code>onkeydown</code> du contr&ocirc;le.
+ * @private
+ * @param event l'&eacute;v&egrave;nement fourni par le navigateur.
+ * @return un bool&eacute;en.
+ */
+ECW.TimeField.prototype.onKeyDown = function(event) {
+  var ecwEvent = new ECW.Event(event);
+  /*
+   *  1 keypress:keyCode=0 charCode=38 which=38
+   * 2 keypress:keyCode=0 charCode=233 which=233
+   * 3 keypress:keyCode=0 charCode=34 which=34
+   * 4 keypress:keyCode=0 charCode=39 which=39
+   * 5 keypress:keyCode=0 charCode=40 which=40
+   * 6 keypress:keyCode=0 charCode=45 which=45
+   * 7 keypress:keyCode=0 charCode=232 which=232
+   * 8 keypress:keyCode=0 charCode=95 which=95
+   * 9 keypress:keyCode=0 charCode=231 which=231
+   * 0 keypress:keyCode=0 charCode=224 which=224
+ */
+   /*
+    * 2 keypress:keyCode=0 charCode=233 which=233
+    * 7 keypress:keyCode=0 charCode=232 which=232
+    * 9 keypress:keyCode=0 charCode=231 which=231
+    * 0 keypress:keyCode=0 charCode=224 which=224
+  */
+  /** 
+   * Redefinition kbactions pour prise en compte touche chiffre clavier pour moteur Gecko.
+   * JIRA : SIFAECW-578 défait pour SIFAECW-728 et SIFAECW-753
+   */
+   /*ecwEvent.kbActions = {
+       8: "BACKSPACE",
+       9: "TAB",
+       13: "ENTER",
+       16: "SHIFT", 
+       17: "CTRL",
+       18: "ALT",
+       27: "ESC",
+       32: "SPACE", 
+       33: "PAGE_UP",
+       34: "3",
+       35: "END",
+       36: "HOME", 
+       37: "LEFT",
+       38: "1",
+       39: "4",
+       40: "5", 
+       45: "6",
+       46: "DEL", 
+       48: "0", 
+       49: "1", 
+       50: "2", 
+       51: "3", 
+       52: "4", 
+       53: "5", 
+       54: "6", 
+       55: "7",
+       56: "8", 
+       57: "9",
+       95: "8", 
+       96: "0", 
+       97: "1", 98: "2", 99: "3", 100: "4", 101: "5", 102: "6",
+       103: "7", 104: "8", 105: "9",
+       112: "F1", 113: "F2", 114: "F3", 115: "F4", 116: "F5", 117: "F6",
+       118: "F7", 119: "F8", 120: "F9", 121: "F10", 122: "F11", 123: "F12",
+       65: "1", 66: "2", 67: "3", 68: "4", 69: "E", 70: "F", 71: "G", 72: "H",
+       73: "I", 74: "J", 75: "K", 76: "L", 77: "M", 78: "N", 79: "O", 80: "P",
+       81: "Q", 82: "R", 83: "S", 84: "T", 85: "U", 86: "V", 87: "W", 88: "X",
+       89: "Y", 90: "Z",
+       188: ",", 191: ":",
+       224:"0",
+       231:"9",
+       232:"7",
+       233:"2"
+  };*/
+  /* Init Action Event.*/
+  ecwEvent.setKbActions(); //SIFAECW-578 défait pour SIFAECW-728 et SIFAECW-753
+  
+  var noeudDOM = ecwEvent.target.parentNode;
+  var ok = noeudDOM.ecwTimeField.onKeyEvent(ecwEvent);
+  //return true; //ajout CMA
+  //alert("CMA REtour="+ ok +"\nflag="+ (2==ok)+"\necwEvent.target.onkeydownHtml="+ecwEvent.target.onkeydownHtml);
+  if (0 == ok) {
+    // le caractere est interdit    
+    return false;         
+  } else {
+    // le caractere est autorise
+    if (ecwEvent.target.onkeydownHtml) {      
+      return (false != ecwEvent.target.onkeydownHtml()) && (2==ok);
+    }    
+    return (2==ok);
+  }
+   
+};
+
+
+/**
+ * D&eacute;sactive l'aide &agrave; la saisie, c'est &agrave; dire le texte
+ * contenu dans le contr&ocirc;le lorsque celui-ci n'est pas renseign&eacute;.
+ */
+ECW.TimeField.prototype.disableHelpContent = function() {
+  if (this.emptyValue == this.input.value) {
+    this.input.value = "";
+  }
+}
+
+/**
+ * Active l'aide &agrave; la saisie, c'est &agrave; dire le texte contenu
+ * dans le contr&ocirc;le lorsque celui-ci n'est pas renseign&eacute;.
+ */
+ECW.TimeField.prototype.enableHelpContent = function() {
+  if ("" == this.input.value) {
+    this.input.value = this.emptyValue;
+  }
+}
+
+/**
+ * Evenement ajoute par ECW permettant de lancer un onchange
+ * si le champ de saisie a change 
+ * @private
+ * @param event l'evenement fourni par le navigateur.
+ * @return un booleen : toujours a TRUE et donc propagation des evenements
+ */
+ECW.TimeField.prototype.onEcwBlur = function(event) {	
+	var ecwEvent = new ECW.Event(event);
+	var noeudDOM = ecwEvent.target.parentNode;		
+	if (noeudDOM.ecwTimeField.changeFlag) {
+    	noeudDOM.ecwTimeField.changeFlag=false;    	
+    	if (noeudDOM.ecwTimeField.input.onchange) noeudDOM.ecwTimeField.input.onchange();
+    }
+    if (noeudDOM.ecwTimeField.input.onblurHtml) noeudDOM.ecwTimeField.input.onblurHtml();
+	return true;
+}
+
+

@@ -1,4 +1,4 @@
-import testData_SCL_FF from '../test-data/testData_SCL_FF.json';
+//import testData_SCL_FF from '../test-data/testData_SCL_FF.json';
 import testData_WPC_FF from '../test-data/testData_WPC_FF.json';
 import { Page, Locator } from '@playwright/test';
 
@@ -10,16 +10,17 @@ class HomePage {
     createFamilyFeature: Locator;
     createSCLFamilyFeature: Locator;
     nature_SCL: Locator;
-    language_SCL: Locator;
+    transaction:Locator;
+    /* language_SCL: Locator;
     nature_SCL_option: Locator;
     language_SCL_option: Locator;
-    spcificSalesRange_SCL: Locator;
+    spcificSalesRange_SCL: Locator; */
     manualCode_SCL: Locator;
     nextButton_SCL: Locator;
     createFeatureValue: Locator;
     searchSideBar: Locator;
     search: Locator;
-    searchTransversalModel: Locator;
+    //searchTransversalModel: Locator;
 
     constructor(page: Page) {
         this.page = page;
@@ -35,7 +36,7 @@ class HomePage {
         this.createFeatureValue = page.locator("//span[contains(text(), 'Create feature value')]");
         this.searchSideBar = page.locator("//span[contains(text(), 'Search')]").first()
         this.search = page.locator("(//span[@class='menu-font-size'][normalize-space()='Search'])[1]");
-        this.searchTransversalModel = page.locator("//span[text()='Search Transversal Model Pack']");
+        this.transaction = page.locator("#codeTransaction");
 
     }
 }

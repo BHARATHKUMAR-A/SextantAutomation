@@ -1,7 +1,9 @@
 {
     "url": {
-        "testUrl": "https://gcm.test.stellantis.com/",
-        "devUrl": "https://gcm.dev.stellantis.com/",
-        "perfUrl": "https://gcm.perf.stellantis.com/"
+        "devUrl": "http://zg.stxj9.sextant.preprod.inetpsa.com/login.do",
+        "devUrla": "https://ms.stxc1.sextant2.preprod.inetpsa.com/login.do"
+    },
+    "logFilePath": {
+        "puttyLogFile": "C:\\Users\\SF75684\\Sextent_Automation_Workspace\\Sextent\\test-data\\putty.log"
     }
 }

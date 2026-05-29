@@ -1,0 +1,1395 @@
+/**
+
+ * @fileoverview D&eacute;fini l'objet <b>ECW.Control</b> (tous les contr&ocirc;les INPUT)
+ * @author Pascal Le Mens (pascal.lemens@mpsa.com)
+ * @version $Revision: 1.88.2.1 $
+ */
+ 
+/**
+ * D&eacute;fini l'objet <b>ECW.Control</b>
+ */
+ECW.Control = function(noeud, layout) {
+  ecwStartTimer("ECW.Control");
+  ecwSetAttribute(this, "noeudDOM", noeud);
+  if (layout) {
+    ecwSetAttribute(this, "ecwLayout", layout);
+    ecwSetAttribute(this, "ecwUI", layout.ecwUI);
+  }
+  ecwSetAttribute(noeud, "ecwControl", this);
+
+  /* Constructeur */
+  this.constructeur();
+  ecwStopTimer("ECW.Control");
+}
+
+/**
+ * Noeud DOM du champ
+ * @private
+ */
+ECW.Control.prototype.noeudDOM = null;
+
+/**
+ * Objet ECW.UI d'appartenance
+ * @private
+ */
+ECW.Control.prototype.ecwUI = null;
+
+/**
+ * Objet ECW.Control
+ * @private
+ */
+ECW.Control.prototype.ecwControl = null;
+
+/**
+ * Classe du champ
+ * @private
+ */
+ECW.Control.prototype.classe = null;
+
+/**
+ * Etiquette du champ : balise LABEL
+ * @private
+ */
+ECW.Control.prototype.ecwLabel = null;
+
+/**
+ * Message d'erreur
+ * @private
+ */
+ECW.Control.prototype.messageError = null;
+
+/**
+ * Cle du message d'erreur
+ * @private
+ */
+ECW.Control.prototype.messageErrorKey = null;
+
+/**
+ * Gravite du message d'erreur
+ * @private
+ */
+ECW.Control.prototype.messageErrorGravity = null;
+
+/**
+ * Pattern de validation du champ (Expression r&eacute;guli&eagrave;re)
+ * @private
+ */
+ECW.Control.prototype.validatorList = null;
+
+/**
+ * Pattern de validation du champ (Expression r&eacute;guli&eagrave;re)
+ * @private
+ */
+ECW.Control.prototype.pattern = null;
+
+/**
+ * Message pattern incorrect
+ * @private
+ */
+ECW.Control.prototype.messagePattern = null;
+
+/**
+ * Permet de d&eacute;finir si la saisie du champ est obligatoire sur le formulaire
+ * @private
+ */
+ECW.Control.prototype.required = null;
+
+/**
+ * Message champ obligatoire
+ * @private
+ */
+ECW.Control.prototype.messageRequired = null;
+
+/**
+ * Zone permettant l'affichage des images de validation
+ * @private
+ */
+ECW.Control.prototype.picto = null;
+
+/**
+ * ComboBox ou non
+ * @private
+ */
+ECW.Control.prototype.ecwComboBox = null;
+
+/**
+ * Force la saisie en majuscule ou non
+ * @private
+ */
+ECW.Control.prototype.upperCase = false;
+
+/**
+ * Force la saisie en minuscule ou non
+ * @private
+ */
+ECW.Control.prototype.lowerCase = false;
+
+/**
+ * Auto-tabulation active ou non
+ * @private
+ */
+ECW.Control.prototype.autoTab = false;
+
+/**
+ * Ev&egrave;nement d&eacute;clench&eacute; lors de l'auto-tabulation
+ * @type Function
+ */
+ECW.Control.prototype.onAutoTab = null;
+
+/**
+ * Objet ECW.TabItem d'appartenance : onglet
+ * @private
+ */
+ECW.Control.prototype.ecwTabItem = null;
+
+/**
+ * Ancienne valeur du champ avant modification (Utilisee pour desactiver le style du champ)
+ * @private
+ */
+ECW.Control.prototype.ecwLastValue = '';
+
+/**
+ * Div de la zone de saisie distante d'appartenance.
+ * @private
+ */
+ECW.Control.prototype.remoteInputArea = null;
+
+/**
+ * Flag indiquant que la valeur est valide.
+ * @private
+ */
+ECW.Control.prototype.validValue = true;
+
+/**
+ * Determine le style ECW en fonction de son type.
+ */
+ECW.Control.prototype.processClassName = function() {
+	
+  /* Affectation de la classe a tous les objets Champ */
+  if (this.noeudDOM.nodeName == "INPUT") {
+    this.classe = this.noeudDOM.nodeName + "_" + this.noeudDOM.type;
+  } else {
+    this.classe = this.noeudDOM.nodeName;
+  }
+}
+
+/**
+ * Constructeur de ECW.Control
+ * @private
+ */
+ECW.Control.prototype.constructeur = function() {
+
+  /* Ensemble des messages d'erreur affiche par ce composant. */
+  this.messages = new Array();
+
+  /* Determine le style ECW en fonction de son type */
+  this.processClassName();
+
+  /* Ajout du readonly au nom de la classe */
+  if (this.noeudDOM.readOnly) {
+    this.classe = this.classe + "_Readonly";
+  }
+
+  /* Ajout du style au noeud */
+  addClass(this.noeudDOM, this.classe);
+
+  /* Evenement onmouseover */
+  this.noeudDOM.onmouseover = function() {
+    /* Sous IE, l'ajout de cette classe (meme vide) engendre un comportement de selection au survol */	
+    if (window.addClass && this.nodeName != "SELECT") {
+      window.addClass(this, "ecwControlOver");
+    }
+    if (this.onmouseoverHTML) {
+      this.onmouseoverHTML();
+    }
+  }
+  
+  /* Evenement onmouseout */
+  this.noeudDOM.onmouseout = function() {
+    if (window.removeClass && this.nodeName != "SELECT") {
+      window.removeClass(this, "ecwControlOver");
+    }
+    if (this.onmouseoutHTML) {
+      this.onmouseoutHTML();
+    }
+  }
+
+  /* Gestion de l'evenement onfocus */
+  this.initEventOnFocus();
+
+  /* Gestion de l'evenement onchange */
+  this.initEventOnChange();
+  
+  /* Gestion de l'evenement onkeyup */
+  this.initEventOnKeyUp();
+  
+  /* Visibilite ??? */
+  this.isVisible();
+
+  /* Si l'id du champ n'est pas specifie */
+  /* initialisation de id a partir de name */
+  if (!this.noeudDOM.id) {
+    this.noeudDOM.id = this.noeudDOM.name;
+  }
+  
+  /* Probleme IE : sur l'affichage d'une combo (balise <select>)*/
+  /* la couleur de fond n'est pas la bonne : */
+  /* on a la couleur de survol au lieu de la couleur de selection */
+  if (ECW_isIE) {
+    /* Si c'est une balise SELECT */
+    if (this.noeudDOM.nodeName == "SELECT") {
+      /* alors ajouter le style avant le deroulement de la liste (evt onmousedown) */
+      this.noeudDOM.onmousedown = function() {
+        addClass(this, this.ecwControl.classe + "_Actif");
+      }
+    }
+  }
+
+  /* Gestion des majuscules et minuscules */
+  if (this.noeudDOM.getAttribute("ecwCase")) {
+  
+    var ecwCaseChoiced = this.noeudDOM.getAttribute("ecwCase").toLowerCase();
+    /* Forcage en majuscule */
+    if (ecwCaseChoiced == "upper") {
+      this.setUpperCase();
+    }
+    /* Forcage en minuscule */
+    else if (ecwCaseChoiced == "lower") {
+      this.setLowerCase();
+    }
+  }
+  
+  /* Auto-tabulation desactive */
+  this.autoTab = false;
+  
+  this.helpContent = null
+  if (!this.noeudDOM.ecwHelpContent) {
+    this.noeudDOM.ecwHelpContent = this.noeudDOM.getAttribute("ecwHelpContent");
+  }
+  if (this.noeudDOM.nodeName == "INPUT" && this.noeudDOM.ecwHelpContent) {
+    this.setHelpContent(this.noeudDOM.ecwHelpContent);
+  }
+}
+
+/**
+ * Evenement onfocus de base.
+ * @private
+ */
+ECW.Control.prototype.initEventOnFocus = function() {
+  /* Sauve evenement onfocus initial */
+  this.noeudDOM.onfocusHTML = this.noeudDOM.onfocus;
+
+  this.noeudDOM.onfocus = function() {
+    this.ecwControl.onFocus();
+    /* Evenement onfocus initial */
+    if (this.onfocusHTML) {
+      this.onfocusHTML();
+    }
+  }
+}
+
+/**
+ * Evenement onchange de base.
+ * @private
+ */
+ECW.Control.prototype.initEventOnChange = function() {
+  /* Evenement onchange initial */
+  this.noeudDOM.onchangeHTML = this.noeudDOM.onchange;
+  this.noeudDOM.onchange = ecwOnChange;
+}
+
+/**
+ * Evenement onkeyup de base.
+ * @private
+ */
+ECW.Control.prototype.initEventOnKeyUp = function() {
+  /* Evenement onkeyup initial */
+  this.noeudDOM.onkeyupHTML = this.noeudDOM.onkeyup;
+  this.noeudDOM.onkeyup = ecwOnKeyUp;
+}
+
+/**
+ * Retourne la visibilit&eacute; de l'objet
+ * L'element peut ne pas etre visible du fait d'un container non visible lui-meme
+ * @param bodyVisible considere que le noeud BODY est visible meme s'il ne l'est pas.
+ *        Parametre utile pour un calcul de visibilite lors de l'initialisation.
+ * @private
+ */
+ECW.Control.prototype.isVisible = function(bodyVisible) {
+  return ecwIsVisible(this.noeudDOM, bodyVisible);
+}
+
+/**
+ * D&eacute;sactive le champ qui a perdu le focus
+ * et active le nouveau champ s&eacute;lectionn&eacute;
+ * @private
+ */
+ECW.Control.prototype.onFocus = function() {
+  
+  if (this != this.ecwUI.champActif) {
+    if (this.ecwUI.champActif) {
+      this.ecwUI.champActif.desactiver();
+      
+      /* ComboBox : lien entre le champ de saisie et la table */
+      /* Table -> champ de saisie */
+      if (this.ecwUI.champActif.noeudDOM.ecwTable && this.ecwUI.champActif.noeudDOM.ecwTable.ecwComboBox
+          && this.ecwUI.champActif.noeudDOM.ecwTable.ecwComboBox.ecwControl) {
+              
+        this.ecwUI.champActif.noeudDOM.ecwTable.ecwComboBox.comboActivated = 
+          (this.ecwUI.champActif.noeudDOM.ecwTable.ecwComboBox.ecwControl == this);
+      }
+      /* Champ de saisie -> Table */
+      else if (this.ecwUI.champActif.ecwComboBox && this.ecwUI.champActif.ecwComboBox.ecwTable
+          && this.ecwUI.champActif.ecwComboBox.ecwTable.input.ecwControl) {
+        
+        this.ecwUI.champActif.ecwComboBox.comboActivated = 
+          (this.ecwUI.champActif.ecwComboBox.ecwTable.input.ecwControl == this);
+      }
+    }
+    this.activer();
+  }
+}
+
+/**
+ * Ajoute un style css au champ &agrave; activer
+ * @private
+ */
+ECW.Control.prototype.activer = function() {
+  this.showUIMessage();
+  
+  /* Affiche l'aide contextuelle */
+  if (this.ecwUI.setHelpContext || this.helpContent) {
+    var helpContext = null;
+    // On affiche le titre enrichi avec l'helpContent s'il existe.
+    if (!this.noeudDOM.title) {
+      helpContext = this.helpContent;
+    } else if (this.helpContent) {
+      helpContext = this.noeudDOM.title + " (" + this.helpContent + ")";
+    } else {
+      helpContext = this.noeudDOM.title;
+    }
+    if (helpContext) {
+      this.ecwUI.setHelpContext(helpContext);
+    } else {
+      this.ecwUI.setHelpContext("");
+    }
+  }
+  /* Champ actif */
+  this.ecwUI.champActif = this;
+  addClass(this.noeudDOM, this.classe + "_Actif");
+
+  /* Gestion du label */
+  if (this.ecwLabel) {
+    if (this.noeudDOM.type == "checkbox" || this.noeudDOM.type == "radio") {
+      addClass(this.ecwLabel, "ecwLabelOptionActif");
+    } else {
+      addClass(this.ecwLabel, "ecwLabelActif");
+    }
+  }
+  /* Onglet */
+  if (this.noeudDOM.ecwTabFolder) {
+    this.noeudDOM.ecwTabFolder.activer();
+  }
+  /* ComboBox */
+  if (this.noeudDOM.ecwControl.ecwComboBox) {
+    /* Liste non construite avec une valeur vide */
+    /* Affichage de la liste automatique pour une aide a la saisie en lecture seule */
+    if (!this.noeudDOM.ecwControl.ecwComboBox.comboActivated
+        && this.noeudDOM.ecwControl.noeudDOM.value == ""
+        && this.noeudDOM.ecwControl.noeudDOM.readOnly == true
+        && this.noeudDOM.ecwControl.ecwComboBox.autoDisplayList) {
+      this.noeudDOM.ecwControl.ecwComboBox.imageOnClick();
+    } 
+  }
+  /* Table */
+  if (this.noeudDOM.ecwTable) {
+    this.noeudDOM.ecwTable.activer();
+  }
+  /* Arbre */
+  if (this.noeudDOM.ecwTreeList) {
+    this.noeudDOM.ecwTreeList.activerElement();
+  }
+  /* Saisie heure */
+  if (this.noeudDOM.ecwTimeField) {
+    this.noeudDOM.ecwTimeField.activer();
+  }
+  /* Grid */
+  if (this.noeudDOM.ecwGrid) {
+    this.noeudDOM.ecwGrid.activer();
+  }
+  /* desactivation de l'aide a la saisie */
+  this.disableHelpContent();
+}
+
+/**
+ * D&eacute;sactive de style du control.
+ * @private
+ */
+ECW.Control.prototype.desactiverStyle = function() {
+    
+  if (this.noeudDOM.ecwControl.noeudDOM.value != this.ecwLastValue) {
+    this.ecwLastValue = this.noeudDOM.ecwControl.noeudDOM.value;
+    /* Purge du msg d'erreur puisque la valeur a changee */
+    this.messageError = null;
+    this.messageErrorKey = null;
+    this.messageErrorGravity = null;
+    if (this.ecwLabel) {
+      if (this.noeudDOM.type == "checkbox" || this.noeudDOM.type == "radio") {
+        removeClass(this.ecwLabel, "ecwLabelOptionActif");
+      } else {
+        removeClass(this.ecwLabel, "ecwLabelActif");
+      }
+      removeClass(this.ecwLabel, "ecwLabelInvalid");
+      removeClass(this.ecwLabel, "ecwLabelValid");
+    }    
+    if (this.picto) {
+      removeClass(this.picto, "ecwLabelPictoInvalid");
+      removeClass(this.picto, "ecwLabelPictoValid");
+    }
+    //removeClass(this.noeudDOM, "ecwInputRequired");
+    removeClass(this.noeudDOM, "ecwInputInvalid");
+    removeClass(this.noeudDOM, "ecwInputValid");
+  }
+}
+
+/**
+ * Supprime un style css au champ &agrave; d&eacute;sactiver
+ * @private
+ */
+ECW.Control.prototype.desactiver = function() {
+  this.hideUIMessage();
+  
+  removeClass(this.noeudDOM, this.classe + "_Actif");
+  /* Desactive le style appliquer sur le champ lorsque la valeur du champ a ete modifiee */
+  this.desactiverStyle();
+  /* Gestion du label */
+  if (this.ecwLabel) {
+    if (this.noeudDOM.type == "checkbox" || this.noeudDOM.type == "radio") {
+      removeClass(this.ecwLabel, "ecwLabelOptionActif");
+    } else {
+      removeClass(this.ecwLabel, "ecwLabelActif");
+    }
+  }
+  /* Onglet */
+  if (this.noeudDOM.ecwTabFolder) {
+    this.noeudDOM.ecwTabFolder.desactiver();
+  }
+  /* Table */
+  if (this.noeudDOM.ecwTable) {
+    /* dans une ComboBox */
+    if (this.noeudDOM.ecwTable.ecwComboBox) {
+      this.noeudDOM.ecwTable.ecwComboBox.afficherListe(false);
+    } else {
+      this.noeudDOM.ecwTable.desactiver();
+    }
+  }
+  /* Calendrier */
+  if (this.noeudDOM.ecwCalendar) {
+    this.noeudDOM.ecwCalendar.hide();
+  }
+  /* Arbre */
+  if (this.noeudDOM.ecwTreeList) {
+    this.noeudDOM.ecwTreeList.desactiverElement();
+  }
+  /* Menu */
+  if (this.noeudDOM.ecwMenu) {
+    this.noeudDOM.ecwMenu.desactiver();
+  }
+  /* Grid */
+  if (this.noeudDOM.ecwGrid) {
+    this.noeudDOM.ecwGrid.desactiver();
+  }
+  /* activation de l'aide a la saisie */
+  this.enableHelpContent();
+  /* on force le passage en MAJ/min car sous IE certains evenements onChange passent a la trappe. */
+  this.manageCase();
+}
+
+/**
+ * Donne le focus au champ s&eacute;lectionn&eacute;
+ */
+ECW.Control.prototype.setFocus = function() {
+  ecwFocus(this.noeudDOM);
+}
+
+/**
+ * S&eacute;lectionn&eacute; le contenu du champ
+ */
+ECW.Control.prototype.select = function() {
+  if (this.noeudDOM.tagName == "INPUT")
+    this.noeudDOM.select();
+}
+
+/**
+ * Donne le focus au champ s&eacute;lectionn&eacute; ET
+ * s&eacute;lectionn&eacute; le contenu du champ
+ */
+ECW.Control.prototype.setFocusAndSelect = function() {
+  this.setFocus();
+  this.select();
+}
+
+/**
+ * Rend le champ readonly.
+ */
+ECW.Control.prototype.setReadOnly = function() {
+
+  /* Si le champ n'est pas readonly */
+  if (!this.noeudDOM.readOnly) {
+
+    /* Positionne le champ readonly */
+    this.noeudDOM.readOnly = true;
+
+    /* Supprime la classe courante */
+    removeClass(this.noeudDOM, this.classe);
+
+    this.classe = this.classe + "_Readonly";
+
+    /* Ajoute le style readonly */
+    addClass(this.noeudDOM, this.classe);
+  }
+}
+
+/**
+ * Rend le champ readwrite.
+ */
+ECW.Control.prototype.setReadWrite = function() {
+
+  /* Si le champ est readonly */
+  if (this.noeudDOM.readOnly) {
+
+    /* Positionne le champ readwrite */
+    this.noeudDOM.readOnly = false;
+
+    /* Supprime la classe courante */
+    removeClass(this.noeudDOM, this.classe);
+
+    /* Determine le style ECW en fonction de son type */
+    this.processClassName();
+
+    /* Ajoute le style classique*/
+    addClass(this.noeudDOM, this.classe);
+  }
+}
+
+/**
+ * Rend le champ disabled
+ */
+ECW.Control.prototype.setDisable = function() {
+  
+  /* Positionne le champ disabled */
+  this.noeudDOM.disabled = true;
+
+  /* Ajoute le style Disabled */
+  addClass(this.noeudDOM, this.noeudDOM.nodeName + "_Disabled");
+
+  /* bug fix IDVS-9046 ECW : Disabled action buttons look enabled when using Firefox 29*/
+  if (this.noeudDOM.tagName == "BUTTON") {
+	  addClass(this.noeudDOM, "buttonTextDisabled");
+  }
+
+  /* Recherche du premier et du dernier champ (chacun doit etre visible et accessible) */
+  this.ecwLayout.searchFirstAndLastInput();
+  
+  /* Si modification du premier ou dernier champ */
+  if ((this == this.ecwLayout.firstControl) || (this == this.ecwLayout.lastControl)) {
+    /* Active le bouclage */  
+    this.ecwLayout.computeLoop();
+  }
+}
+
+/**
+ * Rend le champ enable (donc focusable)
+ */
+ECW.Control.prototype.setEnable = function() {
+  
+  /* Positionne le champ enable */
+  this.noeudDOM.disabled = false;
+
+  /* Enleve le style Disabled */
+  removeClass(this.noeudDOM, this.noeudDOM.nodeName + "_Disabled");
+ 
+  /* bug fix IDVS-9046 ECW : Disabled action buttons look enabled when using Firefox 29*/
+  if (this.noeudDOM.tagName == "BUTTON") {
+	  removeClass(this.noeudDOM, "buttonTextDisabled"); 
+  }
+
+  /* Recherche du premier et du dernier champ (chacun doit etre visible et accessible) */
+  this.ecwLayout.searchFirstAndLastInput();
+
+  /* Si modification du premier ou dernier champ */
+  if ((this == this.ecwLayout.firstControl) || (this == this.ecwLayout.lastControl)) {
+    /* Active le bouclage */
+    this.ecwLayout.computeLoop();
+  }
+}
+
+/**
+ * Retourne si le champ est enable ou non
+ * @private
+ */
+ECW.Control.prototype.isEnable = function() {
+  return !this.noeudDOM.disabled;
+}
+
+/**
+ * D&eacute;fini les actions &agrave; effectuer sur &eacute;v&egrave;nement clavier
+ * @private
+ */
+ECW.Control.prototype.onKey = function(action) {
+  this.toValid = true;
+  var typeNoeud = this.noeudDOM.type;
+  if ((this.noeudDOM.tagName == "BUTTON") || (this.noeudDOM.tagName == "INPUT" && 
+      ((typeNoeud == "button") || (typeNoeud == "submit") || (typeNoeud == "reset")))) {
+    if (action == "right" || action == "down") {
+      var champSuivant = this.ecwLayout.listeEcwControl[this.index + 1];
+      if (champSuivant && champSuivant.isVisible()) {
+        var typeNoeudS = champSuivant.noeudDOM.type;
+        if ((champSuivant.noeudDOM.tagName == "BUTTON") || (champSuivant.noeudDOM.tagName ==
+          "INPUT" && ((typeNoeudS == "button") || (typeNoeudS == "submit") || (typeNoeudS ==
+          "reset")))) {
+          champSuivant.setFocus();
+        }
+      }
+    }
+    if (action == "left" || action == "up") {
+      var champPrecedent = this.ecwLayout.listeEcwControl[this.index - 1];
+      if (champPrecedent && champPrecedent.isVisible()) {
+        var typeNoeudP = champPrecedent.noeudDOM.type;
+        if ((champPrecedent.noeudDOM.tagName == "BUTTON") || (champPrecedent.noeudDOM.tagName ==
+          "INPUT" && ((typeNoeudP == "button") || (typeNoeudP == "submit") || (typeNoeudP ==
+          "reset")))) {
+          champPrecedent.setFocus();
+        }
+      }
+    }
+  }
+}
+
+/**
+ * Valide la saisie du champ
+ * @type boolean
+ * @private
+ */
+ECW.Control.prototype.validate = function() {
+  /* on force le passage en MAJ/min car sous IE certains evenements onChange passent a la trappe. */
+  this.manageCase();
+  /* Si la saisie est vide */
+  /* On n'affiche d'etat que si le champ est obligatoire */
+  if (this.noeudDOM.value.trim() == "") {
+    /* La saisie est obligatoire */
+    if (this.required) {
+      /* On affiche les span required */
+      this.setRequired(this.messageRequired);
+      /* Message d'erreur */
+      if(!this.messageRequired){
+      	this.messageRequired = ecw.I18N.get("nullValue");
+      }
+      this.setUIMessage("W", "nullValue", this.messageRequired, "nullValue");
+      this.setValid(false);
+      this.validValue = false;
+      /* Validation false */
+      return false;
+    } else {
+      /* On enleve les eventuelles classes */
+      if (this.picto) {
+        removeClass(this.picto, "ecwLabelPictoInvalid");
+        removeClass(this.picto, "ecwLabelPictoValid");
+      }
+      if(this.ecwLabel){
+        removeClass(this.picto, "ecwLabelInvalid");
+        removeClass(this.picto, "ecwLabelValid");
+      }
+      removeClass(this.noeudDOM, "ecwInputInvalid");
+      removeClass(this.noeudDOM, "ecwInputValid");
+      
+      this.clearUIMessage();
+      
+      this.validValue = true;
+      return true;
+    }
+  } else {
+    
+    var result = true;
+    var errorMsg = null;
+    /* Si le champ possede un validator */
+    if (this.validatorList && null != this.validatorList) {
+      var nVal = this.validatorList.length;
+      var validator;
+      for (var i = 0; result && i < nVal; ++i) {
+        validator = this.validatorList[i];
+        if (null != validator) {
+          if (validator.pattern) {
+            var re = new RegExp(validator.pattern);
+            result = re.test(this.noeudDOM.value);
+          } else if (validator.method) {
+            //add pattern for date validator SIFAECW-759
+            //result = validator.method(this.noeudDOM.value);
+            if (this.noeudDOM.ecwCalendar && this.noeudDOM.ecwCalendar.pattern) {
+              result = validator.method(this.noeudDOM.value,this.noeudDOM.ecwCalendar.pattern);
+            } else {
+              result = validator.method(this.noeudDOM.value);
+            }
+          }
+        }
+      }
+      if (!result) {
+        errorMsg = validator.message;
+      }
+    } else if (this.noeudDOM.ecwTimeField) {
+    	result = this.noeudDOM.ecwTimeField.validate();
+    }
+
+    /* on met a jour la span du champ selon la validation */
+    /* de l'expression reguliere */
+    this.setValid(result);
+
+    /* Message d'erreur */
+    if (result) {
+      this.clearUIMessage();
+    } else {
+      this.setUIMessage("W", "invalidFormat", errorMsg, "invalidFormat");
+      this.validValue = false;
+      return result;
+    }
+
+    /* Si le champ est lie a une ECW.ComboBox */
+    /* et si le controle de la valeur par rapport */
+    /* a la liste de valeurs disponibles est active */
+    if (this.ecwComboBox && this.ecwComboBox.checkValue) {
+
+      var valueChamp = this.noeudDOM.value;
+      /* Si une valeur est renseignee */
+      /* Controle l'adequation entre la valeur saisi dans le champ et la valeur a poster */
+      if (valueChamp && valueChamp.trim() != "") {
+    
+        var ligneActive = this.ecwComboBox.ecwTable.ligneActive;
+        /* Si une ligne est selectionnee */
+        if (ligneActive) {
+          var indiceColonne = 0;
+          if (this.ecwComboBox.ecwTable.numerotation) {
+            indiceColonne = 1;
+          }
+          /* Recherche de la cle */
+          var keyVal = null;
+          /* Recherche dans la 1ere colonne */
+          if (ligneActive.getElementsByTagName("TD")[indiceColonne]) {
+            keyVal = ecwGetInnerText(ligneActive.getElementsByTagName("TD")[indiceColonne]).trim();
+          }
+          if (keyVal != valueChamp) {
+            /* Affichage de l'erreur */
+            this.buildMessageError(valueChamp);
+            this.setValid(false);
+            this.validValue = false;
+            return false;
+          }
+        }
+        /* Aucune selection trouvee */
+        else {
+          /* Affichage de l'erreur */
+          this.buildMessageError(valueChamp);
+          this.setValid(false);
+          this.validValue = false;
+          return false;
+        }
+      } 
+    }
+
+    /* si on a passe aucun test (aucun return) */
+    /* C'est que la saisie est bonne. */
+    /* Aucune visualisation du controle si le champ */
+    /* n'est ni obligatoire, ni soumis a un pattern */
+    //this.setValid(true) ;
+
+    this.clearUIMessage();
+    this.validValue = true;
+    return true;
+  }
+}
+
+/**
+ * Affiche le message d'erreur concernant le controle de la
+ * valeur d'une ComboBox
+ * @param valueChamp Valeur du champ
+ * @private
+ */
+ECW.Control.prototype.buildMessageError = function(valueChamp) {
+
+  var args = new Array(valueChamp);
+  var msgErrorCheck = ecw.I18N.get("NoValueInCombo", args);
+  /* [MANTIS 0003305] : Suppression de la boite d'alerte */
+  this.setUIMessage("W", "NoValueInCombo", msgErrorCheck, null);
+}
+
+/**
+ * Renseigne que la saisie du champ est obligatoire
+ * @param message Message d'erreur
+ */
+ECW.Control.prototype.setRequired = function(message) {
+  this.required = true;
+
+  /* Message */
+  this.messageRequired = message;
+
+  if (this.ecwLabel) {
+    addClass(this.ecwLabel, "ecwLabelRequired");
+    removeClass(this.ecwLabel, "ecwLabelInvalid");
+    removeClass(this.ecwLabel, "ecwLabelValid");
+  }
+  addClass(this.noeudDOM, "ecwInputRequired");
+
+  if (this.picto) {
+    removeClass(this.picto, "ecwLabelPictoInvalid");
+    removeClass(this.picto, "ecwLabelPictoValid");
+  }
+
+  removeClass(this.noeudDOM, "ecwInputInvalid");
+  removeClass(this.noeudDOM, "ecwInputValid");
+}
+
+/**
+ * Renseigne que la saisie du champ n'est pas obligatoire
+ * @param message Message d'erreur
+ */
+ECW.Control.prototype.removeRequired = function() {
+  this.required = false;
+
+  /* Message */
+  this.messageRequired = "";
+
+  if (this.ecwLabel) {
+    removeClass(this.ecwLabel, "ecwLabelRequired");
+    removeClass(this.ecwLabel, "ecwLabelInvalid");
+  }
+  removeClass(this.noeudDOM, "ecwInputRequired");
+  removeClass(this.noeudDOM, "ecwInputValid");
+  removeClass(this.noeudDOM, "ecwInputInvalid");
+}
+
+/**
+ * Renseigne une expression r&eacute;guli&egrave;re &agrave; la saisie du champ.
+ * <b>Remarque :</b> supprime tous les <i>validators</i> qui ont &ecirc;tre mis
+ * sur ce contr&ocirc;le.
+ * @param pattern (String) pattern &agrave; appliquer au champ
+ * @param message Message d'erreur
+ */
+ECW.Control.prototype.setPattern = function(pattern, message) {
+  this.validatorList = null;
+  this.addValidator(pattern, message);
+}
+
+/**
+ * Supprime tous les <i>validators</i> qui ont &ecirc;tre mis
+ * sur ce contr&ocirc;le.
+ */
+ECW.Control.prototype.removePattern = function() {
+  this.clearValidators();
+}
+
+/**
+ * Ajoute un <i>validator</i>.
+ * @param validator un pattern (string) ou une fonction
+ * @message message d'erreur.
+ * @private
+ */
+ECW.Control.prototype.addValidator = function(validator, message) {
+  var objValidator = new Object();
+  if ("string" == typeof validator) {
+    // si le validator est un pattern
+    objValidator.pattern = validator;
+  } else if ("function" == typeof validator) {
+    // si le validator est une fonction
+    objValidator.method = validator;
+  }
+  if (!this.validatorList || null == this.validatorList) {
+    this.validatorList = new Array();
+  }
+  var validator = new Object();
+  objValidator.message = message;
+  this.validatorList.push(objValidator);
+}
+
+/**
+ * Supprime tous les <i>validators</i> qui ont &ecirc;tre mis
+ * sur ce contr&ocirc;le.
+ * @private
+ */
+ECW.Control.prototype.clearValidators = function() {
+  this.validatorList = null;
+}
+
+/**
+ * Supprime un <i>validator</i> sur ce contr&ocirc;le.
+ * @param validator un pattern (string) ou une fonction
+ * @private
+ */
+ECW.Control.prototype.removeValidator = function(validator) {
+  if (this.validatorList) {
+    var newList = new Array();
+    var n = this.validatorList.length;
+    var found = false;
+    for (var i = 0; i < n; ++i) {
+      var objValidator = this.validatorList[i];
+      if (found) {
+        newList.push(objValidator);
+      } else if (objValidator.pattern != validator && objValidator.method != validator) {
+        newList.push(objValidator);
+      } else {
+        found = true;
+      }
+    }
+    if (found) {
+      if (newList.length == 0) {
+        this.validatorList = null;
+      } else {
+        this.validatorList = newList;
+      }
+    }
+  }
+}
+
+/**
+ * Permet de savoir si la saisie du champ est obligatoire
+ * @type boolean
+ */
+ECW.Control.prototype.isRequired = function() {
+  return this.required;
+}
+
+/**
+ * Permet d'afficher le champ selon l'&eacute;tat (valide ou non)
+ * de la valeur du champ. <br /><br />
+ * <b>Cette methode ne doit etre appellee que si la saisie
+ * n'est pas vide</b> sinon il peut y avoir une incoherence
+ * d'affichage sur les champ requis.
+ * @param valid (boolean) etat de la saisie (vrai si valide)
+ * @private
+ */
+ECW.Control.prototype.setValid = function(valid) {
+  // true est la valeur par defaut
+  if (valid == null) {
+    valid = true;
+  }
+
+  // Pour l'etat de validation
+  // On retire l'eventuel etat requis
+  removeClass(this.noeudDOM, "ecwInputRequired");
+  if (valid) {
+    // On enleve (l'eventuel) etat d'invalide
+    // sur le champ et le span
+    removeClass(this.noeudDOM, "ecwInputInvalid");
+
+    /* on met l'etat de valide sur le champ et le span */
+    if (this.picto) {
+      removeClass(this.picto, "ecwLabelInvalid");
+      addClass(this.picto, "ecwLabelPictoValid");
+    }
+    if(this.ecwLabel){
+      removeClass(this.ecwLabel, "ecwLabelInvalid");
+      addClass(this.ecwLabel, "ecwLabelValid");
+    }
+  } else {
+    // On enleve (l'eventuel) etat de valide
+    // sur le champ et le span
+    removeClass(this.noeudDOM, "ecwInputValid");
+    addClass(this.noeudDOM, "ecwInputInvalid");
+    if (this.picto) {
+      removeClass(this.picto, "ecwLabelPictoValid");
+      addClass(this.picto, "ecwLabelPictoInvalid");
+    }
+    
+     if(this.ecwLabel){
+      removeClass(this.ecwLabel, "ecwLabelValid");
+      addClass(this.ecwLabel, "ecwLabelInvalid");
+    }
+  }
+}
+
+/**
+ * Insert un span destin&eacute; aux picto de validit&eacute; apr&eagrave;s le champ
+ * @private
+ */
+ECW.Control.prototype.insertSpan = function(noeud) {
+  if (!noeud) {
+    noeud = this.noeudDOM;
+  }
+  // On ne creer qu'une seule fois le span
+  if (!this.picto) {
+    this.picto = noeud;
+    addClass(this.picto, "ecwLabelEmpty");
+    // noeud.appendChild(this.picto) ;
+  }
+}
+
+/**
+ * Positionne la valeur du champ
+ */
+ECW.Control.prototype.setValue = function(newValue) {
+
+  if (this.helpContent) {
+    // Si c'est le cas, on modifie la valeur du noeud
+    removeClass(this.noeudDOM, "ecwHelpContent");
+  }
+  /* Si c'est une ComboBox */
+  if (this.ecwComboBox) {
+    this.ecwComboBox.setValue(newValue);
+  } else {
+    /* Mise a jour de la valeur du champ */
+    this.noeudDOM.value = newValue;
+  }
+}
+
+/**
+ * Renvoie la valeur convertie en majuscules ou minuscules si n&eacute;cessaire.
+ */
+ECW.Control.prototype.getValue = function() {
+  var val = this.noeudDOM.value;
+  if (this.helpContent && val==this.helpContent) {
+    return "";
+  }else if (this.upperCase) {
+    return val.toUpperCase();
+  } else if (this.lowerCase) {
+    return val.toLowerCase();
+  } else {
+    return val;
+  }
+}
+
+/**
+ * Force la saisie en majuscules.
+ * Si le texte d&eacute;j&agrave; saisi contient des minuscules et des majuscules,
+ * il ne sera plus possible de distinguer la casse apr&egrave;s coup.
+ * 
+ * @param mode ce param&egrave;tre optionnel permet soit d'activer (<code>true</code>),
+ * soit de d&eacute;sactiver (<code>false</code>) la saisie en majuscules.
+ * Vaut <code>true</code> par d&eacute;faut
+ */
+ECW.Control.prototype.setUpperCase = function(mode) {
+
+  if (mode == null) {
+    mode = true;
+  }
+  this.upperCase = mode;
+  
+  /* Activation */
+  if (mode) {
+    addClass(this.noeudDOM, "ecwUpperCase");
+    /* Desactivation du toLowerCase() */
+    this.lowerCase = false;
+    removeClass(this.noeudDOM, "ecwLowerCase");
+    /* Evenement onchangeLowerCase */
+    this.noeudDOM.onchangeLowerCase = function() { }
+
+    /* Evenement onchangeUpperCase */
+    this.noeudDOM.onchangeUpperCase = function() {
+      if (this.ecwControl && this.ecwControl.noeudDOM) {
+        var valueChanged = this.ecwControl.noeudDOM.value;
+        this.ecwControl.noeudDOM.value = valueChanged.toUpperCase();
+      }
+    }
+    
+    /* On appelle la methode pour passer le champ dans la bonne casse. */
+    this.noeudDOM.onchangeUpperCase();
+  }
+  /* Desactivation */
+  else {
+    removeClass(this.noeudDOM, "ecwUpperCase");
+    
+    /* Evenement onchangeUpperCase */
+    this.noeudDOM.onchangeUpperCase = function() { }
+  }
+}
+
+/**
+ * Force la saisie en minuscules.
+ * Si le texte d&eacute;j&agrave; saisi contient des minuscules et des majuscules,
+ * il ne sera plus possible de distinguer la casse apr&egrave;s coup.
+ * 
+ * @param mode ce param&egrave;tre optionnel permet soit d'activer (<code>true</code>),
+ * soit de d&eacute;sactiver (<code>false</code>) la saisie en minuscules.
+ * Vaut <code>true</code> par d&eacute;faut
+ */
+ECW.Control.prototype.setLowerCase = function(mode) {
+
+  if (mode == null) {
+    mode = true;
+  }
+  this.lowerCase = mode;
+  
+  /* Activation */
+  if (mode) {
+    addClass(this.noeudDOM, "ecwLowerCase");
+    /* Desactivation du toUpperCase() */
+    this.upperCase = false;
+    removeClass(this.noeudDOM, "ecwUpperCase");
+    /* Evenement onchangeUpperCase */
+    this.noeudDOM.onchangeUpperCase = function() { }
+
+    /* Evenement onchangeLowerCase */
+    this.noeudDOM.onchangeLowerCase = function() {
+      if (this.ecwControl && this.ecwControl.noeudDOM) {
+        var valueChanged = this.ecwControl.noeudDOM.value;
+        this.ecwControl.noeudDOM.value = valueChanged.toLowerCase();
+      }
+    }
+    
+    /* On appelle la methode pour passer le champ dans la bonne casse. */
+    this.noeudDOM.onchangeLowerCase();
+  }
+  /* Desactivation */
+  else {
+    removeClass(this.noeudDOM, "ecwLowerCase");
+
+    /* Evenement onchangeLowerCase */
+    this.noeudDOM.onchangeLowerCase = function() { }
+  }
+}
+
+/**
+ * Appelle (si besoin est) les m&eacute;thodes de gestion de la casse sur
+ * le contr&ocirc;le courant.
+ * 
+ * @private
+ */
+ECW.Control.prototype.manageCase = function() {
+  // onchange pour le upperCase()
+  if (this.noeudDOM.onchangeUpperCase) {
+    this.noeudDOM.onchangeUpperCase();
+  }
+  // onchange pour le lowerCase()
+  if (this.noeudDOM.onchangeLowerCase) {
+    this.noeudDOM.onchangeLowerCase();
+  }
+}
+
+/**
+ * Indique si c'est une touche NON autorise pour l'auto-tabulation
+ * @private
+ */
+ECW.Control.prototype.containsKeyNotAuthorizedForAutoTab = function(keyEvent) {
+  // [Bug 0003285] si le relachement de la touche se fait apres une pression (keydown)
+  // sur une touche+alt, alors la touche n'est pas autorisee (touche de raccourci)
+  if (ECW_isAltKeyPressed) {
+    return true;
+  }
+  var filter;
+  // Si la touche CONTROL est enfoncee, certaines cles supplementaires sont interdites
+  if (keyEvent.ctrlKey) {
+    filter = [0,8,9,13,16,17,18,34,35,36,37,38,39,40,46,65,67,90];
+  } else {
+    filter = [0,8,9,13,16,17,18,34,35,36,37,38,39,40,46];
+  }
+  var keyCode = keyEvent.keyCode;
+  var found = false;
+  var index = 0;
+  while (!found && index < filter.length) {
+    if (filter[index] == keyCode) {
+      found = true;
+    } else {
+      index++;
+    }
+  }
+  return found;
+}
+
+/**
+ * Active ou non l'auto-tabulation
+ * @param mode (boolean) actif(=true) ou inactif(=false)
+ */
+ECW.Control.prototype.setAutoTab = function(mode) {
+
+  if (mode == null) {
+    mode = true;
+  }
+  this.autoTab = mode;
+
+  /* Activation */
+  if (mode) {
+  
+    /* Evenement onkeyup */
+    this.noeudDOM.onkeyup = function(event) {
+
+      /* IE */
+      if (!event) {
+        event = window.event;
+      }
+      var valueControl = this.ecwControl.noeudDOM.value;
+      var maxLengthControl = this.ecwControl.noeudDOM.maxLength;
+
+      if (valueControl.length >= maxLengthControl && !this.ecwControl.containsKeyNotAuthorizedForAutoTab(event)) {
+
+        var listeEcwControl = this.ecwControl.ecwLayout.listeEcwControl;
+        /* Recherche du champ suivant */
+        var indexNext = this.ecwControl.index + 1;
+        if (indexNext >= listeEcwControl.length) {
+          indexNext = 0;
+        }
+
+        var doFocus = true;
+
+        /* Si evenement onAutoTab */
+        if (this.ecwControl.onAutoTab) {
+          doFocus = this.ecwControl.onAutoTab();
+        }
+
+        /* Focus refuse */
+        if (doFocus != false) {
+          if(this.ecwControl.ecwComboBox)
+            indexNext++;
+          /* Focus */
+          listeEcwControl[indexNext].setFocus();
+          /* Selection du contenu */
+          listeEcwControl[indexNext].select();
+        }
+      }
+    }
+  }
+  /* Desactivation */
+  else {
+    /* Evenement onkeyup */
+    this.noeudDOM.onkeyup = function(event) { }
+  }
+}
+
+/**
+ * @param evtType le type d'&eacute;v&egrave;nement qui d&eacute;clenche le message &agrave; afficher.
+ * Sert &eacute;galement de cl&eacute; i18n si le message n'est pas personnalis&eacute;.
+ * <br>
+ * Le message affiche sera en priorite :
+ * <ul>
+ *   <li>le message personnalise correspondant a la cle <code>evtType</code>,</li>
+ *   <li>le message passe en parametre (<code>evtType</code>),</li>
+ *   <li>le message internationalise correspondant a la cle <code>i18n</code>.</li>
+ * </ul>
+ * 
+ * @param gravity la gravite du message d'erreur,
+ * @param etvType le type d'evenement : correspond a la cle utilise pour personnaliser le message,
+ * @param message le message (internationalis&eacute;) qui sera affich&eacute;.
+ * @param i18n la cle d'internationalisation si le message n'est pas defini,
+ * @param show booleen optionnel (par defaut 'true') qui indique si le message doit etre affiche apres avoir ete defini ou pas.
+ * @private
+ */
+ECW.Control.prototype.setUIMessage = function(gravity, evtType, message, i18n, show) {
+  var msg = this.getMessage(evtType);
+  if (null == msg && null != message) {
+    msg = message;
+  }
+  if (null == msg && null != i18n) {
+    msg = ecw.I18N.get(evtType);
+  }
+  this.messageErrorKey = evtType;
+  this.messageErrorGravity = gravity;
+  this.messageError = msg;
+  if (false != show) {
+    // si show vaut true ou n'est pas positionne, on affiche le message.
+    this.showUIMessage();
+  }
+}
+
+/**
+ * Efface le message d'erreur courrant de ce control.
+ * @private
+ */
+ECW.Control.prototype.clearUIMessage = function() {
+  if (this.messageError) {
+    this.hideUIMessage();
+    // la remise a zero doit etre faite APRES la desactivation du message.
+    this.messageError = null;
+    this.messageErrorKey = null;
+  }
+}
+
+/**
+ * Affiche le message d'erreur 'courant' de ce control.
+ * @private
+ */
+ECW.Control.prototype.showUIMessage = function() {
+  if (this.messageError) {
+    this.ecwUI.setMessage(this.messageErrorGravity, this.messageError);
+  }
+}
+
+/**
+ * Masque le message d'erreur affiche pour ce control.
+ * @private
+ */
+ECW.Control.prototype.hideUIMessage = function() {
+  if (null != this.messageError && this.messageError == this.ecwUI.getMessage()) {
+    this.ecwUI.clearMessage();
+  }
+}
+
+/**
+ * Sp&eacute;cifie le message &agrave; afficher lorsqu'une erreur ou un warning est lev&eacute;.
+ * <br>
+ * Les messages que l'on peut modifier dans ce contr&ocirc;le d&eacute;pendent du type de contr&ocirc;le.
+ * 
+ * @param evtType le type d'&eacute;v&egrave;nement qui d&eacute;clenche le message &agrave; afficher.
+ * @param message le message (internationalis&eacute;) qui sera affich&eacute;. La valeur null
+ * r&eacute;tablit le message d'origine d'ECW.
+ */
+ECW.Control.prototype.setMessage = function(evtType, message) {
+  this.messages[evtType] = message;
+  if (this.messageErrorKey == evtType) {
+    var show = this == this.ecwUI.champActif
+            && this.messageError == this.ecwUI.getMessage();
+    this.setUIMessage(this.messageErrorGravity, evtType, message, null, show);
+  }
+}
+
+/**
+ * Renvoie le message affich&eacute; lorsqu'une erreur ou un warning est lev&eacute;.
+ * La valeur null signifie que la valeur par d&eacute;faut d'ECW sera utilis&eacute;e.
+ */
+ECW.Control.prototype.getMessage = function(evtType) {
+  return this.messages[evtType];
+}
+
+/**
+ * Efface le message d'erreur s'il est affich&eacute.
+ */
+ECW.Control.prototype.clearMessage = function() {
+  this.clearUIMessage();
+}
+
+/**
+ * D&eacute;finit le contenu pr&eacute;-rempli du contr&ocirc;le.
+ */
+ECW.Control.prototype.setHelpContent = function(value) {
+  if ("text" == this.noeudDOM.type) {
+    if (null == value) {
+      value = "";
+    }
+    // D'abord on verifie si le controle n'est pas affiche avec le helpContent courant
+    if (!this.noeudDOM.value && (!this.helpContent
+        || this.helpContent.toLowerCase() == this.noeudDOM.value.toLowerCase())) {
+      // Si c'est le cas, on modifie la valeur du noeud
+      addClass(this.noeudDOM, "ecwHelpContent");
+      this.noeudDOM.value = value;
+    }
+    // Ensuite seulement, on affecte la nouvelle valeur a helpContent
+    this.helpContent = value;
+  }
+}
+
+/**
+ * D&eacute;sactive l'aide &agrave; la saisie, c'est &agrave; dire le texte
+ * contenu dans le contr&ocirc;le lorsque celui-ci n'est pas renseign&eacute;.
+ */
+ECW.Control.prototype.disableHelpContent = function() {
+  if (this.helpContent && this.helpContent.toLowerCase() == this.noeudDOM.value.toLowerCase()) {
+    this.noeudDOM.value = "";
+    removeClass(this.noeudDOM, "ecwHelpContent");
+  }
+}
+
+/**
+ * Active l'aide &agrave; la saisie, c'est &agrave; dire le texte contenu
+ * dans le contr&ocirc;le lorsque celui-ci n'est pas renseign&eacute;.
+ */
+ECW.Control.prototype.enableHelpContent = function() {
+  if (this.helpContent && "" == this.noeudDOM.value) {
+    this.noeudDOM.value = this.helpContent;
+    addClass(this.noeudDOM, "ecwHelpContent");
+  }
+}

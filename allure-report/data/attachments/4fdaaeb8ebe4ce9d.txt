@@ -1,1 +1,0 @@
-Correct fields are present: Feature family code,Description EN (Feature Family),Language (Feature Family),Typology (Class Code),Class code,Description (Class Code),Family Code,Long Description EN (Family Code),Medium Description EN (Family Code),Short Description EN (Family Code)

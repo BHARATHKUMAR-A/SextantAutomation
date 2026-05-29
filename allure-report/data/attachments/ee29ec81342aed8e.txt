@@ -1,1 +1,0 @@
-✅ Data matched for column 'Long Description EN (Family Code)': Expected Application Data: 'EXTERIOR COLOR', Found from Excel: 'EXTERIOR COLOR'

@@ -1,0 +1,1174 @@
+/**
+ * @fileoverview D&eacute;finition l'objet <b>ECW.PopupManager</b>
+ * @author u218179
+ * @version $Revision: 1.33 $
+ */
+
+var ecwDrag = new ECW.DomDrag();
+ecwActivePM = null; // instance de gestionnaire de popup
+ecwActivePopup = null; // popup courante
+ecwIdPosition = null; // identifiant de positionnement de la popup
+
+getInstancePopupManager = function() {
+  if (window.ecwActivePM == null) {
+    window.ecwActivePM = new ECW.PopupManager();
+  }
+  return window.ecwActivePM;
+}
+
+/**
+ * openPopup : ouvrir un popup a partir d'une url avec ses param,
+ *             prise en compte de la structure HTML, Script, Style
+ *              et lancement de ecwActivePopup.onLoad + onActivate
+ */
+ecwOpenPopup = function(url, param, fullScreen) {
+  getInstancePopupManager().openPopup(url, param, fullScreen);
+}
+
+ecwOpenPopupHTML = function(html, id, fullScreen) {
+  getInstancePopupManager().openPopupHTML(html, id, fullScreen);
+}
+
+ecwOpenPopupHTMLSpecial = function(html, id, node) {  
+  getInstancePopupManager().openPopupHTMLSpecial(html,id,node);
+}
+
+ecwOpenPopupForm = function(form, fullScreen) {
+  getInstancePopupManager().openPopupForm(form, fullScreen);
+}
+
+/**
+ * openPopupSubmit : idem openPopup avec l'url et les params
+ *                   du formulmaire du popup actif
+ */
+ecwOpenPopupSubmit = function(url, fullScreen) {
+  getInstancePopupManager().openPopupSubmit(url, fullScreen);
+}
+
+/**
+ * closePopup : ferme le popup actif et transmet l'objet event
+ *              au popup precedent et lance onActivate()
+ */
+ecwClosePopup = function(event) {
+  getInstancePopupManager().close(event);
+}
+
+
+/**
+ * closePopup : ferme le popup actif et transmet l'objet event
+ *              au popup precedent et lance onActivate()
+ */
+ecwCloseDesactivationsPopup = function(event) {
+  getInstancePopupManager().closeDesactivationsPopup(event);
+}
+
+/**
+ * closePopup : ferme le popup actif et transmet l'objet event
+ *              au popup precedent et lance onActivate()
+ */
+ecwClosePopupNoPropagation = function(event) {
+  getInstancePopupManager().close(null);
+  //Stopper la propagation de l'event;
+  //event || (event = window.event);
+ 	if (ECW_isIE) {
+		event.cancelBubble = true;
+		event.returnValue = false;
+	} else {
+		event.preventDefault();
+		event.stopPropagation();
+	}
+}
+
+/**
+ * closeAllPopup : ferme toutes les popups
+ */
+ecwCloseAllPopup = function() {
+  getInstancePopupManager().closeAllPopup();
+}
+
+/**
+ * closePopupsTo : idem closePopup mais jusqu'a un popup dont id=idPopup
+ */
+ecwClosePopupsTo = function(idPopup) {
+  getInstancePopupManager().closePopupsTo(idPopup);
+}
+
+/**
+ * closePopupSubmit : ferme la popup courante et poste les datas
+ */
+ecwClosePopupSubmit = function() {
+  getInstancePopupManager().closePopupSubmit();
+}
+
+/**
+ * refresh : ferme et ouvre le popup avec le meme parametre qu'a l'ouverture
+ */
+ecwRefreshPopup = function() {
+  getInstancePopupManager().refresh();
+}
+
+/**
+ * existPopup : teste l'existence d'une popup
+ */
+ecwExistPopup = function(id) {
+  return getInstancePopupManager().existPopup(id);
+}
+
+/**
+ * Ouvre un popup avec un code html local
+ * En commentaire car non charte
+ */
+//ecwAlertPopup = function(html) {
+//  getInstancePopupManager().alertPopup(html);
+//}
+
+/**
+ * Ouvre un popup avec un code html local
+ * En commentaire car non charte
+ */
+//ecwActionPopup = function(config) {
+//  getInstancePopupManager().actionPopup(config);
+//}
+
+/**
+ * Ouvre un popup confirm avec un code html local
+ * En commentaire car non charte
+ */
+//ecwConfirmPopup = function(config) {
+//  getInstancePopupManager().confirmPopup(config);
+//}
+
+/**
+ * Ouvre un popup error avec un code html local
+ * En commentaire car non charte
+ */
+//ecwErrorPopup = function(html) {
+//  getInstancePopupManager().errorPopup(html);
+//}
+
+/**
+ * D&eacute;fini le <b>ECW.PopupManager</b>
+ * @private
+ */
+
+/**
+ * Constructeur.
+ * @private
+ */
+ECW.PopupManager = function() {
+
+  ecwSetAttribute(this, "loadingNode", null);
+  ecwSetAttribute(this, "popupList", null);
+  ecwSetAttribute(this, "ecwActivePopup", null);
+  ecwSetAttribute(this, "popup", null);
+  ecwSetAttribute(this, "ecwBeforeActiveUI", null);
+  ecwSetAttribute(this, "historyNode", null);
+  ecwSetAttribute(this, "ecwBeforeActiveUI", null);
+  //instance active du gestionnaire de popup
+  ecwSetAttribute(window, "ecwActivePopupManager", this);
+  // tableau des popups charges
+  ecwSetAttribute(this, "popupList", new Array);
+
+  // creation  de la div loading
+  this.createLoadingPopup();
+
+
+  // activation du recentrage des popups dans la fenetre au changement de taille de la fenetre
+  this.initResizeWindow();
+
+  // sauvergarde l'environnement ECW
+  ecwSetAttribute(this, "ecwBeforeActiveUI", null);
+  if (window.ecwActiveUI) {
+    this.ecwBeforeActiveUI = window.ecwActiveUI;
+  }
+  // gestion de l'historique : a preciser
+  //this.activateHistory();
+
+  // creation des calques pour griser le popup precedent et interdire l'acces a la souris
+  ecwSetAttribute(this, "underLayPopup", new ECW.UnderLayPopup(false));
+  this.underLayPopup.hide();
+  ecwSetAttribute(this, "underLayFullScreen", new ECW.UnderLayPopup(true));
+  this.underLayFullScreen.hide();
+
+  if (ECW_isIE) {
+    setTimeout("ecwActiveUI.setMessage('','');ecwActiveUI.clearMessage();", 0);
+  }
+}
+
+/**
+ * Redimensionnement de la zone griser
+ * Delegue le redimensionnement de la zone griser a l'objet underLayPopup
+ * @private
+ */
+ECW.PopupManager.prototype.setFullHeightUnderLay = function(flagWait) {	
+	this.underLayPopup.forceHeight(flagWait);
+}
+
+/**
+ * Affichage de la fenetre d'attente lors du chargement.
+ * @private
+ */
+ECW.PopupManager.prototype.createLoadingPopup = function() {
+  this.loadingNode = document.createElement("div");
+  this.loadingNode.id = "ecwLoadingPopup";
+  this.loadingNode.style.display = "none";
+  this.loadingNode.innerHTML = "<table><tr><td><div class='wait'>&nbsp;</div></td><td></td></tr></table>";
+  document.body.appendChild(this.loadingNode);
+}
+
+/**
+ * Ouverture d'une popup en postant les donnees du formulaires.
+ * @param url Url.
+ * @type String
+ * @private
+ */
+ECW.PopupManager.prototype.openPopupSubmit = function(url, fullScreen) {
+
+  // TODO : a revoir (form du popup)
+  //  if (url!=null)   document.forms[0].action=url;
+  //   url = document.forms[0].action;
+  if (!url) {
+    url = document.forms[0].action;
+  }
+  var param = ecwGetFormValues(document.forms[0]);
+  this.openPopup(url, param, fullScreen);
+}
+
+/**
+ * Ouverture d'une popup avec pour URL l'attribut action du formulaire.
+ * @param form Formulaire.
+ * @type Form
+ * @private
+ */
+ECW.PopupManager.prototype.openPopupForm = function(form, fullScreen) {
+  var url = form.getAttribute('action');
+  var param = ecwGetFormValues(form);
+  this.openPopup(url, param, fullScreen);
+}
+
+/**
+ * Ouverture d'une popup a partir de l'url et des params.
+ * @param url Url.
+ * @type String
+ * @param param Formulaire.
+ * @type String
+ * @private
+ */
+ECW.PopupManager.prototype.openPopup = function(url, param, fullScreen) {
+  
+  // Les popups géres leurs propre desactivation d'IHM (ihm grisée en dessous) 
+  //dans ce cas on doit rendre inactive la desactivation auto des IHM
+  // Desactivation des accesskey sur la boite de dialogue [SIFAECW-680]
+  if ( window.ecwActiveUI && ecwAutoDisableIHM) {
+    window.ecwActiveUI.enableIHM();
+  }
+  
+  // mise en blanc dans param si inexistant
+  if (!param) {
+    param = "";
+  }
+
+  // affichage d'une log d'ouverture de popup
+  this.logRequest(url, param);
+
+  // affiche la popup d'attente
+  $("#ecwLoadingPopup").show();
+
+  // requete AJAX asynchrone avec jquery
+  window.ajaxRequest = $.ajax({
+    type: "POST",
+    url: url,
+    data: param,
+    complete: function() {
+      window.timeStampEndRequest = ecwGetTimeStamp();
+      $("#ecwLoadingPopup").hide(); 
+    },
+    success: function(resultAJAX) {
+      if (resultAJAX.indexOf("ltp/error.jsp") > 0) {
+        ecwActivePopupManager.alertPopup(resultAJAX); 
+      } else {
+        ecwActivePopupManager.openPopupHTML(resultAJAX,null,fullScreen); 
+      }
+    },
+    error: function(request, error) {
+      window.ecwResponseText = request.responseText;
+      ecwOpenPopupHTML(ecw.I18N.get("actionNotExist") + "<br><br><a href='javascript:void(0);' onclick='window.ecwActivePM.errorPopup(window.ecwResponseText)'>" + ecw.I18N.get("actionNotExistServerResponse") + " </a>", null); 
+    }
+  }
+  );
+}
+
+/**
+ * Affiche dans un popup un flux HTML.
+ * @param html Flux HTML.
+ * @type String
+ * @param id Identifiant.
+ * @type String
+ * @private
+ */
+ECW.PopupManager.prototype.openPopupHTML = function(html, id, fullScreen) {
+  
+  
+  // Les popups géres leurs propre desactivation d'IHM (ihm grisée en dessous) 
+  //dans ce cas on doit rendre inactive la desactivation auto des IHM
+  // Desactivation des accesskey sur la boite de dialogue [SIFAECW-680]
+  if ( window.ecwActiveUI && ecwAutoDisableIHM && id!=ecwIdPopupBlockIHM) {
+    window.ecwActiveUI.enableIHM();
+  }
+  
+  if (window.ecwActiveUI) {
+    window.ecwActiveUI.desactiveAccessKey();
+  }
+
+  // Desactivation d'eventuels popups 
+  if (this.popupList.length > 0) {
+    //this.popupList[this.popupList.length-1].popupNode.className="ecwWindowPopup off";
+    this.popupList[this.popupList.length - 1].blur();
+  }
+
+  // et desactivation du champ ecw actif
+  if (window.ecwActiveUI && window.ecwActiveUI.champActif) {
+    window.ecwActiveUI.champActif.desactiver();
+  }
+
+  // nouvelle definition de popup
+  var newIndex = this.popupList.length;
+  if (!id) {
+    id = "ecwPopup" + newIndex;
+  }
+  var maPopup = new ECW.PopupWindow(id, fullScreen);
+  maPopup.index = newIndex;
+  this.popupList.push(maPopup);
+  this.ecwActivePopup = maPopup;
+  this.setOnTop(maPopup);
+  this.showUnderlay(maPopup);
+  //window.onerror=null;
+
+  popupInit = null;
+
+  ecwActivePopup = this.ecwActivePopup;
+  // insere le code HTML dans le corps de la popup
+  ecwActivePopup.setBody(html);
+
+  ecwActivePopup.UI = new ECW.UI(ecwActivePopup.id);
+  ecwActivePopup.UI.activeAccessKey(ecwActivePopup.id);
+  ecwActivePopup.UI.popup = this.ecwActivePopup;
+  ecwActivePopup.UI.onEscape = function() {
+    this.popup.close();
+  }
+
+  // evaluation des scripts apres chargement ECW
+  ecwEvalScript(ecwActivePopup.bodyNode);
+
+  ecwActivePopup.event = {};
+
+  //if (popupInit && popupInit!=null) popupInit(this.ecwActivePopup);
+  if (ecwActivePopup.onActivate) {
+    ecwActivePopup.onActivate();
+  }
+
+  // positionner la popup au center de la fenetre
+  this.ecwActivePopup.setPosition();
+
+  if (!fullScreen) {
+    // activer le drag de la popup sur le titre d'une balise uiTitle
+    var premiereTable = ecwActivePopup.bodyNode.getElementsByTagName("TABLE")[0];
+    if (premiereTable && premiereTable.className == "ecwBackgroundIhm") {
+      ecwDrag.init(premiereTable.getElementsByTagName("TD")[0], ecwActivePopup.popupNode);
+    }
+
+    // activer le drag & drop du popup sur le premier div de class ecwTitlePopup
+    var premiereDiv = ecwActivePopup.bodyNode.getElementsByTagName("div")[0];
+    if (premiereDiv && premiereDiv.className == "ecwTitlePopup") {
+      ecwDrag.init(premiereDiv, ecwActivePopup.popupNode);
+    }
+  }
+
+  $("#" + ecwActivePopup.id).show();
+}
+
+/**
+ * Affiche dans un popup un flux HTML mais en prenant en compte
+ * un comportement specifique (utilise dans le cadre des fuseaux horaires)
+ * @param html Flux HTML.
+ * @type String
+ * @param id Identifiant.
+ * @type String
+ * @param node
+ * @type noeud DOM element sous lequel la popup est affichee
+ * @private
+ */
+ECW.PopupManager.prototype.openPopupHTMLSpecial = function(html,id,node) {
+  
+  // Les popups géres leurs propre desactivation d'IHM (ihm grisée en dessous) 
+  //dans ce cas on doit rendre inactive la desactivation auto des IHM
+  // Desactivation des accesskey sur la boite de dialogue [SIFAECW-680]
+  if ( window.ecwActiveUI && ecwAutoDisableIHM && id!=ecwIdPopupBlockIHM) {
+    window.ecwActiveUI.enableIHM();
+  }
+  // Desactivation des accesskey sur la boite de dialogue
+  if (window.ecwActiveUI) {
+    window.ecwActiveUI.desactiveAccessKey();
+  }
+  // Desactivation d'eventuels popups 
+  if (this.popupList.length > 0) {
+    //this.popupList[this.popupList.length-1].popupNode.className="ecwWindowPopup off";
+    this.popupList[this.popupList.length - 1].blur();
+  }
+  // et desactivation du champ ecw actif
+  if (window.ecwActiveUI && window.ecwActiveUI.champActif) {
+    window.ecwActiveUI.champActif.desactiver();
+  }
+  // nouvelle definition de popup
+  var newIndex = this.popupList.length;
+  if (!id) {
+    id = "ecwPopup" + newIndex;
+  }
+  var maPopup = new ECW.PopupWindow(id);
+  maPopup.index = newIndex;
+  this.popupList.push(maPopup);
+  this.ecwActivePopup = maPopup;
+  this.setOnTop(maPopup);
+  this.showUnderlay(maPopup);
+  //window.onerror=null;
+  popupInit = null;
+  ecwActivePopup = this.ecwActivePopup;
+  ecwActivePopup.popupNode.style.visibility="hidden";  
+  // insere le code HTML dans le corps de la popup
+  ecwActivePopup.setBody(html);
+  ecwActivePopup.UI = new ECW.UI(ecwActivePopup.id);
+  ecwActivePopup.UI.activeAccessKey(ecwActivePopup.id);
+  ecwActivePopup.UI.popup = this.ecwActivePopup;
+  ecwActivePopup.UI.onEscape = function() {
+    this.popup.close();
+  }
+  // evaluation des scripts apres chargement ECW
+  ecwEvalScript(ecwActivePopup.bodyNode);
+  ecwActivePopup.event = {};
+  //if (popupInit && popupInit!=null) popupInit(this.ecwActivePopup);
+  if (ecwActivePopup.onActivate) {
+    ecwActivePopup.onActivate();
+  }
+  // positionner la popup au center de la fenetre
+  this.ecwActivePopup.setPositionAfterNode(node);
+  ecwActivePopup.popupNode.style.visibility="visible";
+  $("#" + ecwActivePopup.id).show();
+}
+
+/**
+ * Affiche dans un popup d'alert.
+ * @param html Flux HTML.
+ * @type String
+ * @private
+ */
+ECW.PopupManager.prototype.alertPopup = function(html, fullScreen) {
+
+  var bodyHTML = "<div class='ecwTitlePopup'>" + ecw.I18N.get("information") + "</div>";
+  bodyHTML += "<div style='padding:15px;background-color:#EFEFEF;'>";
+  bodyHTML += "<table><tr><td><div class='ecwAlertIcon'></div></td><td>" + html + "</td></tr>";
+  bodyHTML += "<tr><td></td><td align='center'><div class='ecwButtonGroup'><button ecwValue='validate' id='ecw_alert' onclick='ecwClosePopup()'>OK</button></div></td></tr></table>";
+  bodyHTML += "</div>";
+  bodyHTML += "<script>ecwActivePopup.onActivate=function(){ this.UI.getControl('ecw_alert').setFocus() }</script>";
+  this.openPopupHTML(bodyHTML, fullScreen);
+}
+
+/**
+ * ????
+ * @param config
+ * @type String
+ * @private
+ */
+ECW.PopupManager.prototype.actionPopup = function(config, fullScreen) {
+
+  var cmd = null;
+  if (config.action) {
+    cmd = "window.ecwAlertAction = "+config.action;
+  }else{
+    cmd = "window.ecwAlertAction = function() {}";
+  }
+  eval(cmd);
+
+  var bodyHTML = "<div class='ecwTitlePopup'>" + ecw.I18N.get('Gravite' + config.gravite) + "</div>";
+  bodyHTML += "<div style='padding:15px;background-color:#EFEFEF;'>";
+  bodyHTML += "<table><tr><td><div class='ecw" + config.gravite + "Icon'></div></td><td>" + config.text + "</td></tr>";
+  bodyHTML += "<tr><td></td><td align='center'><div class='ecwButtonGroup'><button ecwValue='validate' id='ecw_action' onclick='ecwClosePopup(event);window.ecwAlertAction()'>OK</button></div></td></tr></table>"
+  bodyHTML += "</div>";
+  bodyHTML += "<script>ecwActivePopup.onActivate=function(){ this.UI.getControl('ecw_action').setFocus() }</script>";
+  this.openPopupHTML(bodyHTML, fullScreen);
+}
+
+/**
+ * Affiche dans un popup d'erreur.
+ * @param html Flux HTML.
+ * @type String
+ * @private
+ */
+ECW.PopupManager.prototype.errorPopup = function(html, fullScreen) {
+
+  if (html == "") {
+    html = "Pas de message !";
+  }
+
+  var bodyHTML = "<div class='ecwTitlePopup' style='background:red;color:white;'>" + ecw.I18N.get("error") + "</div>";
+  bodyHTML += "<div style='padding:3px;background-color:#EFEFEF;'>";
+  bodyHTML += "<table><tr><td></td><td>" + html + "</td></tr>";
+  bodyHTML += "<tr><td></td><td align='center'><button id='ecw_error' onclick='ecwClosePopup()'>" + ecw.I18N.get("OK") + "</button></td></tr></table>";
+  bodyHTML += "</div>";
+  bodyHTML += "<script>ecwActivePopup.onActivate=function(){ this.UI.getControl('ecw_error').setFocus() }</script>";
+  this.openPopupHTML(bodyHTML, fullScreen);
+}
+
+/**
+ * Affiche dans un popup de confirmation.
+ * @param config Obj avec l'attribut text(String) et une methode action.
+ * @type Object
+ * @private
+ */
+ECW.PopupManager.prototype.confirmPopup = function(config, fullScreen) {
+
+  var cmd = null;
+  if (config.action) {
+    cmd = "window.ecwConfirmAction = "+config.action;
+  }else{
+    cmd = "window.ecwConfirmAction = function() {}";
+  }
+  eval(cmd);
+
+  var bodyHTML = "<div class='ecwTitlePopup'>" + ecw.I18N.get("confirm") + "</div>";
+  bodyHTML += "<div style='padding:15px;background-color:#EFEFEF;'>";
+  bodyHTML += "<table><tr><td><div class='ecwConfirmIcon'></div></td><td>" + config.text + "</td></tr>";
+  bodyHTML += "<tr><td></td><td align='right'><div class='ecwButtonGroup'>";
+  bodyHTML += "<button ecwValue='validate' onclick='ecwClosePopup();window.ecwConfirmAction()'>" + ecw.I18N.get("Yes") + "</button>";
+  bodyHTML += "<button ecwValue='cancel' id='ecw_confirm' style='margin-left:15px;' onclick='ecwClosePopup()'>" + ecw.I18N.get("No") + "</button>";
+  bodyHTML += "</div></td></tr></table>";
+  bodyHTML += "</div>";
+  bodyHTML += "<script>ecwActivePopup.onActivate=function(){ this.UI.getControl('ecw_confirm').setFocus() }</script>";
+  this.openPopupHTML(bodyHTML, fullScreen);
+}
+
+/**
+ * Abandon de la requete en cours et supression du claque de chargement.
+ * @private
+ */
+abortRequest = function() {
+  $("#ecwLoadingPopup").hide();
+  if (window.ajaxRequest) {
+    window.ajaxRequest.abort();
+  }
+}
+
+/**
+ * Fermeture de la derniere popup 
+ * -> qui ne doit pas être une popup de desactivation ! 
+ * @param update ???
+ * @type ???
+ * @private
+ */
+ECW.PopupManager.prototype.close = function(update) {
+  // si il n'existe encore un popup d'afficher
+  if (ecwAutoDisableIHM) {  
+     this.closeDesactivationsPopup(update);
+  }
+  if (this.popupList.length > 0) {
+    var lastPopup = this.popupList[this.popupList.length - 1];
+    this.closePopup(lastPopup, update);
+  }
+}
+
+ECW.PopupManager.prototype.closeDesactivationsPopup = function(update) {
+  // si il n'existe encore un popup d'afficher
+  if (this.popupList.length > 0) {
+    var lastPopup = this.popupList[this.popupList.length - 1];
+    //remove all desactivation popup in the top of stack if needed
+    while (this.popupList.length >0 && lastPopup.id == ecwIdPopupBlockIHM ) {
+      this.closePopup(lastPopup, update);
+      if (this.popupList.length >0) {
+        lastPopup = this.popupList[this.popupList.length - 1];
+      } 
+    }
+  }
+}
+
+
+/**
+ * Fermeture de toutes les popup.
+ * @private
+ */
+ECW.PopupManager.prototype.closeAllPopup = function() {
+  while (this.popupList.length > 0) {
+    this.closePopup(this.popupList[this.popupList.length - 1]);
+  }
+}
+
+/**
+ * Fermeture des popup jusque la popup id non incluse.
+ * @param id Identifiant.
+ * @type String.
+ * @private
+ */
+ECW.PopupManager.prototype.closePopupsTo = function(id) {
+  if (this.popupList.length > 0) {
+    var lastPopup = this.popupList[this.popupList.length - 1];
+    if (lastPopup.id != id) {
+      this.closePopup(lastPopup);
+      this.closePopupsTo(id);
+    }
+  }
+}
+
+/**
+ * Fermeture de la popup et appel de la methode onReturnSubmit de la popup active.
+ * @private
+ */
+ECW.PopupManager.prototype.closePopupSubmit = function() {
+  var url = document.forms[0].action;
+  var param = ecwGetFormValues(document.forms[0]);
+  var form = document.forms[0].cloneNode(true);
+  this.close();
+  var ecwActivePopup = this.popupList[this.popupList.length - 1];
+  if (ecwActivePopup && ecwActivePopup.onReturnSubmit) {
+    ecwActivePopup.onReturnSubmit(url, param, form);
+  }
+}
+
+/**
+ * Fermeture de la popup.
+ * @param popup Popup.
+ * @type PopupWindo.
+ * @param event Event.
+ * @type event.
+ * @private
+ */
+ECW.PopupManager.prototype.closePopup = function(popup, event) {
+
+  abortRequest();
+
+  document.body.removeChild(popup.popupNode);
+  this.popupList.pop();
+  this.hideUnderlay(popup);
+
+  // a revoir
+  //this.refreshHistory();
+  var idActivePopup = null;
+  if (this.popupList.length > 0) {
+    // reactive l'ancien popup (avec ECW)
+    ecwActivePopup = this.popupList[this.popupList.length - 1];
+    idActivePopup = ecwActivePopup.id;
+    ecwActiveUI = ecwActivePopup.UI;
+    if (ecwActiveUI) {
+      if (ecwActiveUI.champActif) {
+        ecwActiveUI.champActif.activer();
+        ecwActiveUI.champActif.setFocus();
+        // pour preselectionner la zone
+        if (ecwActiveUI.champActif.noeudDOM.select) {
+          ecwActiveUI.champActif.noeudDOM.select();
+        }
+      }
+    }
+    // donne le focus actif a la popup
+    ecwActivePopup.focus();
+    this.setOnTop(ecwActivePopup);
+    this.showUnderlay(ecwActivePopup);
+
+    if (event) {
+      ecwActivePopup.event = event;
+    } else {
+      ecwActivePopup.event = {};
+    }
+
+    if (ecwActivePopup.onActivate) {
+      ecwActivePopup.onActivate();
+    }
+    ecwActivePopup.event = {};
+    this.ecwActivePopup = ecwActivePopup;
+  } else {
+    if (this.ecwBeforeActiveUI) {
+      ecwActiveUI = this.ecwBeforeActiveUI;
+      if (ecwActiveUI.champActif) {
+        ecwActiveUI.champActif.activer();
+        if (ECW_isIE) {
+          setTimeout("ecwActiveUI.champActif.setFocus();",0);
+        } else {
+          ecwActiveUI.champActif.setFocus();
+        }
+        
+      }
+    }
+    if (window.onCloseLastPopup) {
+      window.onCloseLastPopup(event);
+    }
+    this.ecwActivePopup = null;
+  }
+  if (ecwActiveUI && ecwActiveUI.ecwAccessKey) {
+    /* Activation des accesskey sur la UI principale */
+    ecwActiveUI.activeAccessKey(idActivePopup);
+  }
+
+  if (popup.fullScreen) {
+    this.repositionUnderlayFullScreen();
+  }
+
+}
+
+/**
+ * Refresh de la popup.
+ * @private
+ */
+ECW.PopupManager.prototype.refresh = function() {
+  var lastPopup = this.popupList[this.popupList.length - 1];
+  this.refreshPopup(lastPopup);
+}
+
+/**
+ * Refresh de la popup.
+ * @param popup Popup.
+ * @type PopupWindow.
+ * @private
+ */
+ECW.PopupManager.prototype.refreshPopup = function(popup) {
+  var url = popup.url;
+  var param = popup.param;
+  this.closePopup(popup);
+  openPopup(url, param);
+}
+
+/**
+ * Test si une popup porte l'id.
+ * @param id Identifiant.
+ * @type String.
+ * @private
+ */
+ECW.PopupManager.prototype.existPopup = function(id) {
+  if (this.popupList.length > 0) {
+    for (var i = 0; i < this.popupList.length; i++) {
+      var lastPopup = this.popupList[i];
+      if (lastPopup.id == id) {
+        return true;
+      }
+    }
+  }
+  return false;
+}
+
+/**
+ * Retourne la popup correspondant a l'id.
+ * @param id Identifiant.
+ * @type String.
+ * @return popup ou null
+ * @private
+ */
+ECW.PopupManager.prototype.getPopup = function(id) {
+  if (this.popupList.length > 0) {
+    for (var i = 0; i < this.popupList.length; i++) {
+      var lastPopup = this.popupList[i];
+      if (lastPopup.id == id) {
+        return lastPopup;
+      }
+    }
+  }
+  return null;
+}
+
+
+/**
+ * Centrage de la popup.
+ * @private
+ */
+ECW.PopupManager.prototype.setCenter = function() {
+  var lastPopup = this.popupList[this.popupList.length - 1];
+  lastPopup.setPositionCenter();
+  this.i
+}
+
+/** 
+ * active le recentrage auto de toutes les popups dans la fenetre 
+ * @private
+ */
+ECW.PopupManager.prototype.initResizeWindow = function() {
+  ecwActivePopupManager.onresizeOld = window.onresize;
+  window.onresize = function() {
+    if (ecwActivePopupManager) {
+      ecwActivePopupManager.resizePopups();
+    }
+    if (ecwActivePopupManager.onresizeOld) {
+      ecwActivePopupManager.onresizeOld();
+    }
+  }
+  
+  //[MA-E370022] add scroll event
+  //Jira [SIFAECW-667] Possibilit� de cliquer sur un bouton derri�re le popup
+  window.onscroll = function() {
+    if (ecwActivePopupManager) {
+      ecwActivePopupManager.resizePopups();
+    }
+    if (ecwActivePopupManager.onresizeOld) {
+      ecwActivePopupManager.onresizeOld();
+    }
+  }
+}
+
+/** 
+ * active le recentrage auto de toutes les popups dans la fenetre 
+ * @private
+ */
+ECW.PopupManager.prototype.resizePopups = function() {
+  for (var p = 0; p < ecwActivePopupManager.popupList.length; p++) {
+    ecwActivePopupManager.popupList[p].setPosition();
+  }
+  //Resize de la zone grise  
+  ecwActivePopupManager.setFullHeightUnderLay();
+}
+
+/** 
+ * active le recentrage auto de toutes les popups dans la fenetre 
+ * @private
+ */
+ECW.PopupManager.prototype.resizePopup = function() {
+  if (ecwActivePopupManager) {
+    p = ecwActivePopupManager.popupList.length - 1;
+    ecwActivePopupManager.popupList[p].setPosition();
+  }
+}
+
+/** 
+ * Place la popup au niveau zindex le plus haut.
+ * @param popup Popup.
+ * @type PopupWindow.
+ * @private
+ */
+ECW.PopupManager.prototype.setOnTop = function(popup) {
+
+  // mettre le popup a afficher au bon niveau d'index / index
+  newZindex = 100+(popup.index * 2);
+  popup.popupNode.style.zIndex = newZindex;
+  if (popup.fullScreen) {
+    this.underLayFullScreen.setIndex(newZindex - 1);
+  } else {
+    this.underLayPopup.setIndex(newZindex - 1);
+  }
+}
+
+/** 
+ * Affiche le calque correspondant a la popup.
+ * @param popup Popup.
+ * @private.
+ */
+ECW.PopupManager.prototype.showUnderlay = function(popup) {
+  if (popup.fullScreen) {
+    this.underLayFullScreen.show();
+  } else {
+    this.underLayPopup.show();
+  }
+}
+
+/** 
+ * Masque le calque correspondant a la popup.
+ * @param popup Popup.
+ * @private.
+ */
+ECW.PopupManager.prototype.hideUnderlay = function(popup) {
+  if (popup.fullScreen) {
+    this.underLayFullScreen.hide();
+  } else {
+    this.underLayPopup.hide();
+  }
+}
+
+/** 
+ * Lors de la fermeture d'un popup fullscreen, il faut replacer le calque blanc en dessous de la derniere popup fullScreen.
+ * @param popup Popup.
+ * @private.
+ */
+ECW.PopupManager.prototype.repositionUnderlayFullScreen = function() {
+  var size = this.popupList.length;
+  if (size > 0) {
+    for (var i = size - 1; i >= 0; i--) {
+      var popup = this.popupList[i];
+      if (popup.fullScreen) {
+        this.underLayFullScreen.setIndex(popup.popupNode.style.zIndex - 1);
+        this.underLayFullScreen.show();
+      }
+    }
+  }
+}
+
+/** 
+ * @private.
+ */
+ECW.PopupManager.prototype.activateHistory = function() {
+  // initialise HistoryBar
+  this.historyNode = document.createElement("div");
+  this.historyNode.className = "ecwHistoryBar";
+  document.body.appendChild(this.historyNode);
+  this.refreshHistory();
+}
+
+/** 
+ * @private.
+ */
+ECW.PopupManager.prototype.refreshHistory = function() {
+  if (this.historyNode) {
+    var myHistory = "<a href='#' onclick='ecwClosePopupsTo()'> " + ecw.I18N.get("MENU") + "</a>";
+    for (var p = 0; p < this.popupList.length; p++) {
+      myHistory += " > <a href='#' onclick='ecwClosePopupsTo(\"" + this.popupList[p].id + "\")'>" + this.popupList[p].getTitle() + "</a>";
+    }
+    this.historyNode.innerHTML = myHistory;
+  }
+}
+
+
+/** 
+ * @private.
+ */
+ECW.PopupManager.prototype.logRequest = function(url, param) {
+  return ; // desactivation des log  
+  var newBR = document.createElement("BR");
+  document.body.appendChild(newBR);
+  var newA = document.createElement("a");
+  newA.href = "javascript:openPopup('" + url + "','" + param + "')";
+  newA.innerHTML = url + "(" + param + ")";
+  document.body.appendChild(newA);
+}
+
+/** 
+ * @private.
+ */
+ECW.PopupManager.prototype.logOpenPopupHTML = function() {
+  return ; // desactivation des log
+  var newBR = document.createElement("BR");
+  document.body.appendChild(newBR);
+  var newB = document.createElement("b");
+  var openPopupDelay = (timeStampEndOpenPopup - timeStampOpenPopup);
+
+  var requestDelay = (timeStampEndRequest - timeStampStartRequest);
+  var createPopupDelay = (timeStampEndCreatePopup - timeStampStartCreatePopup);
+  var loadDelay = (timeStampEndLoad - timeStampStartLoad);
+
+  var ecwDelay = (timeStampEndECW - timeStampStartECW);
+  var centerDelay = (timeStampEndCenter - timeStampStartCenter);
+  var scriptDelay = (timeStampEndScript - timeStampStartScript);
+  var resteDelay = (timeStampEndOpenPopup - timeStampStartReste);
+
+  var monHTML = "openPopup:" + openPopupDelay + " = request:" + requestDelay + " + loadHTML:" + loadDelay;
+  monHTML += " + createPopup:" + createPopupDelay + " + ecw:" + ecwDelay + " + script:" + scriptDelay + " + center:" + centerDelay + " + reste:" + resteDelay;
+  var sumDelay = (requestDelay + loadDelay + createPopupDelay + ecwDelay +  scriptDelay + centerDelay + resteDelay);
+  monHTML += " = " + sumDelay;
+  monHTML += " /// " + (openPopupDelay - sumDelay)
+
+
+  newB.innerHTML = monHTML;
+  document.body.appendChild(newB);
+}
+
+/**
+ * Force le masquage de la popup
+ * attention il ne faut pas utiliser hidden car
+ * probleme sur le clic dans la zone avec IE
+ * @private
+ */
+ECW.PopupManager.prototype.forceHiddenPopup = function() {	
+    this.ecwActivePopup.bodyNode.style.position = "absolute";
+    this.ecwActivePopup.bodyNode.style.left = "-3000px";         	
+}
+
+/**
+ * Positionne la popup par rapport a un element.
+ * @private.
+ */
+ECW.PopupManager.prototype.setPosition = function(idReference) {
+  this.ecwActivePopup.setPosition(idReference);
+}
+
+//==============================================
+// UnderLay specifique aux popups
+//==============================================
+
+/**
+ * Classe pour g&eacute;rer la couche sous la bo&icirc;te de dialogue
+ * afin pour capter les &eacute;v&egrave;nements souris
+ * @param boolean indiquant s'il s'agit d'un calque pour popup en plein ecran
+ * @return Un nouvel objet UnderLay
+ * @private
+ */
+ECW.UnderLayPopup = function(fullScreen) {
+
+  var className = "ecwUnderLayPopup";
+  if (fullScreen) {
+    className = "ecwUnderLayPopupFullScreen";
+  }
+
+  if (ECW_isIE) {
+    /* Creation IFRAME pour masquer les selects */
+    this.underLayIFRAME = document.createElement("IFRAME");
+    /* Peretre de rendre le focus au champ actif si l'utilisateur focus l'IFRAME */
+    this.underLayIFRAME.className = className;
+    /* Insertion du noeud dans le DOM du document */
+    document.body.appendChild(this.underLayIFRAME);
+  }
+  /* creation d'un DIV */
+  this.underLayDIV = document.createElement("DIV");
+
+  /* Permettre de rendre le focus au champ actif si l'utilisateur clic dans l'underlay */
+  this.underLayDIV.onmouseup = function() {
+    if (ecwActiveUI && ecwActiveUI.champActif) {
+      ecwActiveUI.champActif.setFocus();
+    }
+  }
+
+  this.underLayDIV.className = className;
+  /* Insertion du noeud dans le DOM du document */
+  document.body.appendChild(this.underLayDIV);
+
+}
+
+/**
+ * Force la hauteur de la zone griser a la hauteur totale
+ * (en comptant la zone de scroll)
+ * @private
+ */
+ECW.UnderLayPopup.prototype.forceHeight = function(flagWait) {	
+	var iebody=(document.compatMode && document.compatMode != "BackCompat")? document.documentElement : document.body
+	var hClient=iebody.clientHeight;
+	var offsetHClient = (document.all)?iebody.scrollHeight:iebody.offsetHeight;
+	var pourcentH = Math.ceil(((offsetHClient / hClient)*100));
+	var posBottom = -(offsetHClient - hClient);	
+	pourcentH = (pourcentH<110)?110:pourcentH;	//110 minimum comme dans la CSS 	
+	posBottom = (posBottom>0)?0:posBottom;	//0 minimum comme dans la CSS 		
+ 	if (this.underLayIFRAME) {    	
+    	this.underLayIFRAME.style.bottom = posBottom + "px";	
+	    this.underLayIFRAME.style.height = pourcentH + "%";
+  	}
+  	if (this.underLayDIV) {
+		//[MA-E370022] add scroll event
+		//Jira [SIFAECW-667] Possibilit� de cliquer sur un bouton derri�re le popup
+		//this.underLayDIV.style.bottom = posBottom + "px";	
+		//this.underLayDIV.style.height = pourcentH + "%";
+		this.underLayDIV.style.left = 0;
+		this.underLayDIV.style.top = 0;	
+		this.underLayDIV.style.height = iebody.scrollHeight;
+		this.underLayDIV.style.width = iebody.scrollWidth;
+  	}
+  	 /* si flagWait est a true alors afficher un sablier sur l'ecran */
+  	//if (flagWait) this.underLayDIV.className="ecwUnderLayPopupWait";  	
+}
+
+/**
+ * Affiche la sous couche
+ * @private
+ */
+ECW.UnderLayPopup.prototype.show = function() {
+  if (this.underLayIFRAME) {
+    this.underLayIFRAME.style.display = "";
+  }
+  if (this.underLayDIV) {
+    this.underLayDIV.style.display = "";
+  }
+}
+
+/**
+ * Masque la sous couche
+ * @private
+ */
+ECW.UnderLayPopup.prototype.hide = function() {
+  if (this.underLayIFRAME) {
+    this.underLayIFRAME.style.display = "none";
+  }
+  if (this.underLayDIV) {
+    this.underLayDIV.style.display = "none";
+  }
+}
+
+/**
+ * @private
+ */
+ECW.UnderLayPopup.prototype.setIndex = function(newIndex) {
+  if (this.underLayIFRAME) {
+    this.underLayIFRAME.style.zIndex = newIndex;
+  }
+  if (this.underLayDIV) {
+    this.underLayDIV.style.zIndex = newIndex;
+  }
+}
+
+//==============================================
+// Utilitaire pour les popups
+//==============================================
+
+/**
+ * ecwGetTimeStamp : Retourne le nombre de milliemes de secondes ecoulees entre le 1/1/1970 0:00:00 et la date courante
+ * @private
+ */
+function ecwGetTimeStamp() {
+  return (new Date()).getTime();
+}
+
+/**
+ * ecwGetFormValues : generer les parametres encodes (escape) a partir d'un form 
+ * @param formElement Formulaire a traiter.
+ */
+function ecwGetFormValues(formElement) {
+  var stringResult = "";
+  var valueArr = null;
+  var val = "";
+  var cmd = "";
+  var elts = formElement.elements;
+  for (var i = 0; i < formElement.elements.length; i++) {
+    var element = formElement.elements[i];
+    switch (element.type) {
+      case "hidden":
+      case "text":
+      case "textarea":
+        stringResult += ecwGetParamInput(element);
+        break;
+      case "checkbox":
+      case "radio":
+        if (element.checked) {
+          stringResult += ecwGetParamInput(element);
+        }
+        break;
+      case "select-one":
+        if (element.selectedIndex !=  - 1) {
+          stringResult += ecwGetParamSelect(element, element.selectedIndex);
+        }
+        break;
+      case "select-multiple":
+        for (var j = 0; j < element.options.length; j++) {
+          if (element.options[j].selected) {
+            stringResult += ecwGetParamSelect(element, j);
+          }
+        }
+        break;
+    }
+  }
+  // supprime le dernier &
+  stringResult = stringResult.substr(0, (stringResult.length - 1));
+  return stringResult;
+}
+
+/**
+ * ecwGetParamInput : genere le parametre encode (escape) a partir d'un element
+ * @param element Element du dom de type textarea ou radio
+ * @private
+ */
+function ecwGetParamInput(element) {
+  return ecwGetNameValueEscaped(element.name, element.value);
+}
+
+/**
+ * ecwGetParamSelect : genere le parametre encode (escape) a partir d'un element
+ * @param element Element du dom de type select ou select-multiple
+ * @private
+ */
+function ecwGetParamSelect(element, index) {
+  return ecwGetNameValueEscaped(element.name, element.options[index].value);
+}
+
+/**
+ * ecwGetNameValueEscaped : pour gerer les caracteres speciaux et le cas du + non echape
+ * @param name Name de l'element
+ * @param value Value de l'element
+ * @private
+ */
+function ecwGetNameValueEscaped(name, value) {
+  return name + "=" + escape(value).replace(new RegExp("\\+", "g"), "%2B") + "&";
+}

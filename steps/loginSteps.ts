@@ -5,8 +5,14 @@ interface StepHelper {
     navigateTo(url: string): Promise<void>;
     enterText(selector: Locator, text: string, description: string): Promise<void>;
     clickElement(selector: Locator, description: string): Promise<void>;
-    assertElementHasText: (locator: any, expectedText: string, message: string) => Promise<void>;
-}
+    // assertElementHasText: (locator: any, expectedText: string, message: string) => Promise<void>;
+    clickButtonInFrame(frameName: string, buttonSelector: string, label: string): Promise<void>
+    
+   // BOTH methods included (the one LoginSteps expects + your custom one)
+    // assertElementHasText(locator: any, expectedText: string, label: string): Promise<void>;
+    assertElementHasTextInFrame(frameName: string, errorInFrame: string, expectedText: string, label: string): Promise<void>;
+
+}  
 
 class LoginSteps {
     private page: Page;
@@ -37,6 +43,7 @@ class LoginSteps {
 
 
     async login(username: string, password: string): Promise<void> {
+        // await this.helper.clickButtonInFrame("login", "#buttonUserLogin", "login frame");
         await this.helper.enterText(this.usernameField, username, 'username');
         await this.helper.enterText(this.passwordField, password, 'password');
         await this.helper.clickElement(this.signInBtn, 'signInBtn');

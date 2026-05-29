@@ -1,0 +1,2302 @@
+/**
+ * @fileoverview D&eacute;finition de l'objet <b>ECW.Grid</b>
+ * @author u218179
+ * @version $Revision: 1.25 $
+ */
+
+/**
+ * D&eacute;fini l'objet <b>ECW.Grid</b>
+ * @private
+ */
+ECW.Grid = function(noeud, layout) {
+  ecwStartTimer("ECW.Grid");
+
+  ecwSetAttribute(this, "noeudDOM", noeud);
+  ecwSetAttribute(this, "ecwLayout", layout);
+  ecwSetAttribute(this, "ecwUI", layout.ecwUI);
+  ecwSetAttribute(this.noeudDOM, "ecwGrid", this);
+  ecwSetAttribute(this, "divTHead", null);
+  ecwSetAttribute(this, "divTBody", null);  
+  this.initNextAndPreviousField();  
+  this.constructeur();
+     
+  ecwStopTimer("ECW.Grid");
+}
+
+/**
+ * ToString.
+ * @return string
+ * @private
+ */
+ECW.Grid.prototype.toString = function() {
+  return 'ECW.Grid';
+}
+
+/**
+ * Pb sous IE: attachEvent: le this n'est pas un Input mais est (un document ou window ?)
+ * Inconvenient de la methode uitlisee: on ne peut attacher qu'une seule fonction a un evenement.
+ * @param INPUT
+ * @private
+ */
+ECW.Grid.prototype.initInputs = function(inputs) {
+  for (var i = 0; i < inputs.length; i++) {
+    new ECW.GridFieldInput(this, inputs[i]);
+  }
+}
+
+/**
+ * Pb sous IE: attachEvent: le this n'est pas un Input mais est (un document ou window ?)
+ * Inconvenient de la methode uitlisee: on ne peut attacher qu'une seule fonction a un evenement.
+ * @param SELECT
+ * @private
+ */
+ECW.Grid.prototype.initSelects = function(selects) {
+  for (var i = 0; i < selects.length; i++) {
+    new ECW.GridFieldSelect(this, selects[i]);
+  }
+}
+
+/**
+ * Noeud DOM
+ * @private
+ */
+ECW.Grid.prototype.noeudDOM = null;
+
+/**
+ * Setter Noeud DOM
+ * @param Noeud DOM
+ * @private
+ */
+ECW.Grid.prototype.setNoeudDOM = function(noeudDOM) {
+  this.noeudDOM = noeudDOM;
+  /* Positionnement du Tabindex, */
+  /* car sous Firefox 1.5, une div de style overflow:auto devient focusable */
+  if (ECW_isGecko) {
+    noeudDOM.tabIndex =  - 1;
+  }
+}
+
+/**
+ * Etat
+ * @private
+ */
+ECW.Grid.prototype.focused = false;
+
+/**
+ * Setter etat
+ * @param etat
+ * @private
+ */
+ECW.Grid.prototype.setFocused = function(state) {
+  if (state != this.focused) {
+    if (state)
+      this.activer();
+    else
+      this.desactiver();
+  }
+  this.focused = state;
+}
+
+/**
+ * Dernier champ focusser
+ * @private
+ */
+ECW.Grid.prototype.lastFocus = null;
+
+
+/**
+ * Nombre de lignes visibles dans la table
+ * @private
+ */
+ECW.Grid.prototype.nbligne = null;
+
+/**
+ * Nombre de lignes initiales visibles dans la table
+ * Contrairement a l'attribut nbligne, celui ci ne varie pas en fonction de l'ajustement automatique du calcul de la hauteur de la table
+ * @private
+ */
+ECW.Grid.prototype.nbligneInitial = null;
+
+/**
+ * DIV contenant l'entete fixe
+ * @private
+ */
+ECW.Grid.prototype.divTHead = null;
+
+/**
+ * DIV contenant les lignes de la table
+ * @private
+ */
+ECW.Grid.prototype.divTBody = null;
+
+/**
+ * DIV contenant la ligne vide pour creation
+ * @private
+ */
+ECW.Grid.prototype.divEmptyLine = null;
+
+/**
+ * DIV contenant la ligne vide pour creation
+ * @private
+ */
+ECW.Grid.prototype.emptyLine = null;
+
+/**
+ * Booleen autorisant la creation de ligne sur fleche bas.
+ * @private
+ */
+ECW.Grid.prototype.autoCreateLine = false;
+
+/**
+ * Colorisation des lignes en alternance
+ * @private
+ */
+ECW.Grid.prototype.alternateColor = false;
+
+/**
+ * Identifiant du champ prcedent pour focus
+ * @private
+ */
+ECW.Grid.prototype.idPreviousField = null;
+
+/**
+ * Identifiant du champ suivant pour focus
+ * @private
+ */
+ECW.Grid.prototype.idNextField = null;
+
+/**
+ * Button group
+ * @private
+ */
+ECW.Grid.prototype.ecwButtonGroup = null;
+
+/**
+ * Constructeur de l'objet Grid
+ * @private
+ */
+ECW.Grid.prototype.constructeur = function() {
+
+  var attrEcwNbLines = this.noeudDOM.attributes.ecwNbLines;
+     
+  if (attrEcwNbLines) {
+    this.nbligne = attrEcwNbLines.nodeValue;
+    this.nbligneInitial = attrEcwNbLines.nodeValue;
+  }
+
+  var wdivTHead = getFirstDivByClass(this.noeudDOM, "ecwGridHead");
+  ecwSetAttribute(this, "divTHead", wdivTHead);
+  var wdivTBody = getFirstDivByClass(this.noeudDOM, "ecwGridBody");
+  if (!wdivTBody)
+    return;
+
+  var wdivEmptyLine = getFirstDivByClass(this.noeudDOM, "ecwGridEmptyLine");
+  ecwSetAttribute(this, "divEmptyLine", wdivEmptyLine);
+  var tableEmptyLine = getFirstChildByTagName(wdivEmptyLine, "TABLE");
+  var emptyLine = getFirstChildByTagName(tableEmptyLine, "TR");
+  ecwSetAttribute(this, "emptyLine", emptyLine);
+
+  if (wdivTHead.getAttribute("ecwAlternateColor")
+      && wdivTHead.getAttribute("ecwAlternateColor") == "true") {
+    this.alternateColor = true;
+  }
+
+  if (wdivTHead.getAttribute("ecwAutoCreateLine")
+      && wdivTHead.getAttribute("ecwAutoCreateLine") == "true") {
+    this.autoCreateLine = true;
+  }
+
+  ecwSetAttribute(this, "divTBody", wdivTBody);
+  wdivTBody.ecwGrid = this;
+
+  /* Recherche des DIV pour ECW.TableV2 */
+  this.searchStructureDOM();
+
+  /* Traitement a effectuer sur les lignes */
+  this.createTableLinesBehaviour();
+
+  var inputs = this.getGridInputs();
+  var selects = this.getGridSelects();
+  this.declareControls(inputs, selects, false);
+
+  if (inputs.length > 0) {
+    this.moveFirst();
+  }
+
+  /* Dimensionnement de la table */
+  this.fixerLargeurColonnes();
+  this.fixerDimensions(true, false);
+
+  var rows = this.getRows();
+    
+  for (var i = 0; i < rows.length; i++) {
+    ecwSetAttribute(rows[i], "ecwGrid", this);    
+  }
+
+  if (!this.lastInputHidden) {
+
+    /* Creation dernier champ invisible pour retour au premier */
+    ecwSetAttribute(this, "lastInputHidden", document.createElement("INPUT"));
+    ecwSetAttribute(this.lastInputHidden, "ecwGrid", this);
+    this.lastInputHidden.className = "ecwInvisible";
+    this.lastInputHidden.setAttribute("autocomplete", "off");
+    /* Ajout du champ invisible en dernier */
+    this.noeudDOM.parentNode.appendChild(this.lastInputHidden);
+    /* Dernier champ cache -> active le grid */
+    this.lastInputHidden.onfocus = function() {
+      var grid = this.ecwGrid;
+      if (grid.getCurrentField()) {
+        grid.getCurrentField().ecwGridField.focusAndSelect();
+      } else {
+        if (grid.isActif()) {
+          grid.desactiver();
+          grid.focusNextField();
+        } else {
+          grid.activer();
+        }
+      }
+    }
+
+    /* Creation premier champ invisible pour aller au dernier */
+    ecwSetAttribute(this, "firstInputHidden", document.createElement("INPUT"));
+    ecwSetAttribute(this.firstInputHidden, "ecwGrid", this);
+    this.firstInputHidden.className = "ecwInvisible";
+    this.firstInputHidden.setAttribute("autocomplete", "off");
+    /* Insertion du champ invisible avant le premier champ 'INPUT' */
+    this.noeudDOM.parentNode.insertBefore(this.firstInputHidden, this.noeudDOM);
+    /* Premier champ cache -> active le grid */
+    this.firstInputHidden.onfocus = function() {
+      var grid = this.ecwGrid;
+      if (grid.getCurrentField()) {
+        grid.getCurrentField().ecwGridField.focusAndSelect();
+      } else {
+        if (grid.isActif()) {
+          grid.desactiver();
+          grid.focusPreviousField();
+        } else {
+          grid.activer();
+        }
+      }
+    }
+
+  }
+
+  if (this.emptyLine) {
+    //Retirer la ligne pour que les champs ne soient pas postes
+    this.emptyLine.parentNode.removeChild(emptyLine);
+  }
+}
+
+/**
+ * Initialisation du focus sur le champ precedent et suivant le grid
+ * @private
+ */
+ECW.Grid.prototype.initNextAndPreviousField = function() {
+  if (this.noeudDOM.getAttribute("ecwidPreviousField")) {
+    this.idPreviousField = this.noeudDOM.getAttribute("ecwidPreviousField");
+    var field = document.getElementById(this.idPreviousField);
+    ecwSetAttribute(field, "ecwGrid", this);
+
+    if (field.onfocus) {
+      field.ecwonfocus = field.onfocus;
+      field.onfocus = function(event) {
+        this.ecwonfocus(event);
+        this.ecwGrid.desactiver();
+      }
+    } else {
+      field.onfocus = function(event) {
+        this.ecwGrid.desactiver();
+      }
+    }
+  }
+
+  if (this.noeudDOM.getAttribute("ecwidNextField")) {
+    this.idNextField = this.noeudDOM.getAttribute("ecwidNextField");
+    var field = document.getElementById(this.idNextField);
+    ecwSetAttribute(field, "ecwGrid", this);
+
+    if (field.onfocus) {
+      field.ecwonfocus = field.onfocus;
+      field.onfocus = function(event) {
+        this.ecwonfocus(event);
+        this.ecwGrid.desactiver();
+      }
+    } else {
+      field.onfocus = function(event) {
+        this.ecwGrid.desactiver();
+      }
+    }
+  }
+
+  if (!this.idPreviousField || !this.idNextField) {
+    this.initEcwButtonGroup();
+  }
+}
+
+/**
+ * Recherche du head et du body
+ * @private
+ */
+ECW.Grid.prototype.searchStructureDOM = function() {
+
+  /* <div class="ecwGridHead"> */
+  this.searchTableHead();
+
+  /* <div class="ecwGridBody"> */
+  this.searchTableBody();
+
+}
+
+/**
+ * Calcul la largeur des colonnes
+ * @private
+ */
+ECW.Grid.prototype.fixerLargeurColonnes = function() {
+  /* Determine la largeur des colonnes (max entre le head et body) */
+  var rowsHead = this.divTHead.getElementsByTagName("TR");
+  var firstTdsHead = rowsHead[0].getElementsByTagName("TH");
+
+  var rowsBody, firstTdsBody = null;
+  if (this.lignes && this.lignes.length > 0) {
+    rowsBody = this.divTBody.getElementsByTagName("TR");
+    firstTdsBody = rowsBody[0].getElementsByTagName("TD");
+  } else if (this.emptyLine) {
+    var wdivEmptyLine = getFirstDivByClass(this.noeudDOM, "ecwGridEmptyLine");
+    rowsBody = this.divEmptyLine.getElementsByTagName("TR");
+    firstTdsBody = this.emptyLine.getElementsByTagName("TD");
+  }
+
+  if (firstTdsBody) {
+    var arrayWidth = new Array();
+    for (var i = 0; i < firstTdsHead.length; i++) {
+      if (firstTdsHead[i].offsetWidth > firstTdsBody[i].offsetWidth) {
+        arrayWidth[i] = firstTdsHead[i].offsetWidth;
+      } else {
+        arrayWidth[i] = firstTdsBody[i].offsetWidth;
+      }
+    }
+
+    for (var i = 0; i < firstTdsHead.length; i++) {
+      firstTdsHead[i].style.width = arrayWidth[i];
+    }
+
+    for (var i = 0; i < rowsBody.length; i++) {
+      var tdsBody = rowsBody[i].getElementsByTagName("TD");
+      for (var j = 0; j < tdsBody.length; j++) {
+        tdsBody[j].style.width = arrayWidth[j];
+      }
+    }
+  }
+}
+
+/**
+ * Calcul la hauteur et la largeur de la liste
+ * @private
+ */
+ECW.Grid.prototype.fixerDimensions = function(firstInit, removeScroll) {
+
+  /* Precise la hauteur du DIV principal en fonction du nb lignes maxi a afficher */
+  if (this.noeudDOM.attributes.ecwNbLines) {
+    this.nbligne = parseInt(this.noeudDOM.attributes.ecwNbLines.nodeValue, 10);
+  }
+  var hauteurEntete = 0;
+  var hauteurTab = 0;
+
+  /* Si l'entete existe */
+  if (this.divTHead) {
+    /* Recuperation de la valeur de offsetHeight */
+    /* offsetHeight est uniquement valable si le noeud est visible */
+    var offHeight = getFirstChildByTagName(this.noeudDOM, "THEAD").offsetHeight + 3;
+    this.divTHead.style.height = offHeight;
+    hauteurEntete = offHeight;
+  }
+  
+  var tableDivTBody = getFirstChildByTagName(this.divTBody, "TABLE");
+  /* Si la table contient au moins une ligne */
+  if (this.lignes && this.lignes.length > 0) {
+    /* Si c'est une combo, calcul de la hauteur au plus juste */
+    hauteurTab = (this.lignes[0].offsetHeight) * this.nbligne;
+  }
+  /* Aucune ligne dans le tableau */
+  else {
+
+    if (this.divTBody) {
+      /* Ajout d'une ligne pour le calcul de la hauteur d'une ligne */
+      var tbodyVide = getFirstChildByTagName(this.divTBody, "TBODY");
+      if (!tbodyVide) {
+        tbodyVide = document.createElement("TBODY");
+        tableDivTBody.appendChild(tbodyVide);
+      }
+
+      var trVide = document.createElement("TR");
+      tbodyVide.appendChild(trVide);
+      var tdVide = document.createElement("TD");
+      trVide.appendChild(tdVide);
+      tdVide.innerHTML = "LIGNE DE TEST";
+
+      /* Calcul de la hauteur totale */
+      var firstLine = getFirstChildByTagName(tbodyVide, "TR");
+      hauteurTab = firstLine.offsetHeight * this.nbligne;
+
+      /* Suppression de la ligne */
+      tbodyVide.removeChild(trVide);
+    }
+  }
+  if (this.divTBody) {
+    this.divTBody.style.height = hauteurTab + 2;
+  }
+
+  /* Fixe la largeur de la liste */
+  var wlargeur = 0;
+
+  /* Pour eviter l'ascenseur horizontal en cas de manque de place */
+  if (this.divTBody) {
+    /* Position de la balise <table> */
+    tableDivTBody.style.position = "absolute";
+  }
+
+  /* Si l'entete existe */
+  if (this.divTHead) {
+    //this.divTHead.style.width = tableDivTBody.offsetWidth;
+    var tableTHead = getFirstChildByTagName(this.divTHead, 'TABLE');
+    /* Si la table contient au moins une ligne */
+    if (this.lignes != null && this.lignes.length > 0) {
+      if (this.lignes[0].parentNode.offsetWidth > tableTHead.offsetWidth) {
+        wlargeur = this.lignes[0].parentNode.offsetWidth;
+      } else {
+        wlargeur = tableTHead.offsetWidth;
+      }
+    } else {
+      wlargeur = tableTHead.offsetWidth;
+    }
+  }
+  /* Si l'entete n'existe pas */
+  else {
+    /* Si la table contient au moins une ligne */
+    if (this.lignes != null && this.lignes.length > 0) {
+      wlargeur = this.lignes[0].parentNode.offsetWidth;
+    } else {
+      wlargeur = 20;
+    }
+  }
+
+  /* Pour Mozilla */
+  if (ECW_isGecko && this.divTBody) {
+    /* Position de la balise <table> */
+    tableDivTBody.style.position = "";
+  }
+
+  /* Si l'ascenseur vertical s'affiche il faut ajouter la largeur de l'ascenseur */
+  if (this.lignes && this.lignes.length > this.nbligne) {
+    wlargeur += ecwScrollBarWidth;
+  }
+  if (!firstInit && removeScroll) {
+    wlargeur -= ecwScrollBarWidth;
+  }
+
+  if (this.divTBody) {
+    this.divTBody.style.width = wlargeur;
+    /* Pour une table, calcul de la longueur, car position: static */
+    this.noeudDOM.style.width = this.divTBody.offsetWidth;
+  }
+
+}
+
+/**
+ * Recherche de la DIV class="ecwGridHead" utilisee pour afficher les entetes de colonnes.
+ * @private
+ */
+ECW.Grid.prototype.searchTableHead = function() {
+
+  /* Recherche de la balise <TABLE> et de la balise <THEAD> */
+  var currentTable = getFirstChildByTagName(this.noeudDOM, "TABLE");
+  if (!(currentTable && currentTable.tHead)) {
+    return ;
+  }
+}
+
+/**
+ * Recherche de la DIV class="ecwGridBody" utilisee pour afficher les donnees.
+ * @private
+ */
+ECW.Grid.prototype.searchTableBody = function() {
+
+  /* Positionnement du Tabindex, */
+  /* car sous Firefox 1.5, une div de style overflow:auto devient focusable */
+  if (ECW_isGecko) {
+    this.divTBody.tabIndex = -1;
+  }
+}
+
+/**
+ * Cree le comportement des lignes sur les actions.
+ * @private
+ */
+ECW.Grid.prototype.createTableLinesBehaviour = function() {
+
+  if (this.noeudDOM.getElementsByTagName("TBODY").length > 0) {
+
+    this.lignes = getFirstChildByTagName(this.divTBody, "TBODY").rows;
+    /* Detection d'une table vide */
+    this.detectEmptyTable();
+    /* Retient l'ordre inital des lignes*/
+    if (this.canReorder) {
+      this.saveInitialOrder();
+    }
+
+    if (this.lignes) {
+      var ligne;
+      var nbLignes = this.lignes.length;
+      for (var i = 0; i < nbLignes; ++i) {
+        ligne = this.lignes[i];
+
+        ecwSetAttribute(ligne, "ecwGrid", this);
+        ligne.ecwGrid.triActif = 0;
+
+        /* Precalcul du rowIndex pour gagner du temps sous Mozilla */
+        this.processIndex(ligne, i);
+
+        /* Sauvegarde du texte : utilise par ECW.ComboBox */
+        ligne.chaineCar = ecwGetInnerText(ligne.getElementsByTagName("TD")[0]);
+      }
+    }
+  }
+}
+
+/**
+ * Detection d'un table vide.
+ * @private
+ */
+ECW.Grid.prototype.detectEmptyTable = function() {
+
+  /* Detection d'une table vide */
+  if (this.lignes && this.lignes.length == 1) {
+    if (isClass(this.lignes[0], "ecwGridLineEmpty")) {
+      this.lignes = null;
+    }
+  }
+}
+
+/**
+ * Focus le field suivant le grid
+ * @private
+ */
+ECW.Grid.prototype.focusNextField = function() {
+  if (this.idNextField && document.getElementById(this.idNextField)) {
+    this.desactiver();
+    ecwFocus(document.getElementById(this.idNextField));
+  } else {
+    this.moveFirstButton();
+  }
+}
+
+/**
+ * Focus le field precedent le grid
+ * @private
+ */
+ECW.Grid.prototype.focusPreviousField = function() {
+  if (this.idPreviousField && document.getElementById(this.idPreviousField)) {
+    this.desactiver();
+    ecwFocus(document.getElementById(this.idPreviousField));
+  } else {
+    this.moveFirstButton();
+  }
+}
+
+/**
+ * Mise a jour de l'index des lignes.
+ * @param ligne Ligne concernee.
+ * @param i Indice de la ligne.
+ * @private
+ */
+ECW.Grid.prototype.processIndex = function(ligne, i) {
+
+  /* Recalcul de l'index de ligne */
+  if (ligne) {
+    ligne.rIndex = i + 1;
+  }
+}
+
+/**
+ * Si blurOnTab == true, l'appuie sur la touche Tabulation provoque le focus
+ * sur le premier bouton du groupe de bouton dont l'Id vaut "ecwButtonGroup";
+ * Si blurOnTab == false, l'appuie sur la touche Tabulation provoque le focus 
+ * sur le prochain controle de la grid ou
+ * sur le premier controle apr&egrave;s la grid s'il n'y a plus de controle suivant dans la grid.
+ * @private
+ */
+ECW.Grid.prototype.blurOnTab = false;
+
+/**
+ * Retourne la table contenant les lignes de saisies.
+ * @return Table
+ * @private
+ */
+ECW.Grid.prototype.getTable = function() {
+  var table = this.divTBody.getElementsByTagName("TABLE")[0]
+    this.checkNodeStructure(table, "table", "ECW.Grid.prototype.getRow", "[0]: Impossible de trouver la table !");
+  return table;
+}
+
+/**
+ * Retourne le body de la table contenant les lignes de saisies.
+ * @return TBody
+ * @private
+ */
+ECW.Grid.prototype.getTableBody = function() {
+  var tbodies = this.getTable().tBodies;
+  var tbody = null;
+  if (!tbodies || tbodies.length == 0) {
+    // cela peut arriver si la table ne contient pas de lignes.
+    tbody = document.createElement("tbody");
+    this.getTable().appendChild(tbody);
+  } else {
+    tbody = tbodies[0];
+  }
+  return tbody;
+}
+
+/**
+ * Retourne les lignes de la table.
+ * @return Rows
+ * @private
+ */
+ECW.Grid.prototype.getRows = function() {
+  return this.getTableBody().rows;
+}
+
+/**
+ * Retourne le nombre de lignes de la table.
+ * @return int
+ * @private
+ */
+ECW.Grid.prototype.getRowsCount = function() {
+  return this.getRows().length;
+}
+
+/**
+ * Retourne le nombre de colonnes de la table.
+ * @return int
+ * @private
+ */
+ECW.Grid.prototype.getColumnsCount = function() {
+  return this.getRows()[0].cells.length;
+}
+
+/**
+ * Retourne les input de la table.
+ * @return INPUT
+ * @private
+ */
+ECW.Grid.prototype.getGridInputs = function() {
+  return this.getTableBody().getElementsByTagName("INPUT");
+}
+
+/**
+ * Retourne les select de la table.
+ * @return SELECT
+ * @private
+ */
+ECW.Grid.prototype.getGridSelects = function() {
+  return this.getTableBody().getElementsByTagName("SELECT");
+}
+
+/**
+ * Retourne les select de la ligne.
+ * @return SELECT
+ * @private
+ */
+ECW.Grid.prototype.getRowSelects = function(row) {
+  return row.getElementsByTagName("SELECT");
+}
+
+/**
+ * Retourne les input et select de la ligne.
+ * @param TR
+ * @private
+ */
+ECW.Grid.prototype.getRowFields = function(row) {
+  var list = new Array();
+  var tds = row.getElementsByTagName("TD");
+  for (var i = 0; i < tds.length; i++) {
+    var input = getFirstChildByTagName(tds[i], "INPUT");
+    var select = getFirstChildByTagName(tds[i], "SELECT");
+    if (input) {
+      list.push(input);
+    } else if (select) {
+      list.push(select);
+    }
+  }
+  return list;
+}
+
+/**
+ * A partir d'un input ou select, on retourne le noeud td.
+ * @param field de type input ou select
+ * @return TD
+ */
+ECW.Grid.prototype.getCell = function(field) {
+  var currentCell = field;
+  while (currentCell != null && currentCell.tagName != "TD")
+    currentCell = currentCell.parentNode;
+  this.checkNodeStructure(currentCell, "TD", "ECW.Grid.prototype.getCell", 
+    "[1]: Impossible de trouver la cellule du champ de saisie courant.");
+  return currentCell;
+}
+
+/**
+ * A partir d'un input ou select, on retourne le noeud tr.
+ * @param field de type input ou select
+ * @return TR
+ */
+ECW.Grid.prototype.getRow = function(field) {
+  var currentRow = null;
+  if (!field)
+  	return null;
+  if (field.tagName == "INPUT" || field.tagName == "SELECT") {
+    var cell = this.getCell(field);
+    if(cell){
+      currentRow = cell.parentNode;
+    }
+  } else if (field.tagName == "TD") {
+    currentRow = field.parentNode;
+  } else {
+    throw "RuntimeError :[2] Parametre inattendu sur la fonction ECW.Grid.prototype.getRow. " + field.tagName + " recu, INPUT ou TD attendu.";
+  }
+  this.checkNodeStructure(currentRow, "TR", "ECW.Grid.prototype.getRow", 
+    "[3]: Impossible de trouver la ligne du champ de saisie courant.");
+  return currentRow;
+}
+
+/**
+ * Retourne l'indice de la ligne courante.
+ * @return int
+ * @private
+ */
+ECW.Grid.prototype.getCurrentRowIndex = function() {
+  if (this.getCurrentRow()) {
+    return this.getCurrentRow().rowIndex;
+  }
+  return  -1;
+}
+
+/**
+ * A partir d'un td retourne l'iinput ou select.
+ * @param TD
+ * @return INPUT ou SELECT
+ * @private
+ */
+ECW.Grid.prototype.getField = function(cell) {
+  if (!cell) {
+    return null;
+  }
+  var inputs = cell.getElementsByTagName("INPUT");
+  if (inputs.length > 0) {
+    return inputs[0];
+  }
+  var selects = cell.getElementsByTagName("SELECT");
+  if (selects.length > 0) {
+    return selects[0];
+  }
+  return null;
+}
+
+/**
+ * Retourne l'indice max de colonne.
+ * @return int
+ * @private
+ */
+ECW.Grid.prototype.getMaxCellIndex = function() {
+  return this.getColumnsCount() - 1;
+}
+
+/**
+ * Retourne l'indice max de ligne.
+ * @return int
+ * @private
+ */
+ECW.Grid.prototype.getMaxRowIndex = function() {
+  return this.getRows().length;
+}
+
+/**
+ * Positionne la hauteur de la div.
+ * @param int
+ * @private
+ */
+ECW.Grid.prototype.setHeight = function(height) {
+  var objRegExp = /[0-9]+(px)?/;
+  if (!objRegExp.test(height)) {
+    throw "RuntimeError setHeight: invalide value: " + height;
+  }
+  var result = objRegExp.exec(height);
+  if (result && (result[1] != "px")) {
+    height += "px";
+  }
+  this.noeudDOM.style.height = height;
+}
+
+/**
+ * Focus le premier groupe de bouton.
+ * @param event
+ * @private
+ */
+ECW.Grid.prototype.moveFirstButton = function(event) {
+  ecwFocus(this.ecwButtonGroup.getElementsByTagName("BUTTON")[0]);
+}
+
+/**
+ * Si pas d'id des champs focussable (precedent/suivant)
+ * on focus sur le premier groupe de bouton.
+ * @private
+ */
+ECW.Grid.prototype.initEcwButtonGroup = function() {
+  this.ecwLayout;
+  var divs = document.getElementsByTagName("DIV");
+  for (var i = 0; i < divs.length; i++) {
+    if (isClass(divs[i], "ecwButtonGroup")) {
+      this.ecwButtonGroup = divs[i];
+      break;
+    }
+  }
+}
+
+/**
+ * Positionne les attributs apres la selection d'une ligne.
+ * @param Event event 
+ * @private
+ */
+ECW.Grid.prototype.setSelectedRowEvent = function(event) {
+  var cell = this.getCell(this.getFieldEvent(event));
+  var row = cell.parentNode;
+
+  var table = this.getTable();
+
+  if (table.currentLine != row) {
+    event.selectedRow = row;
+    event.sourceRow = table.selectedLine;
+  }
+
+  if (table.selectedLine) {
+    removeClass(table.selectedLine, "ecwGridLineActive");
+    this.setUnSelectedElements(table.selectedLine);
+  }
+
+  table.selectedLine = row;
+  addClass(table.selectedLine, "ecwGridLineActive");
+  this.setSelectedElements(table.selectedLine);
+
+  if (event.targetRow)
+    this.ecwOnRowSelected(event);
+
+}
+
+/**
+ * Positionne les attributs apres la selection d'une ligne.
+ * @param Event event 
+ * @private
+ */
+ECW.Grid.prototype.setCurrentRowEvent = function(event) {
+  var cell = this.getCell(this.getFieldEvent(event));
+  var row = cell.parentNode;
+
+  var table = this.getTable();
+
+  if (table.currentLine != row) {
+    event.targetRow = row;
+    event.sourceRow = table.currentLine;
+  }
+  //CMA SETTER TOUT LES TD DE LA LIGNE SAUF LA CELLULE ACTIVE
+  if (table.currentLine) {
+    //removeClass(table.currentLine, "ecwGridLineActive");
+    $(table.currentLine).removeClass("ecwGridLineActive");    
+    $("td",table.currentLine).removeClass("ecwGridLineActive");
+  }
+
+  table.currentLine = row;
+  //addClass(table.currentLine, "ecwGridLineActive");
+  $(table.currentLine).addClass("ecwGridLineActive");
+  $("td",table.currentLine).addClass("ecwGridLineActive");
+  this.showLine(row);
+  if (event.targetRow) {
+    this.ecwOnCurrentRow(event);
+  }
+}
+
+/**
+ * Positionne le scroll en fonction de la ligne a voir.
+ * @param TR
+ * @private
+ */
+ECW.Grid.prototype.showLine = function(row) {
+  // En commentaire car genere des pbs avec les SELECT 
+  //
+  //  /* Scrolling de la ligne inferieure */
+  //  if (row.offsetTop + row.offsetHeight > this.divTBody.scrollTop +  this.divTBody.offsetHeight) {
+  //    this.divTBody.scrollTop = row.offsetTop +  row.offsetHeight - this.divTBody.offsetHeight;
+  //  }
+  //  /* Scrolling de la ligne superieure */
+  //  if (row.offsetTop < this.divTBody.scrollTop) {
+  //    this.divTBody.scrollTop = row.offsetTop;
+  //  }
+}
+
+/**
+ * Getter de la ligne selectionnee.
+ * @return TR
+ * @private
+ */
+ECW.Grid.prototype.getSelectedRow = function() {
+  return this.getTable().selectedLine;
+}
+
+/**
+ * Getter de la ligne courante.
+ * @return TR
+ * @private
+ */
+ECW.Grid.prototype.getCurrentRow = function() {
+  return this.getTable().currentLine;
+}
+
+/**
+ * Getter de la derniere ligne.
+ * @return TR
+ * @private
+ */
+ECW.Grid.prototype.getLastRow = function() {
+  var rows = this.getRows();
+  return rows[rows.length - 1];
+}
+
+/**
+ * Positionne les attributs apres la selection d'une cellule.
+ * @param Event event 
+ * @private
+ */
+ECW.Grid.prototype.setCurrentCellEvent = function(event) {
+  var field = this.getFieldEvent(event);
+  var cell = this.getCell(field);
+  var table = this.getTable();
+  if (table.selectedCell) {
+    //removeClass(table.selectedCell, "ecwGridCellActive");
+    $(table.selectedCell).removeClass("ecwGridCellActive");    
+  }
+  table.selectedCell = cell;
+  table.selectedField = field;
+  //addClass(table.selectedCell, "ecwGridCellActive");
+  $(table.selectedCell).addClass("ecwGridCellActive");
+  this.setCurrentRowEvent(event);
+}
+
+/**
+ * Getter de la cellule courante.
+ * @return TD
+ * @private
+ */
+ECW.Grid.prototype.getCurrentCell = function() {
+  return this.getTable().selectedCell;
+}
+
+/**
+ * Retourne l'indice de la cellule courante.
+ * @return int
+ * @private
+ */
+ECW.Grid.prototype.getCurrentCellIndex = function() {
+  if (this.getTable().selectedCell) {
+    return this.getTable().selectedCell.cellIndex;
+  }
+  return -1;
+}
+
+/**
+ * Getter du field courant.
+ * @param INPUT ou SELECT
+ */
+ECW.Grid.prototype.getCurrentField = function() {
+  return this.getTable().selectedField;
+}
+
+/**
+ * Selection d'une ligne a partir de son indice
+ * @param int row index
+ * @private
+ */
+ECW.Grid.prototype.selectRow = function(index) {
+  var row = this.getRows().item(index);
+  if (this.getCurrentCell()) {
+    this.setFocus(row.cells[this.getCurrentCell().cellIndex]);
+  } else {
+    this.setFocus(row.cells[0]);
+
+  }
+}
+
+/**
+ * Selection d'une cellule a partir de son indice
+ * @param int row index
+ * @private
+ */
+ECW.Grid.prototype.selectRowCell = function(index) {
+  this.setFocus(this.getCurrentRow().cells[index]);
+}
+
+/**
+ * Selection d'une cellule a partir de son indice et de l'indice de ligne
+ * @param int rowIndex
+ * @param int colIndex
+ */
+ECW.Grid.prototype.selectCell = function(rowIndex, colIndex,field) {	
+  if (rowIndex >= this.getRows().length) {
+    alert("Selection de cellule impossible, la ligne=" + rowIndex + " n'existe pas pour le Grid [id=" + this.noeudDOM.id + "]");
+    return ;
+  }
+
+   var row = this.getRows().item(rowIndex);
+  //Pour IE (IE index differemment les colonnes si elles sont visible ou non)  
+  if (ECW_isIE) {  	
+  	if (field) colIndex = field.parentNode.ecwcolindex * 1; 
+  }
+   
+  if (colIndex >= row.cells.length) {
+    alert("Selection de cellule impossible, la colonne=" + colIndex + " n'existe pas pour le Grid [id=" + this.noeudDOM.id + "]");
+    return ;
+  }
+  var cell = row.cells[colIndex];
+  var field = this.getField(cell);  
+  if (!field) {
+    alert("Aucun champ selectionnable a la ligne=" + rowIndex + ", colonne=" + colIndex + " pour le Grid [id=" + this.noeudDOM.id + "]");
+    return ;
+  }
+  
+  if (!field.ecwGridField.isHidden) { 
+  	field.ecwGridField.focusAndSelect();
+  	var cmd = "var grid = ecwActiveUI.getGrid('" + this.noeudDOM.id + "');";
+  	cmd += "var row = grid.getRows().item(" + rowIndex + ");";
+  	cmd += "var cell = row.cells[" + colIndex + "];";
+  	cmd += "grid.setFocus(cell);";
+  	setTimeout(cmd, 0);
+  }
+}
+
+/**
+ * Ajouter un CSS a une cellule a partir de son indice et de l'indice de ligne
+ * @param int rowIndex
+ * @param int colIndex
+ * @param String nom de la css
+ */
+ECW.Grid.prototype.addCellCss = function(rowIndex, colIndex,cssName) {
+	if (!cssName) return;
+	this.changeCellCss(rowIndex,colIndex,cssName,true);
+}
+
+/**
+ * Supprimer le CSS nomme cssName, a une cellule a partir de son indice et de l'indice de ligne
+ * @param int rowIndex
+ * @param int colIndex
+ * @param String nom de la css
+ */
+ECW.Grid.prototype.removeCellCss = function(rowIndex, colIndex,cssName) {
+	if (!cssName) return;
+	this.changeCellCss(rowIndex,colIndex,cssName,false);
+}
+
+/**
+ * Ajouter un CSS a une cellule a partir de son indice et de l'indice de ligne
+ * @param int rowIndex
+ * @param int colIndex
+ * @param String nom de la css
+ * @private
+ */
+ECW.Grid.prototype.changeCellCss = function(rowIndex, colIndex,cssName,flagMode) { 	
+  if (rowIndex >= this.getRows().length) {
+    alert("Probleme de cellule : la ligne=" + rowIndex + " n'existe pas pour le Grid [id=" + this.noeudDOM.id + "]");
+    return ;
+  }
+
+   var row = this.getRows().item(rowIndex);
+  //Pour IE (IE index differemment les colonnes si elles sont visible ou non)  
+  if (ECW_isIE) {  	
+  	if (field) colIndex = field.parentNode.ecwcolindex * 1; 
+  }
+   
+  if (colIndex >= row.cells.length) {
+    alert("Probleme de cellule : la colonne=" + colIndex + " n'existe pas pour le Grid [id=" + this.noeudDOM.id + "]");
+    return ;
+  }
+  var cell = row.cells[colIndex];
+  var field = this.getField(cell);  
+  if (!field) {
+    alert("Aucun champ selectionnable a la ligne=" + rowIndex + ", colonne=" + colIndex + " pour le Grid [id=" + this.noeudDOM.id + "]");
+    return ;
+  }
+  
+  if (!field.ecwGridField.isHidden) {
+  	var eleTD = field.parentNode; 
+  	if (flagMode)  		
+  		$(eleTD).addClass(cssName);
+  	else 
+  		$(eleTD).removeClass(cssName);  	
+  }
+}
+
+/**
+ * Selection d'une cellule a selectionner suite au disabled du field actuellement en selection
+ * @param cell TD
+ * @private
+ */
+ECW.Grid.prototype.selectNextCell = function(cell) {
+  
+  var newField = this.getField(this.searchRight(cell));
+  if(!newField)
+    newField = this.getField(this.searchLeft(cell));
+  if(!newField)
+    newField = this.getField(this.searchDown(cell));
+  if(!newField)
+    newField = this.getField(this.searchUp(cell));
+  if(newField){
+    
+    var table = this.getTable();
+    var newCell = this.getCell(newField);
+    var newRow = newCell.parentNode;
+    var isActif = this.isActif();
+    
+    removeClass(table.selectedLine, "ecwGridLineSelect");
+    removeClass(table.selectedCell, "ecwGridCellSelect");
+    if(isActif){
+      removeClass(table.currentLine, "ecwGridLineActive");
+      removeClass(table.selectedCell, "ecwGridCellActive");
+    }
+
+    table.selectedCell = newCell;
+    table.selectedField = newField;
+    table.currentLine = newRow;
+    table.selectedLine = newRow;
+
+    addClass(table.selectedLine, "ecwGridLineSelect");
+    addClass(table.selectedCell, "ecwGridCellSelect");
+    if(isActif){
+      addClass(table.currentLine, "ecwGridLineActive");
+      addClass(table.selectedCell, "ecwGridCellActive");
+    }
+  }
+}
+
+/**
+ * Selection des elements d'une ligne.
+ * @param TR.
+ * @private
+ */
+ECW.Grid.prototype.setSelectedElements = function(element) {
+  for (var index = 0; index < element.childNodes.length; index++) {
+    if (element.childNodes[index].nodeType == 1) {
+      this.setSelectedElement(element.childNodes[index]);
+      this.setSelectedElements(element.childNodes[index]);
+    }
+  }
+}
+
+/**
+ * Desselection des elements d'une ligne.
+ * @param TR.
+ * @private
+ */
+ECW.Grid.prototype.setUnSelectedElements = function(element) {
+  for (var index = 0; index < element.childNodes.length; index++) {
+    if (element.childNodes[index].nodeType == 1) {
+      this.setUnSelectedElement(element.childNodes[index]);
+      this.setUnSelectedElements(element.childNodes[index]);
+    }
+  }
+}
+
+/**
+ * Desselection des elements d'une ligne.
+ * @param TR.
+ * @private
+ */
+ECW.Grid.prototype.setUnSelectedElement = function(element) {
+  removeClass(element, "selected");
+}
+
+/**
+ * Selection d'une ligne.
+ * @param TR.
+ * @private
+ */
+ECW.Grid.prototype.setSelectedElement = function(element) {
+  addClass(element, "selected");
+}
+
+/**
+ * Detecte si la ligne a ete modifiee.
+ * @param TR
+ * @return boolean
+ * @private
+ */
+ECW.Grid.prototype.isElementModified = function(element) {
+  return isClass(element, "modified");
+}
+
+/**
+ * Detecte si la table a ete modifiee.
+ * @return boolean
+ * @private
+ */
+ECW.Grid.prototype.isGridModified = function() {
+  var mesLignes = this.getRows();
+  for (var j = 0; j < mesLignes.length; j++) {
+    if (this.isRowModified(mesLignes[j])) {
+      return true;
+    }
+  }
+  return false;
+}
+
+/**
+ * Flag la cellule comme modifiee.
+ * @param TD
+ * @private
+ */
+ECW.Grid.prototype.setCellModified = function(cell) {
+  addClass(cell, "modified");
+  this.setRowModified(this.getRow(cell));
+}
+
+/**
+ * Enleve le flag de la cellule comme modifiee.
+ * @param TD
+ * @private
+ */
+ECW.Grid.prototype.resetCellModified = function(cell) {
+  removeClass(cell, "modified");
+  this.setRowModified(this.getRow(cell));
+}
+
+/**
+ * Flag la ligne comme modifiee si un field l'est.
+ * @param TR
+ * @return boolean
+ * @private
+ */
+ECW.Grid.prototype.setRowModified = function(row) {
+  var fields = this.getRowFields(row);
+  for (var i = 0; i < fields.length; i++) {
+    var field = fields[i];
+    if (field.ecwGridField.isModified()) {
+      addClass(row, "modified");
+      return true;
+    }
+  }
+  removeClass(row, "modified");
+  return false;
+}
+
+/**
+ * Indique si la ligne a ete modifiee.
+ * @param TR
+ * @private
+ */
+ECW.Grid.prototype.isRowModified = function(row) {
+  return this.isElementModified(row);
+}
+
+/**
+ * Indique si la cellule peut etre focussable.
+ * @param TD
+ * @return boolean
+ * @private
+ */
+ECW.Grid.prototype.isTabbed = function(cell) {
+  var field = this.getField(cell);
+  return (field && field.type != "hidden" && !field.readonly && !field.disabled);
+}
+
+/**
+ * Retourn les parametres a poster.
+ * @return string
+ * @private
+ */
+ECW.Grid.prototype.getParams = function() {
+  var lines = this.getRows();
+  var param = "";
+  for (var i = 0; i < lines.length; i++) {
+    var line = lines[i];
+    if (this.isRowModified(line)) {
+      if (param != "")
+        param += "&";
+      param += this.getRowParams(line);
+    }
+  }
+  return param;
+}
+
+/**
+ * Retourn les parametres a poster pour une ligne.
+ * @param TR
+ * @return string
+ * @private
+ */
+ECW.Grid.prototype.getRowParams = function(aRow) {
+  var param = "";
+  var fields = this.getRowFields(aRow);
+  for (var j = 0; j < fields.length; j++) {
+    var field = fields[j];
+    if (param != "")
+      param += "&";
+    param += field.ecwGridField.getParam();
+  }
+  return param;
+}
+
+/**
+ * Demande le refresh du grid et du layout.
+ * @private
+ */
+ECW.Grid.prototype.refresh = function(htmlGrid) {
+
+  this.noeudDOM.ecwGrid = null;
+  var fieldToFocus = this.ecwUI.champActif;
+  /* Invoquer d'abord l'update du layout */
+  var layout = ecwGetLayout(this.noeudDOM);
+  layout.refreshNode(this.noeudDOM, htmlGrid);
+  /* Pour IE bien sur ! */
+  ecwFocus(fieldToFocus.noeudDOM);
+}
+
+/**
+ * Declaration des controles.
+ * @param INPUT
+ * @param SELECT
+ * @param boolean
+ * @private
+ */
+ECW.Grid.prototype.declareControls = function(inputs, selects, toEcw) {
+
+  if (toEcw) {
+    this.ecwLayout.update();
+  }
+  //  this.ecwDeclareInputs(inputs);
+  // init des inputs du table
+  this.initInputs(inputs);
+  this.initSelects(selects);
+
+  this.ecwAddControlsValidator(inputs);
+  this.ecwAddControlsValidator(selects);
+}
+
+/**
+ * Cr&eacute;e un nouvelle ligne &agrave; la fin du tableau
+ * et positionne le curseur sur la premiere cellule.
+ * @return le node TR.
+ * @private
+ */
+ECW.Grid.prototype.createRow = function() {
+  var tbody = this.getTableBody();
+
+  var lineNumber = 0;
+  var lastRow = this.getLastRow();
+  var fieldsLastRow = this.getRowFields(lastRow);
+  
+  var tabColHidden = new Array();
+  
+  if (fieldsLastRow && fieldsLastRow.length > 0) {     	
+    var name = fieldsLastRow[0].name;
+    name = name.replace("[", "").replace("]", "");//En PHP le name est suivi de []
+    var str = fieldsLastRow[0].id.replace(name, "").replace("[", "").replace("]", ""); 
+    lineNumber = parseInt(str)+1;
+  }
+  
+  var newTR = this.emptyLine.cloneNode(true);
+  if (this.alternateColor) {
+    if (this.getRows().length % 2 == 0) {
+      addClass(newTR, "ecwGridAlternateLine1");
+    } else {
+      addClass(newTR, "ecwGridAlternateLine2");
+    }
+  }
+  
+  tbody.appendChild(newTR);
+  ecwSetAttribute(newTR, "ecwGrid", this);
+  var newTD = newTR.getElementsByTagName("TD");
+  var rowsHead = this.divTHead.getElementsByTagName("TR");
+  var firstTdsHead = rowsHead[0].getElementsByTagName("TH");
+  for (var i = 0; i < firstTdsHead.length; i++) {
+    newTD[i].style.width = firstTdsHead[i].clientWidth;
+  }
+
+  var inputs = newTR.getElementsByTagName("INPUT");
+  var selects = newTR.getElementsByTagName("SELECT");
+  this.declareControls(inputs, selects, true);
+  var fields = this.getRowFields(newTR);
+  if (fields && fields.length > 0) {  	
+    for (var i=0;i<fields.length;i++){
+      var field = fields[i];
+      field.id = field.id.replace("-1", lineNumber);
+    }
+    if (fields[0].ecwGridField.isHidden) { 
+	    //Selection de la colonne non cache
+	    for (var i=0;i<fields.length;i++){    	
+	   		if  (!fields[i].ecwGridField.isHidden) {   			
+	   			 fields[i].ecwGridField.focusAndSelect();   			 
+	   			 break;
+	   		}
+	    }
+    } else {
+    	fields[0].ecwGridField.focusAndSelect();
+	}
+  }  
+  return newTR;
+}
+
+/**
+ * demande l'enregistrement des validators des inputs
+ * C'est le parent de ce gestionnaire de Grid qui est responsable de
+ * la description et l'nregistrement des validators pour chaque input.
+ * @param array fields
+ * @return void
+ * @private
+ */
+ECW.Grid.prototype.ecwAddControlsValidator = function(fields) {
+  if (this.addControlValidator) {
+    for (var i = 0; i < fields.length; i++) {
+      this.addControlValidator(fields[i]);
+    }
+  }
+}
+
+/**
+ * Validation d'un field INPUT ou SELECT
+ * @return boolean
+ * @private
+ */
+ECW.Grid.prototype.validateControl = function(field) {
+  return this.ecwUI.validateControl(field.noeudDOM.id);
+}
+
+/**
+ * Recherche le field input ou select d'ou provient l'evenement.
+ * @param event
+ * @return INPUT ou SELECT
+ * @private
+ */
+ECW.Grid.prototype.getFieldEvent = function(event) {
+  var field = null;
+  if (event) {
+    if (ECW_isGecko)
+      field = event.currentTarget;
+    else
+      field = window.event.srcElement;
+  }
+  return field;
+}
+
+/**
+ * Recherche le field input ou select d'ou provient l'evenement.
+ * @param event
+ * @return INPUT ou SELECT
+ * @private
+ */
+ECW.Grid.prototype.getCommentZoneEvent = function(event) {
+  var commentZone = null;
+  if (event) {
+    if (ECW_isGecko) {
+      var pres = event.currentTarget.parentNode.getElementsByTagName('pre');
+      if (pres.length == 1) {
+        commentZone = pres[0];
+      }
+    } else {
+      var pres = window.event.srcElement.parentNode.getElementsByTagName('pre');
+      if (pres.length == 1) {
+        commentZone = pres[0];
+      }
+    }
+  }
+  return commentZone;
+}
+
+/**
+ * Action "client" a declencher sur la selection d'une ligne 
+ * @param event
+ * @return boolean
+ * @private
+ */
+ECW.Grid.prototype.ecwOnCurrentRow = function(event) {
+  if (this.onCurrentRow) {
+    return this.onCurrentRow(event);
+  } else {
+    return true;
+  }
+}
+
+/**
+ * Action "client" a declencher sur la modification d'une valeur 
+ * @param event
+ * @return boolean
+ * @private
+ */
+ECW.Grid.prototype.ecwOnChange = function(event) {
+  var onChangeParent = true;
+  if (this.onChange) {
+    onChangeParent = this.onChange(event);
+  }
+  if (onChangeParent) {
+    var field = this.getFieldEvent(event);
+    if (field && field.ecwGridField) {
+      if (field.ecwGridField.isModified()) {
+        this.setCellModified(this.getCell(field));
+      } else {
+        this.resetCellModified(this.getCell(field));
+      }
+    }
+    return true;
+  } else {
+    return false;
+  }
+}
+
+/**
+ * Action "client" a declencher sur le Alt+?  
+ * @param event
+ * @return boolean
+ * @private
+ */
+ECW.Grid.prototype.ecwOnAssist = function(event) {
+  if (this.onAssist)
+    return this.onAssist(event);
+}
+
+/**
+ * Action "client" a declencher sur le onBlur d'un champ 
+ * @param event
+ * @return boolean
+ * @private
+ */
+ECW.Grid.prototype.ecwOnFieldBlur = function(event) {
+  if (this.onFieldBlur) {
+    return this.onFieldBlur(event);
+  } else {
+    return true;
+  }
+}
+
+/**
+ * Action "client" a declencher sur le onFocus d'un champ 
+ * @param event
+ * @return boolean
+ * @private
+ */
+ECW.Grid.prototype.ecwOnFieldFocus = function(event) {
+
+  var field = this.getFieldEvent(event);
+  if (this.lastFocus && !this.lastFocus.disabled && !this.focused) {
+    ecwFocus(this.lastFocus);
+  } else {
+    this.lastFocus = field;
+    this.setCurrentCellEvent(event);
+  }
+  this.setFocused(true);
+  var result = null;
+  if (this.onFieldFocus) {
+    result = this.onFieldFocus(event);
+  } else {
+    result = true;
+  }
+  return result;
+}
+
+/**
+ * Action a lancer en fct de la touche.
+ * @param event
+ * @return boolean
+ * @private
+ */
+ECW.Grid.prototype.ecwOnKeydown = function(event) {
+  /*  if ((event.keyCode==32) && (event.ctrlKey)) { // Ctrl + Espace
+  this.setSelectedRowEvent(event);
+  return this.stopEvent(event);
+  }
+   */
+
+  if (event.keyCode == 9) {
+    if (event.shiftKey) {
+      return this.ecwOnShiftTab(event);
+    } else {
+      return this.ecwOnTab(event);
+    }
+  }
+
+  if ((event.keyCode == 9) && (this.blurOnTab())) {
+    // TAB
+    return this.ecwOnBlur(event);
+  }
+
+  var isPropagationEnabled = true;
+  var field = this.getFieldEvent(event);
+
+  if (!field.ecwGridField.isModeEdit()) {
+    switch (event.keyCode) {
+      case 13:
+      case 14:
+        isPropagationEnabled = this.ecwOnEnter(event);
+        break;
+      case 27:
+        isPropagationEnabled = this.ecwOnEscape(event);
+        break;
+      case 37:
+        isPropagationEnabled = this.ecwOnLeft(event);
+        break;
+      case 38:
+        isPropagationEnabled = this.ecwOnUp(event);
+        break;
+      case 39:
+        isPropagationEnabled = this.ecwOnRight(event);
+        break;
+      case 40:
+        isPropagationEnabled = this.ecwOnDown(event);
+        break;
+      case 188:
+        if (event.altKey) {
+          isPropagationEnabled = this.ecwOnAssist(event)
+        }
+        ;
+        break;
+    }
+  }
+
+  if (isPropagationEnabled) {
+    if (this.onKeydown) {
+      return this.onKeydown(event);
+    } else {
+      return true;
+    }
+  }
+
+}
+
+/**
+ * Action "client" a declencher sur le onKeyup 
+ * @param event
+ * @return boolean
+ * @private
+ */
+ECW.Grid.prototype.ecwOnKeyup = function(event) {
+  if (this.onKeyup) {
+    return this.onKeyup(event);
+  } else {
+    return true;
+  }
+}
+
+/**
+ * Action "client" a declencher sur le onKeypress 
+ * @param event
+ * @return boolean
+ * @private
+ */
+ECW.Grid.prototype.ecwOnKeypress = function(event) {
+  if (this.onKeypress) {
+    return this.onKeypress(event);
+  } else {
+    return true;
+  }
+}
+
+/**
+ * Action a declencher sur le TAB.
+ * @param event
+ * @return boolean
+ * @private
+ */
+ECW.Grid.prototype.ecwOnTab = function(event) {
+  this.setFocused(false);
+  this.focusNextField();
+  return this.stopEvent(event);
+}
+
+/**
+ * Action a declencher sur le SHIFT+TAB.
+ * @param event
+ * @return boolean
+ * @private
+ */
+ECW.Grid.prototype.ecwOnShiftTab = function(event) {
+  this.setFocused(false);
+  this.focusPreviousField();
+  return this.stopEvent(event);
+}
+
+/**
+ * Action  a declencher sur le onBlur d'un champ.
+ * @param event
+ * @return boolean
+ * @private
+ */
+ECW.Grid.prototype.ecwOnBlur = function(event) {
+  this.setFocused(false);
+  this.moveFirstButton(event);
+  return this.stopEvent(event);
+}
+
+/**
+ * Action a declencher sur le onEnter.
+ * @param event
+ * @return boolean
+ * @private
+ */
+ECW.Grid.prototype.ecwOnEnter = function(event) {
+  if (event.leaveEditMode) {
+    this.moveRight(cell);
+    return this.stopEvent(event);
+  } else {
+    //    if(this.getParentObject().onEnter){
+    //      return this.getParentObject().onEnter(event);
+    //    }else{
+    return true;
+    //    }
+  }
+}
+
+/**
+ * Action "client" a declencher sur le onEscape 
+ * @param event
+ * @return boolean
+ * @private
+ */
+ECW.Grid.prototype.ecwOnEscape = function(event) {
+  //  if(this.getParentObject().onEscape){
+  //    return this.getParentObject().onEscape(event);
+  //  }else{
+  return true;
+  //  }
+}
+
+/**
+ * Action a declencher sur le onLeft.
+ * @param event
+ * @return boolean
+ * @private
+ */
+ECW.Grid.prototype.ecwOnLeft = function(event) {
+  var field = this.getFieldEvent(event);
+  var cell = this.getCell(field);
+  this.moveLeft(cell);
+  return this.stopEvent(event);
+}
+
+/**
+ * Action a declencher sur le onRight.
+ * @param event
+ * @return boolean
+ * @private
+ */
+ECW.Grid.prototype.ecwOnRight = function(event) {
+  var field = this.getFieldEvent(event);
+  var cell = this.getCell(field);
+  this.moveRight(cell);
+  return this.stopEvent(event);
+}
+
+/**
+ * Action a declencher sur le onDown.
+ * @param event
+ * @return boolean
+ * @private
+ */
+ECW.Grid.prototype.ecwOnDown = function(event) {
+  var field = this.getFieldEvent(event);
+  var cell = this.getCell(field);
+  this.moveDown(cell);
+  return this.stopEvent(event);
+}
+
+/**
+ * Action a declencher sur le onUp.
+ * @param event
+ * @return boolean
+ * @private
+ */
+ECW.Grid.prototype.ecwOnUp = function(event) {
+  var field = this.getFieldEvent(event);
+  var cell = this.getCell(field);
+  this.moveUp(cell);
+  return this.stopEvent(event);
+}
+
+/**
+ * Arret de la propagation d'un event.
+ * @param event
+ * @return boolean
+ * @private
+ */
+ECW.Grid.prototype.stopEvent = function(event) {
+  if (!event)
+    event = window.event;
+
+  if (event.preventDefault) {
+    event.preventDefault();
+  }
+  event.returnValue = false;
+
+  if (event.stopPropagation) {
+    event.stopPropagation();
+  }
+  event.cancelBubble = true;
+
+  if (document.all && window.event && !event.preventDefault) {
+    // change la valeur de la touche frappe pour
+    event.keyCode = 0;
+    // event.srcElement = undefined;
+  }
+  return false;
+}
+
+/**
+ * Deplacement vers le premier champ de la derniere ligne.
+ * @private
+ */
+ECW.Grid.prototype.moveFirstInputLastRow = function() {
+  var row = this.getLastRow();
+  var fields = this.getRowFields(row);
+  fields[0].ecwGridField.focusAndSelect();
+}
+
+/**
+ * Deplacement vers le premier champ focussable de la ligne courante.
+ * @private
+ */
+ECW.Grid.prototype.moveFirst = function() {
+  var firstField = null;
+  var rows = this.getRows();  
+  var cell = rows[0].firstChild;
+  while (cell) {
+    //if (cell.nodeType==1 && this.isTabbed(cell) ){
+    if (cell.nodeType==1 && this.isTabbed(cell) && cell.style.display!="none"){
+        firstField = this.getField(cell);
+    }
+    if(firstField != null){
+      break;
+    }
+    cell = cell.nextSibling;
+  }
+  
+  if(firstField){
+    this.setFocus(cell);
+  } else {
+    this.moveDown(cell);
+  }
+}
+
+/**
+ * Desactive le grid : passe la ligne de l'etat selectionne actif a l'etat selectionne non-actif.
+ * @private
+ */
+ECW.Grid.prototype.desactiver = function() {
+  //alert('ECW.Grid.prototype.desactiver');
+  removeClass(this.noeudDOM, "ecwGridActive");
+  this.focused = false;
+  /* Si selection d'une ligne */
+  if (this.getCurrentRow() && !isClass(this.getCurrentRow(), "ecwGridLineEmpty")) {
+    //removeClass(this.getCurrentRow(), "ecwGridLineActive");
+    //addClass(this.getCurrentRow(), "ecwGridLineSelect");
+    $(this.getCurrentRow()).removeClass("ecwGridLineActive");
+    $('td',this.getCurrentRow()).removeClass("ecwGridLineActive");
+    $(this.getCurrentRow()).addClass("ecwGridLineSelect");    
+    if (this.getCurrentCell()) {
+      //removeClass(this.getCurrentCell(), "ecwGridCellActive");
+      //addClass(this.getCurrentCell(), "ecwGridCellSelect");
+      $(this.getCurrentCell()).removeClass("ecwGridCellActive");
+      $(this.getCurrentCell()).addClass("ecwGridCellSelect");
+    }
+  }
+}
+
+/**
+ * Active le grid : passe la ligne de l'etat selectionne non-actif a l'etat selectionne actif.
+ * @private
+ */
+ECW.Grid.prototype.activer = function() {
+  addClass(this.noeudDOM, "ecwGridActive");  
+  if (this.getCurrentRow() && !isClass(this.getCurrentRow(), "ecwGridLineEmpty")) {  	
+    //removeClass(this.getCurrentRow(), "ecwGridLineSelect");
+    //addClass(this.getCurrentRow(), "ecwGridLineActive");    
+    $(this.getCurrentRow()).removeClass("ecwGridLineSelect");
+    $(this.getCurrentRow()).addClass("ecwGridLineActive");
+    if (this.getCurrentCell()) {
+      //removeClass(this.getCurrentCell(), "ecwGridCellSelect");
+      //addClass(this.getCurrentCell(), "ecwGridCellActive");
+      $(this.getCurrentCell()).removeClass("ecwGridCellSelect");
+      $(this.getCurrentCell()).addClass("ecwGridCellActive");
+      this.setFocus(this.getCurrentField());
+    }
+  } else {
+    /* Lignes presentes */
+    if (this.lignes && this.lignes.length > 0) {
+      this.selectRow(0);
+    }
+  }
+
+  if (this.getCurrentRow()) {
+    this.showLine(this.getCurrentRow());
+  }
+}
+
+/**
+ * Test si le grid est actif.
+ * @return boolean
+ * @private
+ */
+ECW.Grid.prototype.isActif = function() {
+  return isClass(this.noeudDOM, "ecwGridActive");
+}
+
+/**
+ * Focus sur une cellule donnee.
+ * @param TD
+ * @private
+ */
+ECW.Grid.prototype.setFocus = function(cell) {
+  var field = null;
+  if (cell.tagName == "TD") {
+    field = this.getField(cell);
+  }
+  if (field) {
+    field.ecwGridField.focusAndSelect();
+  }
+}
+
+/**
+ * Deplacement vers la cellule de gauche.
+ * @param TD
+ * @private
+ */
+ECW.Grid.prototype.moveLeft = function(cell) {
+  var newCell = this.searchLeft(cell);
+  var field = this.getField(newCell);
+  if (field) {
+    field.ecwGridField.focusAndSelect();
+  }
+}
+
+/**
+ * Deplacement vers la cellule de droite.
+ * @param TD
+ * @private
+ */
+ECW.Grid.prototype.moveRight = function(cell) {
+  var newCell = this.searchRight(cell);
+  var field = this.getField(newCell);
+  if (field && this.isTabbed(newCell)) {
+    field.ecwGridField.focusAndSelect();
+  }
+}
+
+/**
+ * Deplacement vers la cellule du dessus.
+ * @param TD
+ * @private
+ */
+ECW.Grid.prototype.moveUp = function(cell) {
+  var newCell = this.searchUp(cell);
+  var field = this.getField(newCell);
+  if (field) {
+    field.ecwGridField.focusAndSelect();
+  }
+}
+
+/**
+ * Deplacement vers la cellule du dessous.
+ * @param TD
+ * @private
+ */
+ECW.Grid.prototype.moveDown = function(cell) {
+  var newCell = this.searchDown(cell);  
+  var field = this.getField(newCell);  
+  if (field.ecwGridField.isHidden) {
+  	//Ne pas selectionner un champ cache
+  	var fields = newCell.parentNode.cells;
+    for (var i=0;i<fields.length;i++){
+    	var display = fields[i].style.display;      	
+   		if  (!(display && display=="none")) {   			   			
+   			 field = this.getField(fields[i]);  			 
+   			 break;
+   		}
+    }
+  }  
+  if (field) {  	
+    field.ecwGridField.focusAndSelect();
+  }
+}
+
+/**
+ * Recherche la cellule de gauche pouvant etre saisie.
+ * @param TD
+ * @private
+ */
+ECW.Grid.prototype.searchLeft = function(cell) {
+  var currentRow = cell.parentNode;
+  this.checkNodeStructure(currentRow, "tr", "ECW.Grid.prototype.searchLeft", "[7]: Impossible de trouver la ligne de la cellule courante.");
+
+  /* Recherche de la cellule precedente dans la ligne */
+  var trouve = false;
+  var newCell = cell;
+  while (!trouve) {
+    /* si debut de ligne, allez a la fin. */
+    /* todo : attention au #texte sous mozilla */
+    /* c'est pour ca qu'on test pas l'existance d'un precedent mais l'index de la cellule */
+    var cellIndex = newCell.cellIndex;    
+    if (cellIndex != 0) {
+      if (ECW_isIE) {
+  	  	cellIndex = newCell.ecwcolindex * 1;
+  	  }
+  	  //Test si le champ precedent est cache
+  	  var tmpPrevCell = cell.parentNode.cells[cellIndex - 1];
+      var isHidden = (tmpPrevCell.style.display=="none")?true:false;
+      if (isHidden) {
+      	trouve = true;
+      	break;
+      }
+      newCell = tmpPrevCell; //cell.parentNode.cells[cellIndex - 1];
+      this.checkNodeStructure(newCell, "td", "ECW.Grid.prototype.searchLeft", "[8]: Impossible de trouver la cellule suivante !");
+      trouve = this.isTabbed(newCell);
+    } else {
+      trouve = true;
+    }
+  }
+  return newCell;
+}
+
+/**
+ * Recherche la cellule de droite pouvant etre saisie.
+ * @param TD
+ * @private
+ */
+ECW.Grid.prototype.searchRight = function(cell) {
+  var currentRow = cell.parentNode;
+  this.checkNodeStructure(currentRow, "tr", "ECW.Grid.prototype.searchRight", "[9]: Impossible de trouver la ligne de la cellule courante!");
+  //Recherche de la cellule suivante dans la ligne
+  var trouve = false;
+  var newCell = cell;
+  while (!trouve) {
+    var cellIndex = newCell.cellIndex;
+    if (ECW_isIE) {
+  	  	cellIndex = newCell.ecwcolindex * 1;
+  	}
+    if (cellIndex != this.getMaxCellIndex()) {
+    	//Test si le champ suivant est cache on est sur le dernier champ visible
+  	  	var tmpNextCell = cell.parentNode.cells[cellIndex + 1];
+      	var isHidden = (tmpNextCell.style.display=="none")?true:false;
+      	if (isHidden) {
+      		trouve = true;
+      		break;
+      	}
+      newCell = cell.parentNode.cells[cellIndex + 1]; 
+      this.checkNodeStructure(newCell, "td", "ECW.Grid.prototype.searchRight", "[10]: Impossible de trouver la cellule suivante !");
+      trouve = this.isTabbed(newCell);      
+    } else {
+      trouve = true;
+    }
+  }
+  return newCell;
+}
+
+/**
+ * Recherche la cellule du dessus pouvant etre saisie.
+ * @param TD
+ * @private
+ */
+ECW.Grid.prototype.searchUp = function(cell) {
+  var currentRow = cell.parentNode;
+  this.checkNodeStructure(currentRow, "tr", "ECW.Grid.prototype.searchUp", "[11]: Impossible de trouver la ligne de la cellule courante !");
+
+  var newCell = cell;
+  var rowIndex = currentRow.rowIndex;
+  if (rowIndex != 0) {
+  	var indexCol = cell.cellIndex;  
+  	if (ECW_isIE) {  		
+  		indexCol = cell.ecwcolindex * 1;
+  	}
+    newCell = currentRow.parentNode.rows[rowIndex - 1].cells[indexCol];
+  } else {
+    newCell = cell;
+  }
+  this.checkNodeStructure(newCell, "td", "ECW.Grid.prototype.searchUp", "[12]: Impossible de trouver la cellule suivante !");
+  return newCell;
+}
+
+/**
+ * Recherche la cellule du dessous pouvant etre saisie.
+ * @param TD
+ * @private
+ */
+ECW.Grid.prototype.searchDown = function(cell) {
+  var currentRow = cell.parentNode;
+  this.checkNodeStructure(currentRow, "tr", "ECW.Grid.prototype.searchDown", "[13]: Impossible de trouver la ligne de la cellule courante !");
+
+  var newCell = cell;
+  var rowIndex = currentRow.rowIndex;
+  if (rowIndex + 1 != this.getMaxRowIndex()) {
+  	//Pour IE (IE index differemment les colonnes si elles sont visible ou non)
+  	var indexCol = cell.cellIndex;  
+  	if (ECW_isIE) {  		
+  		indexCol = cell.ecwcolindex * 1;
+  	}
+    newCell = currentRow.parentNode.rows[rowIndex + 1].cells[indexCol];
+  } else {
+    if (this.autoCreateLine) {    	
+      newCell = this.createRow().getElementsByTagName("TD")[0];      
+    } else {
+      newCell = cell;
+    }
+  }
+  this.checkNodeStructure(newCell, "td", "ECW.Grid.prototype.searchDown", "[14]: Impossible de trouver la cellule suivante !");
+  return newCell;
+}
+
+/**
+ * Controle de coherence.
+ * @param node Node a controler
+ * @param string TagName
+ * @param string Fonction appelante
+ * @param string Message
+ * @private
+ */
+ECW.Grid.prototype.checkNodeStructure = function(received, expected, fonction,
+  msg) {
+  if (!received || (received.tagName != expected.toUpperCase())) {
+    msg = "RuntimeError: Erreur de structure de la table.<br/>\n" + msg + "<br/>\n";
+    msg += "Parametre inattendu dans la fonction '" + fonction + "'.<br/>\n";
+    msg += received + " recu; " + expected + " attendu. <br/>\n";
+    msg += "Contacter DSIN !";
+    throw msg;
+  }
+}
+
+/**
+ * Retourne le nombre de ligne du grid.
+ */
+ECW.Grid.prototype.getNbLines = function() {
+  return this.getRows().length;
+}
+
+/**
+ * Ajoute une ligne en fin de grid.
+ */
+ECW.Grid.prototype.addLine = function() {
+  if (!this.isActif()) {
+    this.activer();
+  }
+  var existAscenseur = (this.lignes && this.lignes.length > this.nbligne);
+  var newRow = this.createRow();
+  //this.selectRow(newRow.rowIndex);
+  var existAscenseurAfter = (this.lignes && this.lignes.length > this.nbligne);
+
+  if (this.getNbLines() == 1) {
+    this.fixerDimensions(false, false);
+  } else if (existAscenseur != existAscenseurAfter) {
+    this.fixerDimensions(false, existAscenseur);
+  }
+}
+
+/**
+ * Supprime une ligne a partir de son indice.
+ * @param int
+ */
+ECW.Grid.prototype.removeLine = function(rowIndex) {
+  if (!this.isActif()) {
+    this.activer();
+  }
+  var rows = this.getRows();
+  if (rowIndex >= 0 && rowIndex < rows.length) {
+
+    if (rowIndex != 0) {
+      this.moveUp(this.getTable().selectedCell);
+      //newIndice = indice-1;
+    } else if (this.getNbLines() != 1) {
+      this.moveDown(this.getTable().selectedCell);
+
+    }
+
+    var existAscenseur = (this.lignes && this.lignes.length > this.nbligne);
+    var rowToDelete = rows[rowIndex];
+    rowToDelete.parentNode.removeChild(rowToDelete);
+    var existAscenseurAfter = (this.lignes && this.lignes.length > this.nbligne);
+
+    if (this.getNbLines() == 0) {
+
+      this.getTable().selectedLine = null;
+      this.getTable().currentLine = null;
+      this.getTable().selectedField = null;
+      this.getTable().selectedCell = null;
+      this.fixerDimensions(false, false);
+
+    } else {
+      if (existAscenseur != existAscenseurAfter) {
+        this.fixerDimensions(false, existAscenseur);
+      }
+    }
+  }
+}
+
+/**
+ * onMouseOver sur une ligne.
+ * @param trTag Balise tr.
+ * @param event Evenement.
+ * @private
+ */
+function ecwGridLineOnMouseOver(line, event) {
+  if (line) {  	
+  	$(line).addClass("ecwGridLineOver");
+    //addClass(line, "ecwGridLineOver"); CMA JQUERY plus rapide dans ce cas de figure
+    //$('td',line).addClass("ecwGridLineOver");    
+  }
+}
+
+/**
+ * onMouseOut sur une ligne.
+ * @param trTag Balise tr.
+ * @param event Evenement.
+ * @private
+ */
+function ecwGridLineOnMouseOut(line, event) {
+  if (line) {
+  	 $(line).removeClass("ecwGridLineOver");
+    //removeClass(line, "ecwGridLineOver"); CMA JQUERY plus rapide dans ce cas de figure
+    //$('td',line).removeClass("ecwGridLineOver");
+  }
+}
+
+/**
+ * onClick sur une ligne.
+ * @param trTag Balise tr.
+ * @param event Evenement.
+ * @private
+ */
+function ecwGridCellOnClick(cell, event) {	
+  removeClass(cell, "ecwTableLineOver");    
+  if (!event) {
+    event = window.event;
+  }
+
+  var grid = cell.parentNode.ecwGrid;
+    
+  if (!grid.isActif()) {  	
+    grid.activer();
+  }
+  
+  var field = grid.getField(cell);
+  if (!field || !grid.isTabbed(cell)) {
+    return ;
+  }
+	
+  if (field && !field.ecwGridField.isModeEdit() && !field.ecwGridField.isModeReplace()) {
+    grid.setCurrentCellEvent(event);	    
+    //grid.selectCell(cell.parentNode.rowIndex, field.parentNode.cellIndex);
+    grid.selectCell(cell.parentNode.rowIndex, field.parentNode.cellIndex,field);
+    return true;
+  }
+
+  grid.stopEvent(event);
+  return false;
+}

@@ -29,7 +29,7 @@ export class StepHelper {
             console.log(`📁 Created screenshot folder: ${this.baseDir}`);
         }
     }
-    async captureScreenshot(label: string): Promise<void> {
+    /* async captureScreenshot(label: string): Promise<void> {
         const fileName = `step${this.stepCounter++}_${label.replace(/\s+/g, '_')}.png`;
         const screenshotPath = path.join(this.baseDir, fileName);
 
@@ -41,23 +41,309 @@ export class StepHelper {
         });
 
         console.log(`📸 Screenshot attached: ${screenshotPath}`);
+    } */
+    async captureScreenshot(label: string): Promise<void> {
+        const fileName = `step${this.stepCounter++}_${label.replace(/\s+/g, '_')}.png`;
+        const screenshotPath = path.join(this.baseDir, fileName);
+
+        // Take screenshot once and reuse it
+        const screenshotBuffer = await this.page.screenshot({ path: screenshotPath, fullPage: true });
+
+        // Attach to custom report
+        attachment(label, screenshotBuffer, 'image/png');
+
+        // Attach to Playwright report
+        await this.testInfo.attach(label, {
+            path: screenshotPath,
+            contentType: 'image/png',
+        });
+
+        console.log(`📸 Screenshot attached: ${screenshotPath}`);
+    }
+    //bharath
+    async pressEnterOnElement(frameName: string, buttonSelector: string, label: string): Promise<void> {
+        try {
+            const timeout: number = 5000;
+            const frame = this.page.frame({ name: frameName });
+            if (!frame) {
+                throw new Error(`Frame "${frameName}" not found`);
+            }
+            // Locate the button inside the frame
+            const transactionBox = frame.locator(buttonSelector);
+
+            // Wait for the button to be visible and enabled
+            await transactionBox.waitFor({ state: 'visible', timeout });
+            await transactionBox.focus(); // Ensure element is focused
+            await transactionBox.press('Enter');
+            // await this.page.waitForTimeout(3000);
+
+            console.log(`✅ Pressed Enter on ${label}`);
+        } catch (error) {
+            console.error(`❌ Failed to press Enter on ${label}:`, error);
+            // await this.captureScreenshot(`Error_PressEnter_${label}`);
+            throw error;
+        }
     }
 
+    /* async pressTab3OnElement(frameName: string, buttonSelector: string, label: string): Promise<void> {
+        try {
+            const timeout:number=5000;
+            const frame = this.page.frame({ name: frameName });
+        if (!frame) {
+            throw new Error(`Frame "${frameName}" not found`);
+        }
+        // Locate the button inside the frame
+        const locationBox = frame.locator(buttonSelector);
+
+        // Wait for the button to be visible and enabled
+            await locationBox.waitFor({ state: 'visible', timeout });
+            await locationBox.click();
+            await locationBox.focus(); // Ensure element is focused
+
+                for (const option of options) {
+                    const text = await option.getText();
+                    if (text === fixedText) {
+                        console.log("Selected Fifo: " + text);
+                        await option.click();
+                        break;
+                    }
+                }
+
+
+           // await this.page.waitForTimeout(3000);
+           
+            console.log(`✅ Pressed Enter on ${label}`);
+        } catch (error) {
+            console.error(`❌ Failed to press Enter on ${label}:`, error);
+           // await this.captureScreenshot(`Error_PressEnter_${label}`);
+            throw error;
+        }
+    } */
+
+    async clickButtonInFrame(frameName: string, buttonSelector: string, label: string): Promise<void> {
+        try {
+            const timeout: number = 5000;
+
+            // Get the frame by name
+            const frame = this.page.frame({ name: frameName });
+            if (!frame) {
+                throw new Error(`Frame "${frameName}" not found`);
+            }
+
+            // Locate the button inside the frame
+            const button = frame.locator(buttonSelector);
+
+            // Wait for the button to be visible and enabled
+            await button.waitFor({ state: 'visible', timeout });
+
+            // Click the button
+            await button.click();
+            console.log(`User clicked on the location : ${label}`);
+
+        } catch (error) {
+            console.error(`❌ Error clicking "${label}" in frame "${frameName}":`, error);
+            await this.captureScreenshot(`Error_Click_${label}`);
+            throw error;
+        }
+    }
+
+    async ExtractTextInFrame(frameName: string, buttonSelector: string, label: string): Promise<string> {
+        try {
+            const timeout: number = 5000;
+
+            // Get the frame by name
+            const frame = this.page.frame({ name: frameName });
+            if (!frame) {
+                throw new Error(`Frame "${frameName}" not found`);
+            }
+
+            // Locate the button inside the frame
+            const button = frame.locator(buttonSelector);
+
+            // Wait for the button to be visible and enabled
+            await button.waitFor({ state: 'visible', timeout });
+
+            // Click the button
+            const text = await button.innerText();
+            console.log(`User clicked on the location : ${label} and extracted text: ${text}`);
+            return text;
+
+
+
+
+        } catch (error) {
+            console.error(`❌ Error clicking "${label}" in frame "${frameName}":`, error);
+            await this.captureScreenshot(`Error_Click_${label}`);
+            throw error;
+        }
+    }
+    async fillInFrame(frameName: string, buttonSelector: string, text: string, label: string): Promise<void> {
+        try {
+            const timeout: number = 5000;
+
+            // Get the frame by name
+            const frame = this.page.frame({ name: frameName });
+            if (!frame) {
+                throw new Error(`Frame "${frameName}" not found`);
+            }
+
+            // Locate the button inside the frame
+            const button = frame.locator(buttonSelector);
+
+            // Wait for the button to be visible and enabled
+            await button.waitFor({ state: 'visible', timeout });
+
+            // Click the button
+            await button.clear();
+            await button.fill(text);
+            await this.page.waitForTimeout(3000);
+
+        } catch (error) {
+            console.error(`❌ Error clicking "${label}" in frame "${frameName}":`, error);
+            await this.captureScreenshot(`Error_Click_${label}`);
+            throw error;
+        }
+    }
+
+    async assertElementHasTextInFrame(frameName: string, errorInFrame: string, expectedText: string, label = ''): Promise<void> {
+        try {
+            const timeout: number = 5000;
+
+            // Get the frame by name
+            const frame = this.page.frame({ name: frameName });
+            if (!frame) {
+                throw new Error(`Frame "${frameName}" not found`);
+            }
+
+            // Locate the button inside the frame
+            const button = frame.locator(errorInFrame);
+            await expect(button).toBeVisible({ timeout: 6000 });
+            const actualText = await button.textContent();
+            console.log(actualText);
+            await expect(button).toHaveText(expectedText, { timeout: 6000 });
+
+            console.log(`✅ [ASSERT] ${label}: Element has expected text "${expectedText}"`);
+            await this.captureScreenshot(`screenshotCaptured_${label}`);
+        } catch (error) {
+            console.error(`❌ [ASSERT FAILED] ${label}: Expected text "${expectedText}" not found.`);
+            throw error;
+        }
+    }
+
+    //Enter spaces 3
+
+    async typeSpacesInFrame(frameSelector: string, fieldSelector: string): Promise<void> {
+        const frame = this.page.frame({ name: frameSelector });
+
+        if (!frame) {
+            throw new Error(`Frame "${frame}" not found`);
+        }
+        const field = frame.locator(fieldSelector);
+        let count = 3;
+        let delay = 300;
+        await field.click(); // Focus the field
+        for (let i = 0; i < count; i++) {
+            await this.page.keyboard.press('Space');
+            if (delay > 0) {
+                await this.page.waitForTimeout(delay);
+            }
+        }
+    }
+    //checking element visibility
+
+
+    async validateElementInFrame(frameName: string, elementSelector: string, description: string): Promise<void> {
+        const frame = this.page.frame({ name: frameName });
+        if (!frame) {
+            throw new Error(`Frame with name "${frameName}" not found`);
+        }
+
+        const element = frame.locator(elementSelector);
+
+        // Check visibility
+        await expect(element).toBeVisible({ timeout: 10000 });
+
+        // Check enabled state
+        await expect(element).toBeEnabled();
+
+        console.log(`${description} is visible and enabled : ${elementSelector}`);
+
+        // Capture screenshot
+        //await this.captureScreenshot(description);
+    }
+
+
+
+
+    /*  async enterText(locator: Locator, text: string, label: string): Promise<void> {
+         await locator.fill(text);
+         await this.captureScreenshot(`entered_${label}`);
+     } */
 
     async enterText(locator: Locator, text: string, label: string): Promise<void> {
-        await locator.fill(text);
-        await this.captureScreenshot(`entered_${label}`);
+        try {
+            console.log(`⌛ Waiting for ${label} to be visible`);
+            await locator.waitFor({ state: 'visible' });
+
+            console.log(`✏️  Entering text "${text}" into ${label}`);
+            await locator.fill(text);
+
+            await this.captureScreenshot(`entered_${label}`);
+            console.log(`✅ Successfully entered text into ${label}`);
+        } catch (error) {
+            console.error(`❌ Failed to enter text into ${label}`, error);
+            await this.captureScreenshot(`ERROR_entered_${label}`);
+            throw error;
+        }
     }
+
+    async generateLabelName(): Promise<string> {
+        const today = new Date();
+        const formattedDate = `${today.getFullYear()}${String(today.getMonth() + 1).padStart(2, '0')}${String(today.getDate()).padStart(2, '0')}`;
+        return `Test_Label_${formattedDate}`;
+    }
+
+    async randomClickFromTable(tableLocator: Locator, label: string): Promise<void> {
+        // Locate all rows/items in the list
+        const options = tableLocator; // adjust selector if needed
+
+        // Get count
+        const count = await options.count();
+
+        // Pick random index
+        const randomIndex = Math.floor(Math.random() * count);
+
+        // Click random option
+        await options.nth(randomIndex).click();
+        console.log(`✅ Clicked on random option from ${label}`);
+    }
+
 
     async clickElement(locator: Locator, label: string): Promise<void> {
-        await locator.click();
-        await this.captureScreenshot(`click_${label}`);
+        try {
+            console.log(`⌛ Waiting for ${label} to be visible`);
+            await locator.waitFor({ state: 'visible' });
 
+            console.log(`🖱️  Clicking on ${label}`);
+            await locator.click();
+
+            await this.captureScreenshot(`click_${label}`);
+            console.log(`✅ Successfully clicked on ${label}`);
+        } catch (error) {
+            console.error(`❌ Failed to click on ${label}`, error);
+            await this.captureScreenshot(`ERROR_click_${label}`);
+            throw error;
+        }
     }
+
+
+    // BOTH methods included (the one LoginSteps expects + your custom one)
+    // assertElementHasText(locator: any, expectedText: string, label: string): Promise<void>;
+    // assertElementHasTextInFrame(frameName: string, errorInFrame: string, expectedText: string, label: string): Promise<void>;
 
     async navigateTo(url: string): Promise<void> {
         await this.page.goto(url, { waitUntil: 'domcontentloaded' });
-        await this.page.waitForURL(url);
+        // await this.page.waitForURL(url);
         await this.captureScreenshot('navigate_to_page');
         // await expect(this.page).toHaveURL(url);
     }
@@ -100,9 +386,10 @@ export class StepHelper {
 
     async assertElementHasText(locator: Locator, expectedText: string, label = ''): Promise<void> {
         try {
-            await expect(locator).toBeVisible({ timeout: 60000 });
-            const actualText = await locator.textContent();
-            await expect(locator).toHaveText(expectedText, { timeout: 60000 });
+            //await expect(locator).toBeVisible({ timeout: 6000 });
+            // const actualText = await locator.textContent();
+            const sd = await expect(locator).toHaveText(expectedText, { timeout: 6000 });
+            console.log(sd)
 
             console.log(`✅ [ASSERT] ${label}: Element has expected text "${expectedText}"`);
             await this.captureScreenshot(`screenshotCaptured_${label}`);
@@ -298,30 +585,30 @@ export class StepHelper {
 
     async selectDropdownByIndex(dropdownLocator: Locator, index: number): Promise<void> {
         const page = dropdownLocator.page();
-    
+
         // Click the dropdown to open options
         await dropdownLocator.click();
-    
+
         // Wait for mat-option elements to appear globally (not scoped to dropdown)
         const options = page.locator('mat-option');
-    
+
         await page.waitForFunction(() => {
             const options = document.querySelectorAll('mat-option');
             return Array.from(options).some(opt => (opt as HTMLElement).offsetParent !== null);
         }, { timeout: 7000 });
-        
-    
+
+
         // Ensure the desired index exists
         const count = await options.count();
         if (index >= count) {
             throw new Error(`Index ${index} is out of bounds. Only ${count} options available.`);
         }
-    
+
         // Click the option at the given index
         await options.nth(index).click();
     }
-    
-    
+
+
 
 
     async assertElementHasInputValues(locator: Locator, expectedText: string, label = ''): Promise<void> {
@@ -353,7 +640,7 @@ export class StepHelper {
                 throw new Error(`❌ [ASSERT FAILED] ${label}: Expected text "${expectedText}" does not contain actual text "${actualText}".`);
             }
         } catch (error) {
-            console.error(error.message);
+            // console.error(error.message);
             throw error;
         }
     }
@@ -440,6 +727,7 @@ export class StepHelper {
             throw error;
         }
     }
+
 
 
 }

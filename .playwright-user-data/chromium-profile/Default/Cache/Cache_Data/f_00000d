@@ -1,0 +1,1332 @@
+/**
+ * @fileoverview D&eacute;fini l'objet <b>ECW.TreeView</b>
+ * @author u218179
+ * @version $Revision: 1.60 $
+ */
+  
+/**
+ * D&eacute;fini l'objet <b>ECW.TreeView</b>
+ * @private
+ */
+ECW.TreeView = function(noeud, ui) {
+
+  ecwStartTimer("ECW.TreeView");
+
+  ecwSetAttribute(this, "noeudDOM", noeud);
+  ecwSetAttribute(noeud, "ecwTreeView", this);
+  ecwSetAttribute(this, "ecwUI", ui);
+  ecwSetAttribute(this, "input", null);
+  ecwSetAttribute(this, "ecwTreeList", new Array());
+  ecwSetAttribute(this, "ecwTreeDisplay", null);
+
+  /* Positionnement du Tabindex, */
+  /* car sous Firefox 1.5, une div de style overflow:auto devient focusable */
+  if (ECW_isGecko) {
+    this.noeudDOM.tabIndex = -1;
+  }
+  /* Ajout du champ invisible de selection de la liste */
+  var inputGestion = document.createElement("INPUT");
+  inputGestion.className = "ecwInvisible";
+  inputGestion.id = "inputEcwTreeView_" + this.noeudDOM.id;
+  inputGestion.setAttribute("autocomplete", "off");
+  ecwSetAttribute(inputGestion, "ecwTreeList", this);
+
+  this.noeudDOM.insertBefore(inputGestion, this.noeudDOM.firstChild);
+  ecwSetAttribute(this, "input", inputGestion);
+  ecwSetAttribute(this.noeudDOM, "input", inputGestion);
+
+  /* Copie le title sur l'input de la liste */
+  inputGestion.title = this.noeudDOM.title;
+  
+  this.createSelect();
+  
+  var labelAutoDeploy = this.noeudDOM.getAttribute("ecwLabelAutoDeploy");
+  if ("true" == labelAutoDeploy) {
+    ecwSetAttribute(this, "labelAutoDeploy", true);
+  } else {
+    ecwSetAttribute(this, "labelAutoDeploy", false);
+  }
+  
+  /* Constructeur */
+  this.constructeur();
+  
+  ecwStopTimer("ECW.TreeView");
+}
+
+/**
+ * Noeud du DOM comportant la combo : <div class="ecwTreeView">
+ * @private
+ */
+ECW.TreeView.prototype.noeudDOM = null;
+
+/**
+ * Objet ECW.UI d'appartenance
+ * @private
+ */
+ECW.TreeView.prototype.ecwUI = null;
+
+/**
+ * Objet ECW.TreeView
+ * @private
+ */
+ECW.TreeView.prototype.ecwTreeView = null;
+
+/**
+ * Champ input invisible
+ * @private
+ */
+ECW.TreeView.prototype.input = null;
+
+/**
+ * Champ pointant sur la ligne active
+ * @private
+ */
+ECW.TreeView.prototype.elementActif = null;
+
+/**
+ * Champ pointant sur la liste des elements organisee en branche
+ * @private
+ */
+ECW.TreeView.prototype.ecwTreeList = null;
+
+/**
+ * Booleen indiquant si le click sur un label deplie le noeud ou pas.
+ * @private
+ */
+ECW.TreeView.prototype.labelAutoDeploy = false;
+
+/**
+ * Champ pointant sur la balide ul principale
+ * @private
+ */
+ECW.TreeView.prototype.ecwTreeDisplay = null;
+
+/**
+ * Ev&egrave;nement d&eacute;clench&eacute; sur la touche [Entr&eacute;e]
+ * @type Function
+ */
+ECW.TreeView.prototype.onExecute = null;
+
+/**
+ * Ev&egrave;nement d&eacute;clench&eacute; sur la selection clavier
+ * @type Function
+ */
+ECW.TreeView.prototype.onKeySelect = null;
+
+/**
+ * Constructeur de ECW.TreeView
+ * @private
+ */
+ECW.TreeView.prototype.constructeur = function() {
+
+  ecwSetAttribute(this, "ecwTreeDisplay", this.noeudDOM.getElementsByTagName("UL")[0]);
+
+  var selectedElem = new Array();
+  /* Creation du modele objet */
+  this.creerTreeViewBrancheDom(this.ecwTreeDisplay, this.ecwTreeList, this, selectedElem);
+
+  /* Initialisation de la selection */
+  var len = selectedElem.length;
+  if (1 == len) {
+    this.selectElement(selectedElem[0], true);
+  } else if (1 < len) {
+    for (var i = 0; i < len; ++i)
+      this.multiselectElement(selectedElem[i]);
+  }
+  //Desactivation, le tree ne doit pas prendre le focus
+  //meme si un/des element(s) selectione(s)
+  this.desactiverElement();
+  
+  /* Non propagation du menu contextuel sur click gauche */
+  this.noeudDOM.oncontextmenu = ecwFalseFunction;
+
+}
+
+/**
+ * Rafra&icirc;chi les donn&eacute;es de la liste
+ */
+ECW.TreeView.prototype.refresh = function(htmlTreeView) {
+
+  ecwSetAttribute(this, "ecwTreeList", new Array());
+  ecwSetAttribute(this, "ecwTreeDisplay", null);
+  this.elementActif = null;
+  for (var i = this.noeudDOM.childNodes.length - 1; i >= 0; i--) {
+    this.noeudDOM.removeChild(this.noeudDOM.childNodes[i]);
+  }
+  this.noeudDOM.innerHTML = htmlTreeView;
+  this.noeudDOM.insertBefore(this.noeudDOM.input, this.noeudDOM.firstChild);
+  this.createSelect();
+  this.constructeur();
+}
+
+/**
+ * Genere les balises SELECT 
+ * @private
+ */
+ECW.TreeView.prototype.createSelect = function() {
+  var ulNodeTreeView = getFirstChildByTagName(this.noeudDOM, "UL");
+  var i = 0;
+  keyName = ulNodeTreeView.getAttribute("ecwKeyName" + i);
+  if (keyName) {
+    var typeSel = this.noeudDOM.getAttribute("ecwSelection");
+    this.multiSelect = typeSel && typeSel.toLowerCase() == "multiple";
+    ecwSetAttribute(this, "selection", new Array());
+    ecwSetAttribute(this, "selectionElem", new Array());
+    while (keyName) {
+      var selection = document.createElement("SELECT");
+      selection.multiple = this.multiSelect;
+      selection.size = "3";
+      selection.name = keyName;
+      selection.style.visibility = "hidden";
+      selection.style.position = "absolute";
+      this.noeudDOM.appendChild(selection);
+      this.selection.push(selection);
+      ++i
+      keyName = ulNodeTreeView.getAttribute("ecwKeyName" + i);
+    }
+  }
+}
+
+/**
+ * Place le focus sur l'arbre
+ */
+ECW.TreeView.prototype.setFocus = function() {
+  if (this.input.ecwControl && this.input.ecwControl.isVisible()) {
+    this.saveScrollTop();
+    this.input.ecwControl.setFocus();
+    this.restoreScrollTop();
+  }
+}
+
+/**
+ * Passer la ligne de l'etat selectionne non-actif a l'etat selectionne actif
+ * @private
+ */
+ECW.TreeView.prototype.activerElement = function() {
+  if (this.elementActif) {
+    addClass(this.elementActif, "ecwTreeViewLineActive");
+    removeClass(this.elementActif, "ecwTreeViewLineSelect");
+    this.setFocus();
+    this.restoreScrollTop();
+  } else {
+    if (this.ecwTreeList && this.ecwTreeList.length > 0) {
+      this.selectElement(this.ecwTreeList[0]);
+    }
+  }
+}
+
+/**
+ * Passer la ligne de l'etat selectionne actif a l'etat selectionne non-actif
+ * @private
+ */
+ECW.TreeView.prototype.desactiverElement = function() {
+  if (this.elementActif) {
+    removeClass(this.elementActif, "ecwTreeViewLineActive");
+    addClass(this.elementActif, "ecwTreeViewLineSelect");
+  }
+}
+
+/**
+ * Selectionne et surligne le noeud.
+ * @private
+ */
+ECW.TreeView.prototype.selectElement = function(elementSelect, forceUnselect) {
+  if (this.selection) {
+    var options = this.selectionElem;
+    if (forceUnselect || (1 == options.length && !isClass(options[0], "ecwTreeViewLineMultiple"))) {
+      this.internalUnselectAll();
+      this.internalSelect(elementSelect, false);
+    } 
+  }
+  this.internalHighlight(elementSelect);
+}
+
+/**
+ * Selectionne et surligne le noeud en mode multiselection (touche CTRL appuyee).
+ * @private
+ */
+ECW.TreeView.prototype.multiselectElement = function(elementSelect) {
+  if (this.selection) {
+    if (this.multiSelect) {
+      if (1 == this.selectionElem.length && !isClass(this.selectionElem[0], "ecwTreeViewLineMultiple")) {
+        this.internalSelect(this.selectionElem[0], true);//Si touche CTRL, il faut passer la ligne 0 en "ecwTreeViewLineMultiple"
+        this.internalSelect(elementSelect, true);
+      } else if (this.isSelected(elementSelect)) {
+        this.internalUnselect(elementSelect);
+        if (0 == this.selectionElem.length) {
+          this.internalSelect(elementSelect, false);
+        }
+      } else {
+        this.internalSelect(elementSelect, true);
+      }
+    } else {
+      this.internalUnselectAll();
+      this.internalSelect(elementSelect, false);
+    }
+  }
+  this.internalHighlight(elementSelect);
+}
+
+/**
+ * Surligne le noeud sans pour autant l'ajouter a la selection.
+ * @private
+ */
+ECW.TreeView.prototype.internalHighlight = function(elementSelect) {
+  this.saveScrollTop();
+  
+  if (this.elementActif) {
+    removeClass(this.elementActif, "ecwTreeViewLineActive");
+    removeClass(this.elementActif, "ecwTreeViewLineSelect");
+  }
+  /* Selectionne le nouvel element actif */
+  this.elementActif = elementSelect;
+  addClass(elementSelect, "ecwTreeViewLineActive");
+
+  /* Gestion du scroll */
+  /* Si la ligne est au-dessus de la fenetre de scrolling */
+  /* OU */
+  /* Si la ligne est en-dessous de la fenetre de scrolling */
+  if ((eval(this.elementActif.offsetTop - this.noeudDOM.offsetTop) < eval(this.noeudDOM.scrollTop))
+      || (eval(this.elementActif.offsetTop - this.noeudDOM.offsetTop +
+      this.elementActif.offsetHeight) > eval(this.noeudDOM.offsetHeight + this.noeudDOM.scrollTop))) {
+      
+    var scrollTopUpdate = eval(this.elementActif.offsetTop - this.noeudDOM.offsetTop -
+    this.noeudDOM.offsetHeight / 2);
+    if (scrollTopUpdate < 0) {
+      scrollTopUpdate = 0;
+    }
+    this.setScrollTop(scrollTopUpdate);
+  }
+}
+
+/**
+ * Ajoute le noeud a la liste des noeuds selectionnes.
+ * @param elementSelect le noeud
+ * @param useStyle (boolean) utilise le style multiselection (ligne 'bleue').
+ * @private
+ */
+ECW.TreeView.prototype.internalSelect = function(elementSelect, useStyle) {
+  /* Si mode selection actif : ajout dans la balise SELECT et */
+  /* dans le tableau des elements selectionnes. */
+  if (this.selection) {
+    if (useStyle) {
+      addClass(elementSelect, "ecwTreeViewLineMultiple");
+    }
+    var n = this.selection.length;
+    for (var i = 0; i < n; ++i) {
+      var keyVal = elementSelect.ecwValue[i];
+      if (keyVal && "" != keyVal) {
+        var option = document.createElement("OPTION");
+        option.value = keyVal;
+        option.selected = true;
+        this.selection[i].appendChild(option);
+      }
+    }
+    this.selectionElem.push(elementSelect);
+  }
+}
+
+/**
+ * Renvoie true si le noeud est selectionne.
+ * @private
+ */
+ECW.TreeView.prototype.isSelected = function(elementSelect) {
+  if (elementSelect) {
+    var n = this.selectionElem.length;
+    for (i = 0; i < n; ++i) {
+      if (elementSelect == this.selectionElem[i]) {
+        return true;
+      }
+    }
+  }
+  return false;
+}
+
+
+/**
+ * En mode multiselect, deselectionne le noeud specifie.
+ * @private
+ */
+ECW.TreeView.prototype.internalUnselect = function(elementSelect) {
+  if (elementSelect) {    
+    /* Si mode selection actif : retrait de la balise SELECT */
+    /* et du tableau des elements selectionnes. */
+    if (this.selection) {
+      removeClass(elementSelect, "ecwTreeViewLineMultiple");
+      for (var i = this.selection.length - 1; i >= 0; --i) {
+        var selNode = this.selection[i];
+        if (selNode.childNodes) {
+          for (var j = selNode.childNodes.length - 1; j >= 0; --j) {
+            selNode.remove(j);
+          }
+        }
+      }
+      var newArray = new Array();
+      var nSelected = this.selectionElem.length;
+      var nValues = this.selection.length;
+      for (var i = 0; i < nSelected; ++i) {
+        var iElementSelect = this.selectionElem[i];
+        if (elementSelect != iElementSelect) {
+          newArray.push(iElementSelect);
+          for (var j = 0; j < nValues; ++j) {
+            var keyVal = iElementSelect.ecwValue[j];
+            if (keyVal && "" != keyVal) {
+              var option = document.createElement("OPTION");
+              option.value = keyVal;
+              option.selected = true;
+              this.selection[j].appendChild(option);
+            }
+          }
+        }
+      }
+      this.selectionElem = newArray;
+    }
+  }
+}
+
+/**
+ * En mode multiselect, deselectionne tous les noeuds selectionnes.
+ * @private
+ */
+ECW.TreeView.prototype.internalUnselectAll = function() {
+  if (this.selection) {
+    for (var i = this.selection.length - 1; i >= 0; --i) {
+      var selNode = this.selection[i];
+      if (selNode.childNodes) {
+        for (var j = selNode.childNodes.length - 1; j >= 0; --j) {
+          selNode.remove(j);
+        }
+      }
+    }
+    var n = this.selectionElem.length;
+    for (i = 0; i < n; ++i) {
+      var elem = this.selectionElem[i];
+      removeClass(elem, "ecwTreeViewLineMultiple");
+    }
+    this.selectionElem = new Array();
+  }
+}
+
+/**
+ * Selectionne un ou plusieurs noeuds.
+ * @param id : string (simple select) ou array de string (multi select)
+ * @public
+ */
+ECW.TreeView.prototype.selectNodeById = function(id) {
+  if (this.selection) {
+    this.internalUnselectAll();
+  }
+  var ids = new Array();
+  if(typeof id == 'array' || typeof id == 'object'){
+    ids = id;
+  }else{
+    ids.push(id);
+  }
+
+  var elt = null;
+  for (var i = ids.length-1; i >= 0; i--){
+    elt = this.getNodeById(ids[i]);
+    if(elt){
+     this.ouvrirBrancheParent(elt.parentNode);
+     if(this.multiSelect){
+        this.multiselectElement(elt);
+      }else{
+        this.selectElement(elt, false);
+      }
+    }
+  }
+
+  if(this.elementActif){
+    this.setScrollTop(this.elementActif.offsetTop);
+  }
+
+  this.setFocus();  
+}
+
+/**
+ * Ajoute un noeud au TreeView.
+ * @param parentId : string Identifiant du noeud parent.
+ * @param nodeId : string Identifiant du nouveau noeud.
+ * @param nodeLabel : string Label du nouveau noeud.
+ * @param nodeKeyVal : array nodeKeyVal = ["val01", "val11", ...]
+ * @param nodeTitle : string Title du nouveau noeud (optionnel).
+ * @param nodeCss : string CSS du nouveau noeud (optionnel).
+ * @param position : int Position du nouveau noeud, de 1 a n (optionnel).
+ * @public
+ */
+ECW.TreeView.prototype.addNode = function(parentId, nodeId, nodeLabel, nodeKeyVal, nodeTitle, nodeCss, position) {
+
+  if(document.getElementById(this.noeudDOM.id+'_'+nodeId)){
+    alert("Il existe deja un element [id="+nodeId+"] sur le TreeView [id="+this.noeudDOM.id+"]")
+    return false;
+  }
+
+  var table = this.getNodeById(parentId);
+  if(table){
+
+
+    /* Si le noeud parent n'est pas encore une branche */
+    var ul = table.parentNode.getElementsByTagName("ul")[0];
+    if(!ul){
+      ul = document.createElement("UL");
+      ul.setAttribute("style", "display: block;");
+      table.parentNode.appendChild(ul);
+      removeClass(table, "ecwTreeview_child");
+      addClass(table, "ecwTreeview_parent_open");
+      ecwSetAttribute(table, "ecwTreeList", new Array());
+      table.ecwTreeType = "TreeView_list";
+      ecwSetAttribute(table, "ecwTreeDisplay", ul);
+    }
+
+    if(!position || position>table.ecwTreeList.length){
+      position = table.ecwTreeList.length+1;
+    }
+    
+    /* Creation du noeud LI */
+    var newLi = document.createElement("LI");
+    newLi.setAttribute("ecwid", nodeId);
+
+    /* Creation de la structure de l'element TABLE */
+    var keyVal = "";
+    if(nodeKeyVal){
+      for (var i = 0; i < nodeKeyVal.length; ++i) {
+        if(nodeKeyVal[i] && nodeKeyVal[i]!=""){
+          keyVal += " ecwkeyval"+i+"='"+nodeKeyVal[i]+"'";
+        }
+      }
+    }
+    var cssDiv = "ecwTreeview_label";
+    if(nodeCss){
+      cssDiv = " "+nodeCss;
+    }
+    cssDiv = "class='"+cssDiv+"'";
+
+    var title = "";
+    if(nodeTitle){
+      title = "title='"+nodeTitle+"'";
+    }
+    var reg=new RegExp("( )", "g");
+    var userClass="";
+    if (this.ecwTreeDisplay && this.ecwTreeDisplay.getAttribute("userclass").length>0) userClass=" "+this.ecwTreeDisplay.getAttribute("userclass");
+    var html = "";
+    html += "<table id='"+this.noeudDOM.id+"_"+nodeId+"' class='ecwTreeview_child"+userClass+"' "+keyVal+" border='0' cellpadding='0' cellspacing='0' width='100%'>";
+    html += "<tbody>";
+    html += "<tr>";
+    html += "<td>";
+    html += "<div style='margin: 0px 0px 0px 18px;' "+cssDiv+" "+title+">"+nodeLabel.replace(reg, "&nbsp;")+"</div>";
+    html += "</td>";
+    html += "<td class='ecwTreeViewEmptyCell' width='100%'>";
+    html += "&nbsp;";
+    html += "</td>";
+    html += "</tr>";
+    html += "</tbody>";
+    html += "</table>";
+    newLi.innerHTML = html;
+
+    /* Set les attributs de l'element */
+    var newTable = newLi.getElementsByTagName("table")[0];
+    ecwSetAttribute(newTable, "ecwTreeView", this);
+    ecwSetAttribute(newTable, "ecwParentElm", table);
+    newTable.rIndex = position; // cf ecwTable pour explication
+    newTable.ecwTreeType = "TreeView_elm";
+    newTable.ecwValue = new Array();
+    if (this.selection) {
+      var n = this.selection.length;
+      for (var i = 0; i < n; ++i) {
+        var keyName = newTable.getAttribute("ecwKeyVal" + i);
+        newTable.ecwValue[i] = keyName;
+      }
+      newTable.ecwSelected = newTable.getAttribute("ecwSelected");
+    }
+
+    /* Ajout du comportement sur le onclick de tous les elements */
+    newTable.onclick = ecwTreeViewElementOnClick;
+    newTable.onmouseover = ecwTreeViewElementOnMouseOver;
+    newTable.onmouseout = ecwTreeViewElementOnMouseOut;
+
+    /* Ajout du LI a la fin */
+    if(position == table.ecwTreeList.length+1){
+      ul.appendChild(newLi);
+      table.ecwTreeList[table.ecwTreeList.length] = newTable;
+    }else{
+    /* Ajout du LI a la position voulue */
+      ul.insertBefore(newLi, getChildrenByTagName(ul, "LI")[position-1]);
+      ecwSetAttribute(table, "ecwTreeList", new Array());
+      table.ecwTreeList = new Array();
+      var lis = getChildrenByTagName(ul, "LI");
+      for(var i=0 ; i<lis.length ; i++){
+        table.ecwTreeList[i] = lis[i].getElementsByTagName("TABLE")[0];
+      }
+    }
+  }
+}
+
+/**
+ * Supprime un noeud du TreeView.
+ * @param nodeId : string Identifiant du noeud a supprimer.
+ * @public
+ */
+ECW.TreeView.prototype.removeNode = function(nodeId) {
+
+  var table = this.getNodeById(nodeId);
+  if(table){
+    if(this.isSelected(table)){
+      this.internalUnselect(table);
+    }
+    if(table.ecwTreeList){
+      /* Supression des enfants en recursif */
+      for(var i=table.ecwTreeList.length-1;i>=0;i--){
+        if(table.ecwTreeList[i].id){
+          this.removeNode(table.ecwTreeList[i].id);
+        }
+      }
+    }
+    var li = table.parentNode;
+    var ul = li.parentNode;
+    ul.removeChild(li);
+    /* La branche n'a plus de fils */
+    if(ul.getElementsByTagName("LI").length==0){
+      var liParent = ul.parentNode;
+      var tableParent = liParent.getElementsByTagName("TABLE")[0];
+      liParent.removeChild(ul);
+      removeClass(tableParent, "ecwTreeview_parent_open");
+      removeClass(tableParent, "ecwTreeview_parent_close");
+      addClass(tableParent, "ecwTreeview_child");
+      ecwSetAttribute(tableParent, "ecwTreeList", null);
+      tableParent.ecwTreeType = "TreeView_elm";
+      ecwSetAttribute(tableParent, "ecwTreeDisplay", null);
+    }
+  }
+}
+
+/**
+ * Ajoute une action  sur un element.
+ * @param nodeId : string Identifiant du noeud.
+ * @param actionStyle: string Style de l'action.
+ * @param actionJavascript: string Javascript invoque sur le click.
+ * @param actionTitle: string Title de l'action.
+ * @param nodeLabel : string 
+ * @public
+ */
+ECW.TreeView.prototype.addAction = function(nodeId, actionStyle, actionJavascript, actionTitle) {
+  var node = this.getNodeById(nodeId);
+  if(node){
+    var tds = node.getElementsByTagName("TD");
+    var lastTd = tds[tds.length-1];
+    var newTd = document.createElement("TD");
+    lastTd.parentNode.insertBefore(newTd, lastTd);
+
+    var div = '<div';
+    div += ' class="'+actionStyle+'"'
+    div += ' onclick="javascript:window.ecwTreeViewCallClickAction(this);"'
+    div += ' ecwonclick="javascript:'+actionJavascript+';"'
+    if(actionTitle && actionTitle != ''){
+      div += ' title="'+actionTitle+'">'
+    }
+    div += '</div>';
+    newTd.innerHTML = div;  
+  }
+}
+
+
+/**
+ * Supprime une action  sur un element.
+ * @param nodeId : string Identifiant du noeud.
+ * @param actionStyle: string Style de l'action.
+ * @public
+ */
+ECW.TreeView.prototype.removeAction = function(nodeId, actionStyle) {
+  var node = this.getNodeById(nodeId);
+  if(node){
+    var divs = node.getElementsByTagName("div");
+    if(divs){
+      var div = null;
+      for(var i=0 ; i<divs.length && !div ; i++){
+        if(isClass(divs[i], actionStyle)){
+          div = divs[i]; 
+        }
+      }
+      if(div){
+        var td = div.parentNode;
+        td.parentNode.removeChild(td);
+      }
+    }
+  }
+}
+
+/**
+ * Set le label d'un element a partir de son identifiant
+ * @param nodeId : string 
+ * @param newLabel : string 
+ * @public
+ */
+ECW.TreeView.prototype.setNodeLabel = function(nodeId, newLabel) {
+  var node = this.getNodeById(nodeId);
+  if(node){
+    var div = getFirstChildByTagName(node, "div");
+    if(div){
+      div.innerHTML = newLabel;
+    }
+  }
+}
+
+/**
+ * Set le title d'un element a partir de son identifiant
+ * @param nodeId : string 
+ * @param newTitle : string 
+ * @public
+ */
+ECW.TreeView.prototype.setNodeTitle = function(nodeId, newTitle) {
+  var node = this.getNodeById(nodeId);
+  if(node){
+    var div = getFirstChildByTagName(node, "div");
+    if(div){
+      div.title = newTitle;
+    }
+  }
+}
+
+/**
+ * Set le css d'un element a partir de son identifiant
+ * @param nodeId : string 
+ * @param newCss : string 
+ * @param propagation : boolean applique le css sur toute la branche
+ * @public
+ */
+ECW.TreeView.prototype.setNodeCss = function(nodeId, newCss, propagation) {
+  var node = this.getNodeById(nodeId);
+  if(node){
+    var div = getFirstChildByTagName(node, "div");
+    if(div){
+      div.className = "ecwTreeview_label "+newCss;
+    }
+    if(propagation && node.ecwTreeList){
+      for(var i=0;i<node.ecwTreeList.length;i++){
+      	var id = node.ecwTreeList[i].id;
+        this.setNodeCss(id.substring((this.noeudDOM.id+'_').length), newCss, propagation);
+      }      
+    }
+  }
+}
+
+/**
+ * Recherche le noeud correspondant a l'id
+ * @param id : string 
+ * @return : node TABLE
+ * @private
+ */
+ECW.TreeView.prototype.getNodeById = function(id) {
+  var node =  document.getElementById(this.noeudDOM.id+'_'+id); 
+  if(!node){
+    alert("Il n'existe pas d'element[id="+this.noeudDOM.id+"] sur le TreeView[id="+id+"]")
+  }
+  return node;
+}
+
+/**
+ * Test l'existence d'un noeud en fonction de son id
+ * @param id : string 
+ * @return : boolean
+ */
+ECW.TreeView.prototype.existNode = function(id) {
+  if(document.getElementById(this.noeudDOM.id+'_'+id)){
+    return true;
+  }
+  return false;
+}
+
+
+/**
+ * Definit la valeur de scrollTop du noeudDOM de maniere desynchronisee (utilisation d'un timer)
+ * @private
+ */
+ECW.TreeView.prototype.setScrollTop = function(value) {
+  var noeudDOM = "document.getElementById('" + this.noeudDOM.id + "')";
+  var cmd;
+  cmd = "if (" + noeudDOM + ") {";
+  cmd += noeudDOM + ".scrollTop=" + value + ";";
+  cmd += noeudDOM + ".lastScrollTop=" + noeudDOM + ".scrollTop;";
+  cmd += "}";
+  setTimeout(cmd, 0);
+}
+
+/**
+ * Sauvegarde le scrollTop du noeudDOM actuel.
+ * @private
+ */
+ECW.TreeView.prototype.saveScrollTop = function() {
+  this.noeudDOM.lastScrollTop = this.noeudDOM.scrollTop;
+}
+
+/**
+ * Repositionne le scrollTop du noeudDOM a la derniere valeur saisie.
+ * @private
+ */
+ECW.TreeView.prototype.restoreScrollTop = function() {
+  var lastValue = 0;
+  if (this.noeudDOM.lastScrollTop)
+    lastValue = this.noeudDOM.lastScrollTop;
+  this.setScrollTop(lastValue);
+}
+
+/**
+ * Actions des touches du clavier
+ * @private
+ */
+ECW.TreeView.prototype.onKey = function(action) {
+
+  if (this.ecwTreeList && this.ecwTreeList.length > 0) {
+
+    if (action == "esc" && this.ecwUI.onEscape) {
+      this.ecwUI.onEscape();
+    }
+    if (action == "enter") {
+      this.lancerAction(this.elementActif);
+    }
+    if (action == "home") {
+      this.selectElement(this.ecwTreeList[0], false);
+    }
+    if (action == "end") {
+      this.selectElement(this.getLastElementVisible(this.ecwTreeList[this.ecwTreeList.length - 1]), false);
+    }
+    if (action == "down") {
+      this.getNextElementVisible(this.elementActif);
+      this.lancerActionKeySelect(this.elementActif);
+    }
+    if (action == "up") {
+      this.getPreviousElementVisible(this.elementActif);
+      this.lancerActionKeySelect(this.elementActif);
+    }
+    if (action == "ctrl-down") {
+      this.getNextBrancheVisible(this.elementActif);
+    }
+    if (action == "ctrl-up") {
+      this.getPreviousBrancheVisible(this.elementActif);
+    }
+    if ((action == "left") || (action == "ctrl-left")) {
+      if (isClass(this.elementActif, "ecwTreeview_parent_open")) {
+        this.fermerBranche(this.elementActif);
+      }
+    }
+    if ((action == "right") || (action == "ctrl-right")) {
+      if (isClass(this.elementActif, "ecwTreeview_parent_close")) {
+        this.ouvrirBranche(this.elementActif);
+      }
+    }
+    if (action == "space" || action == "ctrl-space") {
+      this.multiselectElement(this.elementActif);
+    }
+    switch (action) {
+      case "tab":
+      case "ctrl-A":
+      case "ctrl-C":
+      case "ctrl-T":
+      case "ctrl-F5":
+      case "ctrl-F12":
+      case "ctrl-shift-suppr":
+        return true;
+      default:
+        return false;
+    }
+  }
+}
+
+/**
+ * Actions d'ouvrir ou de fermer une branche suivant son etat
+ * @private
+ */
+ECW.TreeView.prototype.activeBranche = function(branche) {
+  /* Etat replie */
+  if (branche.ecwTreeDisplay.style.display == "none") {
+    this.ouvrirBranche(branche);
+  }
+  /* Etat deplie */
+  else {
+    this.fermerBranche(branche);
+  }
+}
+
+/**
+ * Actions d'ouvrir une branche
+ * @private
+ */
+ECW.TreeView.prototype.ouvrirBranche = function(branche) {
+  branche.ecwTreeDisplay.style.display = "block";
+  removeClass(branche, "ecwTreeview_parent_close");
+  addClass(branche, "ecwTreeview_parent_open");
+  this.restoreScrollTop();
+}
+
+/**
+ * Actions d'ouvrir la(les) branche(s) parent(s)
+ * @private
+ */
+ECW.TreeView.prototype.ouvrirBrancheParent = function(child) {
+  var noeud = child.parentNode;
+  if(noeud.tagName.toLowerCase()!="ul")
+    return;
+  var elt = noeud.parentNode.firstChild;
+  if(!elt.ecwTreeDisplay)
+    return;
+  elt.ecwTreeDisplay.style.display = "block";
+  removeClass(elt, "ecwTreeview_parent_close");
+  addClass(elt, "ecwTreeview_parent_open");
+  return this.ouvrirBrancheParent(noeud.parentNode);
+}
+
+/**
+ * Actions de fermer une branche
+ * @private
+ */
+ECW.TreeView.prototype.fermerBranche = function(branche) {
+  branche.ecwTreeDisplay.style.display = "none";
+  removeClass(branche, "ecwTreeview_parent_open");
+  addClass(branche, "ecwTreeview_parent_close");
+  this.restoreScrollTop();
+}
+
+/**
+ * Actions de creation de la liste des elements en structure de branche
+ * @private
+ */
+ECW.TreeView.prototype.creerTreeViewBrancheDom = function(ulElement, listTreeView, parentNode, selectedElem) {
+
+  var currentElementDisplay;
+  var rowIndex = 1;
+
+  /* Parcours de tous les noeuds li */
+  for (var indice = 0; indice < ulElement.childNodes.length; indice++) {
+    if ((ulElement.childNodes[indice].nodeType == 1) &&
+        (ulElement.childNodes[indice].tagName.toLowerCase() == "li")) {
+            
+      /* Balise <table> dans la balise <li> */
+      currentElementLi = ulElement.childNodes[indice];
+      currentElementDisplay = currentElementLi.firstChild;
+      
+      /* Proprietes globales a tous les elements */
+      ecwSetAttribute(currentElementDisplay, "ecwTreeView", this);
+      ecwSetAttribute(currentElementDisplay, "ecwParentElm", parentNode);
+      currentElementDisplay.rIndex = rowIndex; // cf ecwTable pour explication
+      currentElementDisplay.ecwValue = new Array();
+      if (this.selection) {
+        var n = this.selection.length;
+        for (var i = 0; i < n; ++i) {
+          var keyName = currentElementDisplay.getAttribute("ecwKeyVal" + i);
+          currentElementDisplay.ecwValue[i] = keyName;
+        }
+        currentElementDisplay.ecwSelected = currentElementDisplay.getAttribute("ecwSelected");
+      }
+
+      if(currentElementLi.getAttribute("ecwId")){
+        currentElementDisplay.id = this.noeudDOM.id+'_'+currentElementLi.getAttribute("ecwId");
+      }
+
+      /* Noeud enfant */
+      if (isClass(currentElementDisplay, "ecwTreeview_child")) {
+        /* Ajout des proprietes */
+        currentElementDisplay.ecwTreeType = "TreeView_elm";
+
+        /* Noeud selectionne */
+        if (currentElementDisplay.ecwSelected == "true") {
+          selectedElem.push(currentElementDisplay);
+          //this.selectElement(currentElementDisplay, true);
+        }
+      }
+      /* Noeud parent */
+      else if (isClass(currentElementDisplay, "ecwTreeview_parent")) {
+        /* Ajout des proprietes */
+        currentElementDisplay.ecwTreeType = "TreeView_list";
+        ecwSetAttribute(currentElementDisplay, "ecwTreeList", new Array());
+        ecwSetAttribute(currentElementDisplay, "ecwTreeDisplay", ulElement.childNodes[indice].getElementsByTagName("ul")[0]);
+
+        /* Noeud selectionne */
+        if (currentElementDisplay.ecwSelected == "true") {
+          selectedElem.push(currentElementDisplay);
+          //this.selectElement(currentElementDisplay, true);
+          
+          // Si l'utilisateur veut declencher l'action lors de l'init,
+          // il doit appeler TreeView#executeSelectedNode().
+          //this.lancerAction(currentElementDisplay);
+        }
+
+        /* Parcours recursif des branches */
+        this.creerTreeViewBrancheDom(currentElementDisplay.ecwTreeDisplay,
+          currentElementDisplay.ecwTreeList, currentElementDisplay, selectedElem);
+      }
+
+      /* Ajout du comportement sur le onclick de tous les elements */
+      currentElementDisplay.onclick = ecwTreeViewElementOnClick;
+      currentElementDisplay.onmouseover = ecwTreeViewElementOnMouseOver;
+      currentElementDisplay.onmouseout = ecwTreeViewElementOnMouseOut;
+
+      /* Ajout de l'element courant a la branche courante */
+      listTreeView[listTreeView.length] = currentElementDisplay;
+      rowIndex++;
+    }
+  }
+}
+
+/**
+ * Callback sur l'evenement onclick() sur un element de l'arbre.
+ * This ne reference pas un ECW.TreeView mais un element de cet arbre.
+ * @private
+ */
+function ecwTreeViewElementOnClick(event) {
+
+  if(ecwActiveUI.champActif){
+    ecwActiveUI.champActif.desactiver();
+  }
+  ecwActiveUI.champActif = this.ecwTreeView.input.ecwControl;
+  this.ecwTreeView.setFocus();
+
+  var ecwEvent = new ECW.Event(event);
+  var clickOnAction = (window.ecwTreeViewAction);
+  
+  if(ecwEvent.target.tagName.toUpperCase()=="TD" && isClass(ecwEvent.target, "ecwTreeViewEmptyCell")){
+    //Dans ce cas la target est la TD en bout de ligne, on redirige donc vers la DIV
+    ecwEvent.target = getFirstChildByTagName(ecwEvent.target.parentNode.parentNode, "DIV");
+  }
+  
+  if (this.ecwTreeView.multiSelect && ecwEvent.ctrlKey) {
+    // si CTRL en mode multi-select
+    this.ecwTreeView.multiselectElement(this);
+  } else {
+    //Il faut deplier/replier la branche avt de faire l'eventuel selectElement
+    //Pour des pbs de scroll
+    if (this.ecwTreeView.labelAutoDeploy || "TD" == ecwEvent.target.tagName) {
+      /* Branche */
+      if (this.ecwTreeType == "TreeView_list" && !clickOnAction) {
+        this.ecwTreeView.activeBranche(this);
+      }
+    }
+    // si clic normal en mode multi-select ou non
+    if ("DIV" == ecwEvent.target.tagName) {
+      /* Selection de l'element */
+      this.ecwTreeView.selectElement(this, true);
+      if(!clickOnAction){
+        this.ecwTreeView.lancerAction(this);
+      }
+    }
+  }
+
+  /* Si une action de type Icone a ete declenchee */
+  if (window.ecwTreeViewAction) {
+    eval(window.ecwTreeViewAction);
+  }
+  window.ecwTreeViewAction = null;
+
+  return (true);
+}
+
+/**
+ * @private
+ */
+function ecwTreeViewElementOnMouseOver(event) {
+  addClass(this, "ecwTreeViewLineOver");
+  return (true);
+}
+
+/**
+ * @private
+ */
+function ecwTreeViewElementOnMouseOut(event) {
+  removeClass(this, "ecwTreeViewLineOver");
+  return (true);
+}
+
+/**
+ * Actions de recherche du dernier element visible
+ * @private
+ */
+ECW.TreeView.prototype.getLastElementVisible = function(viewElement) {
+  var dernierElmVisible = viewElement;
+
+  if ((viewElement.ecwTreeType == "TreeView_list") && (viewElement.ecwTreeDisplay.style.display == "block")
+      && (viewElement.ecwTreeList.length > 0)) {
+    dernierElmVisible = this.getLastElementVisible(viewElement.ecwTreeList[viewElement.ecwTreeList.length - 1]);
+  }
+  return (dernierElmVisible);
+}
+
+/**
+ * Recherche de l'element visible suivant
+ * @private
+ */
+ECW.TreeView.prototype.getNextElementVisible = function(viewElement) {
+
+  var rIndexElement = viewElement.rIndex;
+  var rListElement = viewElement.ecwParentElm.ecwTreeList;
+
+  if ((this.elementActif == viewElement) && (viewElement.ecwTreeType == "TreeView_list") &&
+      (viewElement.ecwTreeDisplay.style.display == "block") && (viewElement.ecwTreeList.length > 0)) {
+    this.selectElement(viewElement.ecwTreeList[0]);
+  } else if (rListElement.length > rIndexElement) {
+    this.selectElement(rListElement[rIndexElement]);
+  } else if (viewElement.ecwParentElm == this) {
+    this.onKey("home");
+  } else {
+    this.getNextElementVisible(viewElement.ecwParentElm);
+  }
+}
+
+/**
+ * Recherche de l'element visible precedent
+ * @private
+ */
+ECW.TreeView.prototype.getPreviousElementVisible = function(viewElement) {
+
+  var rIndexElement = viewElement.rIndex;
+  var rListElement = viewElement.ecwParentElm.ecwTreeList;
+
+  if (rIndexElement > 1) {
+    var previousListElement = rListElement[rIndexElement - 2];
+    if ((previousListElement.ecwTreeType == "TreeView_list") &&
+        (previousListElement.ecwTreeDisplay.style.display == "block") &&
+        (previousListElement.ecwTreeList.length > 0)) {
+      this.selectElement(this.getLastElementVisible(previousListElement));
+    } else {
+      this.selectElement(previousListElement);
+    }
+  } else if (viewElement.ecwParentElm != this) {
+    this.selectElement(viewElement.ecwParentElm);
+  } else if (viewElement.ecwParentElm == this) {
+    this.onKey("end");
+  }
+}
+
+/**
+ * Recherche de la branche visible suivante
+ * @private
+ */
+ECW.TreeView.prototype.getNextBrancheVisible = function(viewElement) {
+
+  var rIndexElement = viewElement.rIndex;
+  var rListElement = viewElement.ecwParentElm.ecwTreeList;
+
+  if (rListElement.length > rIndexElement) {
+    var findBranche = false;
+    for (var indice = rIndexElement; (indice < rListElement.length) && (!findBranche); indice++) {
+      if (rListElement[indice].ecwTreeType == "TreeView_list") {
+        this.selectElement(rListElement[indice]);
+        findBranche = true;
+      }
+    }
+    if (!findBranche) {
+      if (viewElement.ecwParentElm != this) {
+        this.getNextBrancheVisible(viewElement.ecwParentElm);
+      } else if (this.ecwTreeList[0].ecwTreeType == "TreeView_list") {
+        this.onKey("home");
+      } else {
+        this.getNextBrancheVisible(this.ecwTreeList[0]);
+      }
+    }
+  } else if (viewElement.ecwParentElm == this) {
+    if (this.ecwTreeList[0].ecwTreeType == "TreeView_list") {
+      this.onKey("home");
+    } else {
+      this.getNextBrancheVisible(this.ecwTreeList[0]);
+    }
+  } else {
+    this.getNextBrancheVisible(viewElement.ecwParentElm);
+  }
+}
+
+/**
+ * Recherche de la branche visible precedente
+ * @private
+ */
+ECW.TreeView.prototype.getPreviousBrancheVisible = function(viewElement) {
+
+  var rIndexElement = viewElement.rIndex;
+  var rListElement = viewElement.ecwParentElm.ecwTreeList;
+
+  if (rIndexElement > 1) {
+    var findBranche = false;
+    for (var indice = rIndexElement - 2; (indice > 0) && (!findBranche); indice--) {
+      if (rListElement[indice].ecwTreeType == "TreeView_list") {
+        this.selectElement(rListElement[indice]);
+        findBranche = true;
+      }
+    }
+    if (!findBranche) {
+      if (viewElement.ecwParentElm != this) {
+        this.selectElement(viewElement.ecwParentElm);
+      } else if (this.ecwTreeList[this.ecwTreeList.length - 1].ecwTreeType == "TreeView_list") {
+        this.onKey("end");
+      } else {
+        this.getPreviousBrancheVisible(this.ecwTreeList[this.ecwTreeList.length - 1]);
+      }
+    }
+  } else if (viewElement.ecwParentElm == this) {
+    if (this.ecwTreeList[this.ecwTreeList.length - 1].ecwTreeType == "TreeView_list") {
+      this.onKey("end");
+    } else {
+      this.getPreviousBrancheVisible(this.ecwTreeList[this.ecwTreeList.length - 1]);
+    }
+  } else {
+    this.selectElement(viewElement.ecwParentElm);
+  }
+}
+
+/**
+ * Actions permettant de lancer l'action de l'element
+ * @private
+ */
+ECW.TreeView.prototype.lancerAction = function(viewElement) {
+  /* Evenement onExecute */
+  if (this.onExecute) {
+    var valueObj = this.buildValueObj(viewElement);
+    this.onExecute(valueObj);
+  }
+}
+
+/**
+ * Actions permettant de lancer l'action de l'element
+ * sur la selection (au clavier)
+ * @private
+ */
+ECW.TreeView.prototype.lancerActionKeySelect = function(viewElement) {
+  /* Evenement onKeySelect */
+  if (this.onKeySelect) {
+    var valueObj = this.buildValueObj(viewElement);
+    this.onKeySelect(valueObj);
+  }
+}
+
+/**
+ * Ex&eacute;cution de l'action du noeud s&eacute;lectionn&eacute;
+ * @param deploy (optionnel) specifie si l'execution entraine l'ouverture /
+ * la fermeture du noeud ou pas. Vaut <code>true</code> par defaut.
+ */
+ECW.TreeView.prototype.executeSelectedNode = function(deploy) {
+  this.setFocus();
+  // true est la valeur par defaut
+  if (null == deploy) {
+    deploy = true;
+  }
+  if (deploy) {
+    // On joue la cmde en asynchrone pour ne pas interferer sur la prise de focus eventuelle
+    var cmd = "var tree = document.getElementById('"+this.noeudDOM.id+"').ecwTreeView;";  
+    cmd += "tree.executeSelectedInTreeView(tree.ecwTreeDisplay, tree.ecwTreeList, tree);";
+    setTimeout(cmd,10);
+  } else {
+    this.lancerAction(this.elementActif);
+  }
+}
+
+/**
+ * Parcours de l'arbre et execution de l'action du noeud selectionne
+ * @private
+ */
+ECW.TreeView.prototype.executeSelectedInTreeView = function(ulElement, listTreeView, parentNode) {
+  var done = false;
+  /* Parcours des elements */
+  for (var indice = 0; !done && indice < listTreeView.length; indice++) {
+    
+    var currentElementDisplay = listTreeView[indice];
+    
+    /* Noeud enfant */
+    if (isClass(currentElementDisplay, "ecwTreeview_child")) {
+          
+      /* Noeud selectionne */
+      if (currentElementDisplay.ecwSelected == "true") {
+        this.selectElement(currentElementDisplay);
+        this.lancerAction(currentElementDisplay);
+        done = true;
+      }
+    }
+    /* Noeud parent */
+    else if (isClass(currentElementDisplay, "ecwTreeview_parent")) {
+          
+      /* Noeud selectionne */
+      if (currentElementDisplay.ecwSelected == "true") {
+        this.selectElement(currentElementDisplay);
+        this.activeBranche(currentElementDisplay);
+      }
+
+      /* Parcours recursif des branches */
+      done = this.executeSelectedInTreeView(currentElementDisplay.ecwTreeDisplay,
+        currentElementDisplay.ecwTreeList, currentElementDisplay);
+    }
+  }
+  return done;
+}
+
+/**
+ * Renvoie un tableau de valeurs selectionnees (non nulles).
+ * Si la selection n'est pas active sur cet arbre, renvoie <code>null</null>.
+ */
+ECW.TreeView.prototype.getAllKeyVal = function(keyName) {
+  var sel = null;
+  if (this.selection) {
+    var selection = null;
+    var n = this.selection.length;
+    for (var i = 0; i < n && null == selection; ++i) {
+      if (keyName == this.selection[i].name) {
+        selection = this.selection[i];
+      }
+    }
+    if (selection) {
+      sel = new Array();
+      var n = selection.length;
+      for (var i = 0; i < n; ++i) {
+        sel.push(selection.options[i].value);
+      }
+    }
+  }
+  return sel;
+}
+
+/**
+ * Construit un objet a partir du noeud selectionne.
+ * @private
+ */
+ECW.TreeView.prototype.buildValueObj = function(selectionElem) {
+  var obj = new Object();
+  var div = selectionElem.getElementsByTagName("DIV")[0];
+  obj["ecwLabel"] = div.innerHTML.trim();
+  if(this.selection){//A tester car il n'y a pas forcement de key sur le tree
+    var nValues = this.selection.length;
+    for (var i = 0; i < nValues; ++i) {
+      obj[this.selection[i].name] = selectionElem.ecwValue[i];
+    }
+  }
+  return obj;
+}
+
+/**
+ * Renvoie l'ID du Noeud selectionne
+ * Si la selection n'est pas active sur cet arbre, renvoie <code>null</null>.
+ */
+ECW.TreeView.prototype.getIdSelectedNode = function() {
+  var valId = null;
+  if (this.selection) {
+  	valId =  this.elementActif.parentNode.getAttribute("ecwid");  		
+  }
+  return valId;
+}
+
+/**
+ * Renvoie un tableau de tableaux [label, valeur0, valeur1, ...] selectionnes.
+ * Si la selection n'est pas active sur cet arbre, renvoie <code>null</null>.
+ */
+ECW.TreeView.prototype.getSelectedNodes = function() {
+  var sel = null;
+  if (this.selection) {
+    sel = new Array();
+    var nSelected = this.selectionElem.length;
+    for (var i = 0; i < nSelected; ++i) {
+      sel[i] = this.buildValueObj(this.selectionElem[i]);
+    }
+  }
+  return sel;
+}
+
+/**
+ * Gestion du onclick d'une action de type Icone.
+ * @param {Object} div Icone action concerne.
+ */
+function ecwTreeViewCallClickAction(div) {
+  window.ecwTreeViewAction = null;
+  window.ecwTreeViewAction = div.getAttribute("ecwonclick");
+}

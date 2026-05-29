@@ -1,1 +1,0 @@
-✅ Data matched for column 'Single Description EN (Feature Value)': Expected Application Data: 'en111', Found from Excel: 'en111'

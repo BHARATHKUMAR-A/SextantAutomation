@@ -1,0 +1,1485 @@
+/**
+ * @fileoverview D&eacute;fini l'objet <b>ECW.Layout</b> (&eacute;cran, ihm)
+ * @author u218179
+ * @version $Revision: 1.35 $
+ */
+
+/**
+ * D&eacute;fini l'objet <b>ECW.Layout</b>
+ * @param noeud Noeud DOM du Layout
+ * @param ui Objet ECW.UI d'appartenance
+ * @param idLayout Identifiant du layout (0-N)
+ * @private
+ */
+ECW.Layout = function(noeud, ui, idLayout) {
+
+  ecwStartTimer("ECW.Layout");
+
+  ecwSetAttribute(this, "noeudDOM", noeud);
+  ecwSetAttribute(this, "ecwUI", ui);
+  ecwSetAttribute(this, "idLayout", idLayout);
+
+  ecwSetAttribute(this, "listeDivEcwTable", new Array);
+  ecwSetAttribute(this, "listeDivEcwTableV2", new Array);
+  ecwSetAttribute(this, "listeDivEcwDoubleTableV2", new Array);
+  ecwSetAttribute(this, "listeDivEcwComboBox", new Array);
+  ecwSetAttribute(this, "listeDivEcwComboBoxAutoSelect", new Array);
+  ecwSetAttribute(this, "listeDivEcwTabFolder", new Array);
+  ecwSetAttribute(this, "listeDivEcwCalendar", new Array);
+  ecwSetAttribute(this, "listeDivEcwTreeViewOld", new Array);  
+  ecwSetAttribute(this, "listeDivEcwTreeView", new Array);
+  ecwSetAttribute(this, "listeDivEcwMenu", new Array);
+  ecwSetAttribute(this, "listeDivEcwTimeField", new Array);
+  ecwSetAttribute(this, "listeDivEcwGrid", new Array);
+  ecwSetAttribute(this, "listeDivEcwContainer", new Array);
+  ecwSetAttribute(this, "listeDivRemoteInputArea", new Array);
+
+  ecwSetAttribute(this, "control", new Array);
+  ecwSetAttribute(this, "listeEcwControl", new Array);
+
+  ecwSetAttribute(this, "firstInputHidden", null);
+  ecwSetAttribute(this, "lastInputHidden", null);
+  ecwSetAttribute(this, "firstControl", null);
+  ecwSetAttribute(this, "lastControl", null);
+  ecwSetAttribute(this, "firstControlTabindex", null);
+  ecwSetAttribute(this, "lastControlTabindex", null);
+
+  ecwSetAttribute(noeud, "ecwLayout", this);
+
+  this.constructeur();
+
+  ecwStopTimer("ECW.Layout");
+}
+
+/**
+ * Noeud du DOM (container)
+ * @private
+ */
+ECW.Layout.prototype.noeudDOM = null;
+
+/**
+ * Objet ECW.UI d'appartenance
+ * @private
+ */
+ECW.Layout.prototype.ecwUI = null;
+
+/**
+ * Tableau de DIV ecwTable
+ * @private
+ */
+ECW.Layout.prototype.listeDivEcwTable = null;
+
+/**
+ * Tableau de DIV ecwTableV2
+ * @private
+ */
+ECW.Layout.prototype.listeDivEcwTableV2 = null;
+
+/**
+ * Tableau de DIV ecwDoubleTableV2
+ * @private
+ */
+ECW.Layout.prototype.listeDivEcwDoubleTableV2 = null;
+
+/**
+ * Tableau de DIV ecwComboBox
+ * @private
+ */
+ECW.Layout.prototype.listeDivEcwComboBox = null;
+
+/**
+ * Tableau de DIV ecwTabFolder
+ * @private
+ */
+ECW.Layout.prototype.listeDivEcwTabFolder = null;
+
+/**
+ * Tableau de DIV ecwCalendar
+ * @private
+ */
+ECW.Layout.prototype.listeDivEcwCalendar = null;
+
+
+/**
+ * Tableau de DIV ecwTreeViewOld
+ * @private
+ */
+ECW.Layout.prototype.listeDivEcwTreeViewOld = null;
+
+/**
+ * Tableau de DIV ecwTreeView
+ * @private
+ */
+ECW.Layout.prototype.listeDivEcwTreeView = null;
+
+/**
+ * Tableau de DIV ecwMenu
+ * @private
+ */
+ECW.Layout.prototype.listeDivEcwMenu = null;
+
+/**
+ * Tableau de DIV ecwTimeField
+ * @private
+ */
+ECW.Layout.prototype.listeDivEcwTimeField = null;
+
+/**
+ * Tableau de DIV ecwGrid
+ * @private
+ */
+ECW.Layout.prototype.listeDivEcwGrid = null;
+
+/**
+ * Tableau de DIV ecwContainer
+ * @private
+ */
+ECW.Layout.prototype.listeDivEcwContainer = null;
+
+/**
+ * Tableau de DIV remoteInputArea
+ * @private
+ */
+ECW.Layout.prototype.listeDivRemoteInputArea = null;
+
+/**
+ * Liste des champs sur lequel l'utilisateur veut donner le focus
+ * @private
+ */
+ECW.Layout.prototype.control = null;
+
+/**
+ * Tableau d'objets pouvant recevoir le focus (ECW.Control)
+ * @private
+ */
+ECW.Layout.prototype.listeEcwControl = null;
+
+/**
+ * Premier champ cache de la div (utilise pour la bouclage)
+ * @private
+ */
+ECW.Layout.prototype.firstInputHidden = null;
+
+/**
+ * Dernier champ cache de la div (utilise pour la bouclage)
+ * @private
+ */
+ECW.Layout.prototype.lastInputHidden = null;
+
+/**
+ * Premier objet du DOM (visible dans le layout) pouvant recevoir le focus
+ * @private
+ */
+ECW.Layout.prototype.firstControl = null;
+
+/**
+ * Dernier objet du DOM (visible dans le layout) pouvant recevoir le focus
+ * @private
+ */
+ECW.Layout.prototype.lastControl = null;
+
+/**
+ * Premier champ input contenant un attribut TabIndex
+ * @private
+ */
+ECW.Layout.prototype.firstControlTabindex = null;
+
+/**
+ * Dernier champ input contenant un attribut TabIndex
+ * @private
+ */
+ECW.Layout.prototype.lastControlTabindex = null;
+
+
+/**
+ * Constructeur de ECW.Layout
+ * @private
+ */
+ECW.Layout.prototype.constructeur = function() {
+
+  /* Detection des composants ECW de type DIV */
+  this.detectAllEcwDivComponent();
+
+  /* Creation des composants ECW de type DIV */
+  this.createAllEcwDivComponent();
+
+  /* Creation des composants ECW.Control */
+  this.createAllEcwControl();
+
+  /* Creation des composants ECW de type Grid */
+  this.createAllEcwGrid();
+
+  /* Relie les balises <label> */
+  this.createLinkAllLabel();
+
+  /* Creation des elements caches necessaires au bouclage */
+  this.createInputHiddenForLoop();
+
+  /* Associe a chaque ecwControl sa zone de saisie lorsqu'elle est definie. */
+  this.linkRemoteInputAreaEcwControl();
+
+  /* Recherche du premier et du dernier champ (chacun doit etre visible et accessible) */
+  this.searchFirstAndLastInput();
+
+  /* Active ou non le bouclage entre premier et dernier champ (qui peuvent recevoir un focus) */
+  this.computeLoop();
+
+  /* Initialisation des balises <select> de la table et positionnement des filtres sur une table */
+  this.initSelectTableAndSetFilterTable();
+
+  /* Initialisation des balises <select> de la tableV2 et positionnement des filtres sur une tableV2 */
+  this.initSelectTableV2AndSetFilterTableV2();
+
+ /* Dimensionnement des onglets */
+  this.setSizeAllTabFolder();
+  
+  /* Traitement du mode auto-select des ComboBox */
+  this.processComboBoxAutoSelect();
+  
+  /* Set la date de mise a jours de la page */
+  this.setCurrentDate();
+}
+
+/**
+ * Prise en compte d'un nouveau contenu HTML
+ */
+ECW.Layout.prototype.refresh = function(htmlLayout) {
+  var newDivLayout = document.createElement("DIV");
+  newDivLayout.innerHTML = htmlLayout;
+  this.refreshDIV(newDivLayout);
+}
+
+/**
+ * Prise en compte d'un nouveau contenu HTML pour un noeud
+ */
+ECW.Layout.prototype.refreshNode = function(nodeToRefresh, html) {
+
+  if (this.ecwUI.ecwAccessKey) {
+    this.ecwUI.ecwAccessKey.removeAccessKey(nodeToRefresh);
+  }
+
+  for (var i = nodeToRefresh.childNodes.length - 1; i >= 0; i--) {
+    nodeToRefresh.removeChild(nodeToRefresh.childNodes[i]);
+  }
+  nodeToRefresh.innerHTML = html;
+  this.update();
+  ecwEvalScript(nodeToRefresh);
+}
+
+/**
+ * Prise en compte d'un nouveau contenu HTML
+ * @private
+ */
+ECW.Layout.prototype.refreshDIV = function(newDivLayout) {
+
+  if (this.ecwUI.ecwAccessKey) {
+    this.ecwUI.ecwAccessKey.removeAccessKey(this.noeudDOM);
+  }
+
+  /* Suppression de tous les noeuds enfants de <DIV class="ecwLayout"> */
+  for (var i = this.noeudDOM.childNodes.length - 1; i >= 0; i--) {
+    this.noeudDOM.removeChild(this.noeudDOM.childNodes[i]);
+  }
+
+  /* Contenu du Layout */
+  this.noeudDOM.appendChild(newDivLayout);
+
+  /* Construction du Layout */
+  this.init();
+
+  ecwEvalScript(newDivLayout);
+}
+
+/**
+ * Prise en compte de nouveaux composants dans ECW.UI.
+ */
+ECW.Layout.prototype.update = function() {
+  this.noeudDOM.removeChild(this.lastInputHidden);
+  this.noeudDOM.removeChild(this.firstInputHidden);
+  this.init();
+}
+
+ECW.Layout.prototype.init = function() {
+
+  /* Init des listes d'objets */
+  ecwSetAttribute(this, "listeDivEcwTable", new Array);
+  ecwSetAttribute(this, "listeDivEcwTableV2", new Array);
+  ecwSetAttribute(this, "listeDivEcwDoubleTableV2", new Array);
+  ecwSetAttribute(this, "listeDivEcwComboBox", new Array);
+  ecwSetAttribute(this, "listeDivEcwComboBoxAutoSelect", new Array);
+  ecwSetAttribute(this, "listeDivEcwTabFolder", new Array);
+  ecwSetAttribute(this, "listeDivEcwCalendar", new Array);
+  ecwSetAttribute(this, "listeDivEcwTreeViewOld", new Array);  
+  ecwSetAttribute(this, "listeDivEcwTreeView", new Array);
+  ecwSetAttribute(this, "listeDivEcwMenu", new Array);
+  ecwSetAttribute(this, "listeDivEcwTimeField", new Array);
+  ecwSetAttribute(this, "listeDivEcwGrid", new Array);
+  ecwSetAttribute(this, "listeDivEcwContainer", new Array);
+  ecwSetAttribute(this, "listeDivRemoteInputArea", new Array);
+
+  ecwSetAttribute(this, "control", new Array);
+  ecwSetAttribute(this, "listeEcwControl", new Array);
+
+  ecwSetAttribute(this, "firstInputHidden", null);
+  ecwSetAttribute(this, "lastInputHidden", null);
+  ecwSetAttribute(this, "firstControl", null);
+  ecwSetAttribute(this, "lastControl", null);
+  ecwSetAttribute(this, "firstControlTabindex", null);
+  ecwSetAttribute(this, "lastControlTabindex", null);
+
+  /* Construction du Layout */
+  this.constructeur();
+  
+  if (this.ecwUI.ecwAccessKey) {
+    this.ecwUI.ecwAccessKey.refresh();
+  }
+}
+
+/**
+ * Set la date sur la span de class ecwCurrentDate
+ * @private
+ */
+ECW.Layout.prototype.setCurrentDate = function() {
+  var noeuds = this.noeudDOM.getElementsByTagName("span");
+  if(noeuds){
+    var currentDate = ecwGetCurrentDate();
+    for(var i = 0 ; i < noeuds.length ; ++i){
+      if(isClass(noeuds[i], "ecwCurrentDate")){
+        noeuds[i].innerHTML = currentDate;
+      }
+    }
+  }
+}
+
+/**
+ * Detecte les composants ECW de type DIV
+ * @private
+ */
+ECW.Layout.prototype.detectAllEcwDivComponent = function() {
+
+  var nbInterdits = 0;
+  var allDiv = this.noeudDOM.getElementsByTagName("DIV");
+  var div;
+  var nbDiv = allDiv.length;
+  for (var i = 0; i < nbDiv; ++i) {
+    div = allDiv[i];
+    divClass = div.className;
+    /* Table */
+    if ((divClass == "ecwTable") || (divClass == "ecwTableV2")) {
+      /* Pour des pb de mise en page, */
+      /* on autorise que les champs input, select et button dans les champs de saisies des tables */
+      nbInterdits = 0;
+      var allTable = div.getElementsByTagName("DIV");
+      for (var k = 0; k < allTable.length; k++) {
+        if ((allTable[k].className.indexOf("ecwComboBox") != -1) ||
+            (allTable[k].className.indexOf("ecwCalendar") != -1)) {
+          nbInterdits = 1;
+        }
+      }
+      if (nbInterdits == 1) {
+        alert("ecwCombo et ecwCalendar interdits dans les ecwTable ....");
+      }
+      var aDiv = div.getElementsByTagName("A");
+      if (aDiv && aDiv.length > 0) {
+        //alert("Balises <A interdites dans les ecwTable , prendre <Button....");
+        //nbInterdits = 2; 
+      }
+      if (nbInterdits == 0) {
+        if (divClass == "ecwTable") {
+          this.listeDivEcwTable[this.listeDivEcwTable.length] = div;
+        } else if (divClass == "ecwTableV2") {
+          this.listeDivEcwTableV2[this.listeDivEcwTableV2.length] = div;
+        }
+      }
+    }
+    /* Double Table V2 */
+    else if (divClass == "ecwDoubleTableV2") {
+      this.listeDivEcwDoubleTableV2[this.listeDivEcwDoubleTableV2.length] = div;
+    }
+    /* Onglet */
+    else if (divClass == "ecwTabFolder") {
+      this.listeDivEcwTabFolder[this.listeDivEcwTabFolder.length] = div;
+    }
+    /* Calendrier */
+    else if (divClass == "ecwCalendar") {
+      this.listeDivEcwCalendar[this.listeDivEcwCalendar.length] = div;
+    }
+    /* Groupe de boutons */
+    else if (divClass == "ecwButtonGroup") {
+      if (!div.ecwButtonGroup) {
+        div.ecwButtonGroup = new ECW.ButtonGroup(div, this.ecwUI);
+      }
+    }
+    /* TreeView Old */
+    else if (divClass == "ecwTreeViewOld") {
+      this.listeDivEcwTreeViewOld[this.listeDivEcwTreeViewOld.length] = div;
+    }
+    /* TreeView */
+    else if (divClass == "ecwTreeView") {
+      this.listeDivEcwTreeView[this.listeDivEcwTreeView.length] = div;
+    }
+    /* Menu */
+    else if (divClass == "ecwMenu") {
+      this.listeDivEcwMenu[this.listeDivEcwMenu.length] = div;
+    }
+    /* Champ heure */
+    else if (divClass == "ecwTimeField") {
+      this.listeDivEcwTimeField[this.listeDivEcwTimeField.length] = div;
+    /* Grid */
+    }else if (divClass == "ecwGrid") {
+      this.listeDivEcwGrid[this.listeDivEcwGrid.length] = div;
+    /* Container */
+    }else if (divClass == "ecwContainer") {
+      this.listeDivEcwContainer[this.listeDivEcwContainer.length] = div;
+    /* RemoteInputArea */
+    }else if (divClass == "ecwRemoteInputArea") {
+      this.listeDivRemoteInputArea[this.listeDivRemoteInputArea.length] = div;
+    }
+  }
+}
+
+/**
+ * Construit les composants ECW de type DIV
+ * @private
+ */
+ECW.Layout.prototype.createAllEcwDivComponent = function() {
+
+  /* Parcours des tables */
+  for (var k = 0; k < this.listeDivEcwTable.length; k++) {
+    var noeudDOM = this.listeDivEcwTable[k];
+    if (!noeudDOM.ecwTable) {
+      ecwSetAttribute(noeudDOM, "ecwTable", new ECW.Table(noeudDOM, this.ecwUI, this));
+    }
+  }
+  /* Parcours des tables V2 */
+  for (var k = 0; k < this.listeDivEcwTableV2.length; k++) {
+    var noeudDOM = this.listeDivEcwTableV2[k];
+    if (!noeudDOM.ecwTable) {
+      ecwSetAttribute(noeudDOM, "ecwTable", new ECW.TableV2(noeudDOM, this.ecwUI, this));      
+    }
+  }
+  /* Parcours des doubles tables V2 */
+  for (var k = 0; k < this.listeDivEcwDoubleTableV2.length; k++) {
+    var noeudDOM = this.listeDivEcwDoubleTableV2[k];
+    if (!noeudDOM.ecwDoubleTable) {
+      ecwSetAttribute(noeudDOM, "ecwDoubleTable", new ECW.DoubleTableV2(noeudDOM, this.ecwUI, this));
+    }
+  }
+  /* Parcours des onglets */
+  for (var k = 0; k < this.listeDivEcwTabFolder.length; k++) {
+    var noeudDOM = this.listeDivEcwTabFolder[k];
+    if (!noeudDOM.ecwTabFolder) {
+      ecwSetAttribute(noeudDOM, "ecwTabFolder", new ECW.TabFolder(noeudDOM, this.ecwUI));
+    }
+  }
+  /* Parcours des calendriers */
+  for (var k = 0; k < this.listeDivEcwCalendar.length; k++) {
+    var noeudDOM = this.listeDivEcwCalendar[k];
+    if (!noeudDOM.ecwCalendar) {
+      ecwSetAttribute(noeudDOM, "ecwCalendar", new ECW.Calendar(noeudDOM, this.ecwUI, this));
+    }
+  }
+  /* Parcours des treeViews Old */
+  for (var k = 0; k < this.listeDivEcwTreeViewOld.length; k++) {
+    var noeudDOM = this.listeDivEcwTreeViewOld[k];
+    if (!noeudDOM.ecwTreeView) {
+      ecwSetAttribute(noeudDOM, "ecwTreeView", new ECW.TreeViewOld(noeudDOM, this.ecwUI));
+    }
+  }
+  /* Parcours des treeViews */
+  for (var k = 0; k < this.listeDivEcwTreeView.length; k++) {
+    var noeudDOM = this.listeDivEcwTreeView[k];
+    if (!noeudDOM.ecwTreeView) {
+      ecwSetAttribute(noeudDOM, "ecwTreeView", new ECW.TreeView(noeudDOM, this.ecwUI));
+    }
+  }
+  /* Parcours des menus */
+  for (var k = 0; k < this.listeDivEcwMenu.length; k++) {
+    var noeudDOM = this.listeDivEcwMenu[k];
+    if (!noeudDOM.ecwMenu) {
+      ecwSetAttribute(noeudDOM, "ecwMenu", new ECW.Menu(noeudDOM, this.ecwUI, this));
+    }
+    var nomMenu = noeudDOM.ecwMenu.noeudDOM.id;
+    /* pour chaque menu si je n'ai pas d'item il faut desactiver le bouton correspondant */      
+    if (noeudDOM.ecwMenu.allMenuItem && noeudDOM.ecwMenu.allMenuItem.length == 0) {
+      var btn = this.noeudDOM.getElementsByTagName("BUTTON");
+      var btnFound = false;
+      for (var indice = 0; indice< btn.length && !btnFound; indice++) {
+        var idMenuBouton = btn[indice].getAttribute("ecwidmenu");
+        if (idMenuBouton && nomMenu == idMenuBouton) {
+          btn[indice].style.display = "none";
+          btnFound = true;
+        }
+      }
+    }
+  }
+  /* Parcours des champs heure */
+  for (var k = 0; k < this.listeDivEcwTimeField.length; k++) {
+    var noeudDOM = this.listeDivEcwTimeField[k];
+    if (!noeudDOM.ecwTimeField) {
+      ecwSetAttribute(noeudDOM, "ecwTimeField", new ECW.TimeField(noeudDOM));
+    }
+  }
+  /* Parcours des container */
+  for (var k = 0; k < this.listeDivEcwContainer.length; k++) {
+    var noeudDOM = this.listeDivEcwContainer[k];
+    if (!noeudDOM.ecwContainer) {
+      ecwSetAttribute(noeudDOM, "ecwContainer", new ECW.Container(noeudDOM, this));
+    }
+  }
+}
+
+/**
+ * Construit les composants ECW de type Grid
+ * @private
+ */
+ECW.Layout.prototype.createAllEcwGrid = function() {
+
+  /* Parcours des grid */
+  for (var k = 0; k < this.listeDivEcwGrid.length; k++) {
+    var noeudDOM = this.listeDivEcwGrid[k];
+    if (!noeudDOM.ecwGrid) {
+      ecwSetAttribute(noeudDOM, "ecwGrid", new ECW.Grid(noeudDOM, this));
+    }
+  }
+}
+
+/**
+ * Creation des composants ECW.Control
+ * @private
+ */
+ECW.Layout.prototype.createAllEcwControl = function() {
+
+  /* Creation de champs input provisoires pour les controles autre que les INPUT */
+  this.addProvisoiresInputHidden("A");
+  this.addProvisoiresInputHidden("BUTTON");
+  this.addProvisoiresInputHidden("TEXTAREA");
+  this.addProvisoiresInputHidden("SELECT");
+
+  /* Creation d'un tableau (listeNode) des noeuds a prendre en compte */
+  /* avec application du style pour les champs Disabled */
+  /* on utilise un tableau intermediaire pour pouvoir enrichir le DOM a l'aide */
+  /* de insertBefore notamment */
+  var listeNode = new Array;
+  
+  /* Ajout des champs INPUT du document (y compris les champs input provisoires) */
+  var allNodes = this.noeudDOM.getElementsByTagName("INPUT");
+  var node;
+
+  /* Parcours de tous les noeuds */
+  for (var i = 0; i < allNodes.length; ++i) {
+    node = allNodes[i];
+    /* On prend en compte TOUS les champs SAUF ceux qui sont CACHES */
+    if (node.type != "hidden") {
+ 
+     /* Ajout du noeud dans le tableau */
+      listeNode[listeNode.length] = node;
+      
+      /* Pour les champs disabled */
+      if (node.disabled) {
+        addClass(node, node.nodeName + "_Disabled");
+      }
+      
+    } else {
+    
+      /* Champ HIDDEN mais provisoire */
+      if (node.className == "provisoires") {
+
+        /* Ajout du noeud parent dans le tableau */
+        listeNode[listeNode.length] = node.parentNode;
+
+        /* ParentNode disabled */
+        if (node.parentNode.disabled) {
+          addClass(node.parentNode, node.parentNode.nodeName + "_Disabled");
+        }
+      }
+    }
+  }
+
+  /* Suppression des champ input provisoires */
+  this.removeProvisoiresInputHidden();
+
+  /* Construction des champs a partir du tableau intermediaire */
+  for (var i = 0; i < listeNode.length; ++i) {
+    this.addEcwControl(listeNode[i]);
+  }
+}
+
+/**
+ * Associe a chaque ecwControl sa zone de saisie lorsqu'elle est definie.
+ * @private
+ */
+ECW.Layout.prototype.linkRemoteInputAreaEcwControl = function() {
+
+  for (var i = 0; i < this.listeDivRemoteInputArea.length; i++) {
+    var div = this.listeDivRemoteInputArea[i];
+    var inputs = div.getElementsByTagName("INPUT");
+    for (var j = 0 ; j < inputs.length; j++) {
+      if (inputs[j].ecwControl) {
+        inputs[j].ecwControl.remoteInputArea = div;
+      }
+    }
+  }
+}
+
+/**
+ * Ajout d'un champ INPUT provisoire pour la balise specifie
+ * @private
+ */
+ECW.Layout.prototype.addProvisoiresInputHidden = function(tagName) {
+  var allNodes = this.noeudDOM.getElementsByTagName(tagName);
+  for (var i = 0; i < allNodes.length; i++) {
+    if(!allNodes[i].ecwGrid){
+      var specialInputHidden = document.createElement("INPUT");
+      specialInputHidden.type = "hidden";
+      specialInputHidden.className = "provisoires";
+      allNodes[i].appendChild(specialInputHidden);
+    }
+  }
+}
+
+/**
+ * Suppression de tous les champs INPUT provisoires
+ * @private
+ */
+ECW.Layout.prototype.removeProvisoiresInputHidden = function() {
+  var allNodes = this.noeudDOM.getElementsByTagName("INPUT");
+  var lenghtNodes = allNodes.length;
+  var numNode = 0;
+  for (var i = 0; i < lenghtNodes; i++) {
+    if (allNodes[numNode].type == "hidden" && allNodes[numNode].className == "provisoires") {
+      allNodes[numNode].parentNode.removeChild(allNodes[numNode]);
+    } else {
+      numNode++;
+    }
+  }
+}
+
+/**
+ * Creation d'un objet ECW.Control a partir de son noeud DOM
+ * @private
+ */
+ECW.Layout.prototype.addEcwControl = function(noeud) {
+
+  var champ = noeud.ecwControl;
+  if (!champ) {
+
+    champ = new ECW.Control(noeud, this);
+
+    /* Dans le cas d'une comboBox */
+    /* Si le parent est une ComboBox et le champ est visible */
+    if (champ.noeudDOM.parentNode.className.indexOf("ecwComboBox") >= 0 &&
+        champ.noeudDOM.className.indexOf("ecwInvisible") < 0) {
+      var listeCombo = champ.noeudDOM.parentNode.getElementsByTagName("DIV");
+      if (listeCombo != null && listeCombo.length > 0) {
+        comboBox = new ECW.ComboBox(champ.noeudDOM.parentNode, this.ecwUI, this, champ, listeCombo[0].ecwTable);
+        ecwSetAttribute(champ.noeudDOM.parentNode, "ecwComboBox", comboBox);
+        ecwSetAttribute(champ, "ecwComboBox", comboBox);
+        this.listeDivEcwComboBox[this.listeDivEcwComboBox.length] = comboBox;
+        if (comboBox.autoSelect) {
+          this.listeDivEcwComboBoxAutoSelect[this.listeDivEcwComboBoxAutoSelect.length] = comboBox;
+        } 
+      }
+    }
+    /* Pour donner le focus au champ definis par le javascript de l'utilisateur */
+    if (champ.noeudDOM.id) {
+      var idControl = champ.noeudDOM.id;
+      this.control[idControl] = function() {};
+      this.control[idControl].setFocus = function() {
+        champ.setFocus();
+      }
+    }
+  }
+
+  this.listeEcwControl[this.listeEcwControl.length] = champ;
+  champ.index = this.listeEcwControl.length - 1;
+}
+
+/**
+ * Relie les balises <label>
+ * @private
+ */
+ECW.Layout.prototype.createLinkAllLabel = function() {
+
+  /* Creation du lien entre les champs et d'eventuel LABEL */
+  var labels = this.noeudDOM.getElementsByTagName("LABEL");
+  for (var i = 0; i < labels.length; i++) {
+    addClass(labels[i], "ecwLabel");
+    var elt = null;
+    if (labels[i].htmlFor) {
+      elt = document.getElementById(labels[i].htmlFor);
+      
+      if (elt == null) {
+        var msgError = "Erreur ECW : une balise <label> reference dans son attribut for";
+        msgError += "\nun identifiant inconnu : id = [" + labels[i].htmlFor + "]";
+        alert(msgError);
+        return;
+      }
+
+      var suffixeTable = "";       
+      /* Pose du lien entre le label et une table */
+      if ((elt.className.toUpperCase() == "ECWTABLE")) {
+        suffixeTable = "_EcwTable"
+        elt.input.id = labels[i].htmlFor + suffixeTable;
+        labels[i].htmlFor += suffixeTable;
+      }
+      if ((elt.className.toUpperCase() == "ECWTABLEV2")) {
+        suffixeTable = "_EcwTableV2"
+        elt.input.id = labels[i].htmlFor + suffixeTable;
+        labels[i].htmlFor += suffixeTable;
+      }
+      /* Pose du lien entre le label et un champ de saisie */
+      if (elt.ecwControl) {
+        if (labels[i]) {
+          /* si le label n'est pas un picto on l'ajoute au control */
+          if (!labels[i].getAttribute("ecwPattern")) {
+            elt.ecwControl.ecwLabel = labels[i];
+          }
+        }
+      }
+
+      /* Evenement onmouseover du LABEL */
+      labels[i].onmouseover = function() {
+        if (window.isClass) {
+          /* On evite la mise en evidence d'un champ si c'est un picto */
+          if (!window.isClass(this, "ecwLabelEmpty")) {
+            if (window.addClass) {
+              window.addClass(this, "ecwControlOver");
+            }
+          }
+        }
+      }
+
+      /* Evenement onmouseout du LABEL */
+      labels[i].onmouseout = function() {
+        if (window.removeClass) {
+          window.removeClass(this, "ecwControlOver");
+        }
+      }
+
+      /* Gestion des required */
+      if (isClass(labels[i], "ecwRequired") && elt) {
+        this.ecwUI.addRequired(elt.id);
+      }
+
+      /* Gestion des patterns */
+      if (labels[i].getAttribute("ecwPattern") && elt) {
+        this.ecwUI.addValidator(elt.id, labels[i].getAttribute("ecwPattern"));
+        elt.ecwControl.insertSpan(labels[i]);
+      }
+    }
+  }
+}
+
+/**
+ * Creation des elements caches necessaires au bouclage
+ * @private
+ */
+ECW.Layout.prototype.createInputHiddenForLoop = function() {
+
+  /* Creation dernier champ invisible pour retour au premier */
+  ecwSetAttribute(this, "lastInputHidden", document.createElement("INPUT"));
+  this.lastInputHidden.className = "ecwInvisible";
+  this.lastInputHidden.setAttribute("autocomplete", "off");
+  this.lastInputHidden.ecwLayout = this;
+
+  /* Ajout du champ invisible en dernier */
+  this.noeudDOM.appendChild(this.lastInputHidden);
+
+  /* Creation premier champ invisible pour aller au dernier */
+  ecwSetAttribute(this, "firstInputHidden", document.createElement("INPUT"));
+  this.firstInputHidden.className = "ecwInvisible";
+  this.firstInputHidden.setAttribute("autocomplete", "off");
+  this.firstInputHidden.ecwLayout = this;
+
+  /* Insertion du champ invisible avant le premier champ 'INPUT' */
+  this.noeudDOM.insertBefore(this.firstInputHidden, this.noeudDOM.firstChild);
+}
+
+/**
+ * Recherche du premier et du dernier champ (chacun doit etre visible et accessible)
+ * @private
+ */
+ECW.Layout.prototype.searchFirstAndLastInput = function() {
+  this.firstControl = this.getFirstVisibleAndEnable();
+  this.lastControl = this.getLastVisibleAndEnable();
+}
+
+/**
+ * Recherche le 1er champ visible et enable du formulaire
+ * @private
+ */
+ECW.Layout.prototype.getFirstVisibleAndEnable = function() {
+
+  /* Recherche le champ visible et enable suivant */
+  var i = 0;
+  if (i < this.listeEcwControl.length) {
+    while ((!this.listeEcwControl[i].isVisible(true) 
+        || !this.listeEcwControl[i].isEnable()) && i < this.listeEcwControl.length - 1) {
+      i++;
+    }
+  }
+  if (i < this.listeEcwControl.length) {
+    if (this.listeEcwControl[i].isVisible(true) && this.listeEcwControl[i].isEnable()) {
+      return this.listeEcwControl[i];
+    }
+  }
+}
+
+/**
+ * Recherche le dernier champ visible et enable du formulaire
+ * @private
+ */
+ECW.Layout.prototype.getLastVisibleAndEnable = function() {
+
+  /* Recherche le champ visible et enable precedent */
+  var i = this.listeEcwControl.length - 1;
+  if (i >= 0) {
+    while (i > 0 && (!this.listeEcwControl[i].isVisible(true) || !this.listeEcwControl[i].isEnable())) {
+      i--;
+    }
+  }
+  if (i >= 0) {
+    if (this.listeEcwControl[i].isVisible(true) && this.listeEcwControl[i].isEnable()) {
+      return this.listeEcwControl[i];
+    }
+  }
+}
+
+/**
+ * Active ou non le bouclage entre premier et dernier champ (qui peuvent recevoir un focus)
+ * @private
+ */
+ECW.Layout.prototype.computeLoop = function() {
+
+  /* Bouclage s'il existe un premier et dernier champ visible accessible  */
+  if (this.firstControl && this.lastControl) {
+
+    var msgFirstLast = "first = " + this.firstControl.noeudDOM.id;
+    msgFirstLast += " - " + this.firstControl.noeudDOM.nodeName;
+    msgFirstLast += "\nlast = " + this.lastControl.noeudDOM.id;
+    msgFirstLast += " - " + this.lastControl.noeudDOM.nodeName;
+
+    /* Activation du bouclage */
+    this.activateLoop();
+  }
+}
+
+/**
+ * Activation du bouclage
+ * @private
+ */
+ECW.Layout.prototype.activateLoop = function() {
+
+  /* Dernier champ cache -> focus sur le premier champ visible et accessible */
+  this.lastInputHidden.onfocus = function() {
+    /* S'il existe un premier champ visible et accessible */
+    var firstExist = this.ecwLayout.getFirstVisibleAndEnable();
+    if (firstExist) {
+      firstExist.setFocus();
+    }
+  }
+
+  /* Premier champ cache -> focus sur le dernier champ visible et accessible */
+  this.firstInputHidden.onfocus = function() {
+    /* S'il existe un dernier champ visible et accessible */
+    var lastExist = this.ecwLayout.getLastVisibleAndEnable()
+    if (lastExist) {
+      lastExist.setFocus();
+    }
+  }
+
+  /* Mode de defilement des zones de saisie avec tabIndex ou non */
+  this.lastControlTabindex = this.listeEcwControl[0];
+  for (var i = 0; i < this.listeEcwControl.length; i++) {
+    if (this.listeEcwControl[i].noeudDOM.attributes && this.listeEcwControl[i].noeudDOM.attributes.tabindex) {
+      if ((!this.firstControlTabindex) || (this.firstControlTabindex &&
+        this.listeEcwControl[i].noeudDOM.attributes.tabindex.nodeValue <
+        this.firstControlTabindex.noeudDOM.attributes.tabindex.nodeValue)) {
+        this.firstControlTabindex = this.listeEcwControl[i];
+      }
+      if ((this.lastControlTabindex) && (this.listeEcwControl[i].noeudDOM.attributes.tabindex.nodeValue >
+        this.lastControlTabindex.noeudDOM.attributes.tabindex.nodeValue)) {
+        this.lastControlTabindex = this.listeEcwControl[i];
+        this.lastInputHidden.tabIndex = "32767";
+      }
+      this.firstInputHidden.tabIndex = "1";
+    } else {
+      this.lastControlTabindex = null;
+      this.lastInputHidden.tabIndex = null;
+    }
+  }
+}
+
+/**
+ * Dimensionnement final des onglets
+ * @private
+ */
+ECW.Layout.prototype.setSizeAllTabFolder = function() {
+
+  for (var i = 0; i < this.listeDivEcwTabFolder.length; i++) {
+  	var currentTab = this.listeDivEcwTabFolder[i];
+  	//Il faut forcer un redimensionnement des onglets en priorite
+  	currentTab.ecwTabFolder.refreshTabFolderSize();
+ 	
+	currentTab.ecwTabFolder.fixerDimensions();
+    var isActivate = false;
+    
+    /* V2 set active de la premiere page qui n'est pas disable */  
+    var nbPages = currentTab.ecwTabFolder.pages.length
+    for (var j = 0; j < nbPages; j++) {
+      if (!isActivate) {
+        if (!currentTab.ecwTabFolder.pages[j].disable) {
+          currentTab.ecwTabFolder.pages[j].setActive();
+          isActivate = true;
+        }
+      }
+
+      /* Recherche des inputs de l'onglet */
+      var listeInput = currentTab.ecwTabFolder.pages[j].noeudDOM.getElementsByTagName("INPUT");
+      var nbInput = listeInput.length;
+      for (var k = 0; k < nbInput; k++) {
+        if (listeInput[k].ecwControl) {
+          /* L'input a connaissance de son container : onglet */
+          ecwSetAttribute(listeInput[k].ecwControl, "ecwTabItem", currentTab.ecwTabFolder.pages[j]);
+        }
+      }
+
+    }
+    if (isActivate) {
+      currentTab.ecwTabFolder.desactiver();
+    }
+  }
+}
+
+/**
+ * Initialisation des balises <select> de la table et positionnement des filtres sur une table
+ * @private
+ */
+ECW.Layout.prototype.initSelectTableAndSetFilterTable = function() {
+  // Parcours des tables
+  // Cette initialisation n'est pas effectuee dans le constructeur d'une table,
+  //car IE n'arrive pas a initialiser convenablement les <select>
+  for (var i = 0; i < this.listeDivEcwTable.length; i++) {
+
+    var ecwTableCurrent = this.listeDivEcwTable[i].ecwTable;
+    
+    // Si c'est une table reordonnable,
+    //mise a jour des <select> caches 
+    if (ecwTableCurrent.canReorder) {
+      ecwTableCurrent.genererSelect(ecwTableCurrent.lignes);
+    }
+
+    // S'il existe un filtre rattache    
+    if (ecwTableCurrent.ecwIdFilter) {	
+      //Bug Fix : permet de realiser un calcul correct pour les deux navigateurs
+      // IE et Firefox
+      ecwTableCurrent.forceNoPositionForCompatibility();	
+      
+      var tableFilter = document.getElementById(ecwTableCurrent.ecwIdFilter);
+
+      ecwTableCurrent.divTBody.style.width = "";
+      ecwTableCurrent.noeudDOM.style.width = "";
+	
+      // Parcours des filtres
+      var listeLigneBody = ecwTableCurrent.divTBody.firstChild.rows;
+      
+      for (var j = 0; j < 1; j++) {
+
+        var ligneBody = listeLigneBody[j];
+        for (var k = 0; k < ligneBody.cells.length; k++) {
+            
+          var cell = ligneBody.cells[k];
+          var cellFilter = tableFilter.rows[j].cells[k];
+          var owFilter = cellFilter.offsetWidth;
+          var owCell = cell.offsetWidth;          
+          //Si la cellule est plus petite que la cellule du filtre    
+          if (owCell < owFilter) {
+            cell.style.width = owFilter;
+            ecwTableCurrent.divTHead.firstChild.rows[j].cells[k].style.width = owFilter;
+            ecwTableCurrent.divTHead.firstChild.rows[j].cells[k].noWrap = true;
+          }
+
+          if (!ECW_isGecko_1_7_5) {
+            //Positionne les champs du filtre
+            this.processFilterPosition(k, ligneBody, cellFilter);
+          }
+        }
+      }
+      
+      //Redimensionnement de la table (le fixer dimension permet de repasser en mode absolute     
+      ecwTableCurrent.fixerDimensions();         
+      ecwTableCurrent.divTBody.style.height = ecwTableCurrent.ecwHeightTable;         
+    }    
+  }
+
+  this.processEcwTableAutoHeight();
+
+  // Desynchronisation pour Mozilla 1.7.5
+  // pour parer a des problemes de calculs de offsetLeft
+  // apres modification du width
+  if (ECW_isGecko_1_7_5) {
+    setTimeout("ecwActiveUI.setFilterDimensionOnTableForLayout(" + this.idLayout + ")", 0);
+  }
+  
+}
+
+/**
+ * Positionnement des filtres sur une table V2 de type AJAX
+ * @private
+ */
+ECW.Layout.prototype.organizeFilterTableAjax = function(tableObject) {
+	tableObject.forceNoPositionForCompatibility();       
+ 	var tableFilter = document.getElementById(tableObject.ecwIdFilter);	     
+  	tableObject.divTBody.style.width = "";
+  	tableObject.noeudDOM.style.width = "";  			      	
+  	var divTBodyEle = tableObject.divTBody.firstChild;
+  	while(divTBodyEle && divTBodyEle.nodeType == 3){
+  		divTBodyEle = divTBodyEle.nextSibling;
+  	}	    	         
+	var divTHeadEle = tableObject.divTHead.firstChild;
+	while(divTHeadEle && divTHeadEle.nodeType == 3){
+  		divTHeadEle = divTHeadEle.nextSibling;
+	}
+	tableFilter.style.width = "";
+	divTBodyEle.style.width = "";
+	divTHeadEle.style.width = "";	
+	//----------------------------------------------------------
+	//ajouter le tableau d'encadrement comme pour la table ajax
+	var orgFilter = tableFilter.getAttribute("ecwOrgFilter")
+	if (!orgFilter) {
+  		var tableObj = document.createElement("TABLE");
+
+  		//[MA-E370022] - Mise en forme de la table du fitre
+        tableObj.setAttribute('align', 'left');
+        tableObj.setAttribute("border", "0");
+        tableObj.cellSpacing = "2";
+        tableObj.cellPadding = "4";
+    	//End
+    	
+		var tbodyObj = document.createElement("TBODY");
+		var trObj = document.createElement("TR");
+		var tdObj = document.createElement("TD");
+		//[MA-E370022] - Remplacement du "center" par left 
+		tdObj.setAttribute('align', 'left');
+		//End
+		tableObj.appendChild(tbodyObj);
+		tbodyObj.appendChild(trObj);
+		trObj.appendChild(tdObj);	  		
+  		var parentTable = tableFilter.parentNode;
+  		parentTable.removeChild(tableFilter);
+  		tdObj.appendChild(tableFilter);
+  		parentTable.appendChild(tableObj);
+  		tableFilter.setAttribute('ecwOrgFilter','true');
+	}
+	//-----------------------------------------------------	 	  	  		  		
+	var nbCol = divTHeadEle.rows[0].cells.length;
+	var sizeFilter = 0;
+	var sizeTableCell = 0;
+	var listFilter = tableFilter.rows[0]; 
+	var currentCell = null;
+	var listCellBody = divTBodyEle.rows[0];	 
+	var newOlFilter = null;
+	var currentSize=0;	
+	for (var j=0;j<nbCol;j++) {
+		currentTableCell = divTHeadEle.rows[0].cells[j];		
+		listFilter.cells[j].style.width = "";
+		listCellBody.cells[j].style.width = "";
+		currentTableCell.style.width = "";			
+		sizeFilter = listFilter.cells[j].offsetWidth;
+		sizeTableCell = currentTableCell.offsetWidth;
+		sizeCellBody = listCellBody.cells[j].offsetWidth;
+		currentSize =  sizeTableCell;		
+  		if (sizeTableCell < sizeFilter) {  			
+  			sizeFilter = getComputedCSSWidth(listFilter.cells[j]);
+  	 		listCellBody.cells[j].style.width = sizeFilter;
+        	currentTableCell.style.width = sizeFilter;
+        	//[LD] jira alignement entete et colonne avec scrollbar, filtre
+        	//SIFAECW-697
+        	//currentTableCell.noWrap = true;           
+        	currentSize = listCellBody.cells[j].offsetWidth;
+    	}    	
+    	listFilter.cells[j].style.width = currentSize;
+	}  	
+	//Setter la largeur du tableau filtre
+	var w = getComputedCSSWidth(divTBodyEle);		
+	tableFilter.style.width = w;
+	divTBodyEle.style.width = w;
+	divTHeadEle.style.width = w;	
+	//Redimensionnement de la table (le fixer dimension permet de repasser en mode absolute)	
+	tableObject.fixerDimensions();   	
+}
+
+/**
+ * Initialisation des balises <select> de la table et positionnement des filtres sur une table V2
+ * @private
+ */
+ECW.Layout.prototype.initSelectTableV2AndSetFilterTableV2 = function() {
+  // Parcours des tables
+  // Cette initialisation n'est pas effectuee dans le constructeur d'une table,
+  //car IE n'arrive pas a initialiser convenablement les <select>
+  for (var i = 0; i < this.listeDivEcwTableV2.length; i++) {
+    var ecwTableCurrent = this.listeDivEcwTableV2[i].ecwTable;    
+    // Si c'est une table reordonnable,mise a jour des <select> caches 
+    // S'il existe un filtre rattache    
+    //if (ecwTableCurrent.ecwIdFilter) {	
+    if (ecwTableCurrent.ecwIdFilter && !ecwTableCurrent.ajaxAction) {	
+    	var tableFilter = document.getElementById(ecwTableCurrent.ecwIdFilter);
+    	//Verifier le nombre de colonne dans le tableau Filter et le Tableau Data
+    	// Parcours des filtres
+      	var divTBodyEle = ecwTableCurrent.divTBody.firstChild;
+      	while(divTBodyEle && divTBodyEle.nodeType == 3){
+      		divTBodyEle = divTBodyEle.nextSibling;
+	  	}
+	    var listeLigneBody = divTBodyEle.rows;         
+	    var divTHeadEle = (ecwTableCurrent.divTHead)?ecwTableCurrent.divTHead.firstChild:ecwTableCurrent.divTBody.firstChild;
+	    while(divTHeadEle && divTHeadEle.nodeType == 3){
+      		divTHeadEle = divTHeadEle.nextSibling;
+	  	}
+	  	var nbCol = divTHeadEle.rows[0].cells.length;	  	
+    	var nbColFilter = (tableFilter.rows[0].cells)?tableFilter.rows[0].cells.length:0;
+    	if (nbColFilter>0 &&  nbCol==nbColFilter)  {	  	   	
+	      	ecwTableCurrent.divTBody.style.width = "";
+	      	ecwTableCurrent.noeudDOM.style.width = "";		      	
+		  	var sizeFilter = 0;
+		  	var sizeTableCell = 0;
+		  	var listFilter = tableFilter.rows[0]; 
+		  	var currentCell = null;
+		  	var listCellBody = divTBodyEle.rows[0];	 
+		  	var newOlFilter = null; 
+		  	for (var j=0;j<nbCol;j++) {
+		  		currentTableCell = divTHeadEle.rows[0].cells[j];
+		  		sizeFilter = listFilter.cells[j].offsetWidth;
+		  		sizeTableCell = currentTableCell.offsetWidth;
+		  		if (sizeTableCell < sizeFilter) {         
+		  	 		listCellBody.cells[j].style.width = sizeFilter;
+	            	currentTableCell.style.width = sizeFilter;
+	            	currentTableCell.noWrap = true;           
+	        	}
+	        	if (!ECW_isGecko_1_7_5) {
+	        		//Positionne les champs du filtre        	        	
+					/* Premier champ */			
+					if (j == 0) {
+						newOlFilter = listCellBody.cells[j+1].offsetLeft;
+					} else if (j < nbCol - 1) {
+				    	newOlFilter = listCellBody.cells[j+1].offsetLeft - listCellBody.cells[j].offsetLeft;
+					}else {
+					  newOlFilter = "";
+					}
+					
+					if (newOlFilter) {
+						listFilter.cells[j].style.width = newOlFilter;  
+					}            
+	    	    }  
+		  }
+	      //Redimensionnement de la table (le fixer dimension permet de repasser en mode absolute)  
+	      ecwTableCurrent.fixerDimensions();
+	      ecwTableCurrent.divTBody.style.height = ecwTableCurrent.ecwHeightTable;
+	    } else {// colonne non coherente entre le filtre et le tableau	    	
+	    	alert("ECW Problem :\nThe number of column is different between the filter and the table" +
+	    			"\nTable name : " + ecwTableCurrent.noeudDOM.id );
+	    	ecwTableCurrent.fixerDimensions();	    				  		
+    	    ecwTableCurrent.divTBody.style.height = ecwTableCurrent.ecwHeightTable;
+	    }        
+    } else if (ecwTableCurrent.ecwIdFilter && ecwTableCurrent.ajaxAction) {
+    	this.organizeFilterTableAjax(ecwTableCurrent);
+    	ecwTableCurrent.divTBody.style.height = ecwTableCurrent.ecwHeightTable;
+    }   
+  }  
+  this.processEcwTableAutoHeight();
+  // Desynchronisation pour Mozilla 1.7.5 pour parer a des problemes de calculs de offsetLeft
+  // apres modification du width
+  if (ECW_isGecko_1_7_5) {
+  	setTimeout("ecwActiveUI.setFilterDimensionOnTableV2ForLayout(" + this.idLayout + ")", 0);
+  }
+}
+
+
+/**
+ * Traitement de la position des champs du filtre
+ * @param {Object} numCol Numero de la colonne pour la cellule
+ * @param {Object} ligneBody Ligne du tableau concernee
+ * @param {Object} cellFilter Cellule du filtre
+ * @private
+ */
+ECW.Layout.prototype.processFilterPosition = function(numCol, ligneBody, cellFilter) {
+  
+  var newOlFilter = null;
+  /* Premier champ */
+  if (numCol == 0) {
+    newOlFilter = ligneBody.cells[numCol+1].offsetLeft;
+  }
+  else if (numCol < ligneBody.cells.length - 1) {
+    newOlFilter = ligneBody.cells[numCol+1].offsetLeft - ligneBody.cells[numCol].offsetLeft;
+  }
+  if (newOlFilter) {
+    cellFilter.style.width = newOlFilter;  
+  }
+}
+
+/**
+ * Fixer le positionnement du filtre d'un tableau
+ * @private
+ */
+ECW.Layout.prototype.setFilterDimensionOnTable = function() {
+
+  /* Parcours des tables */
+  for (var i = 0; i < this.listeDivEcwTable.length; i++) {
+
+    var ecwTableCurrent = this.listeDivEcwTable[i].ecwTable;
+
+    /* S'il existe un filtre rattache */
+    if (ecwTableCurrent.ecwIdFilter) {
+
+      var tableFilter = document.getElementById(ecwTableCurrent.ecwIdFilter);
+
+      /* Parcours des filtres */
+      var listeLigneBody = ecwTableCurrent.divTBody.firstChild.rows;
+      for (var j = 0; j < 1; j++) {
+
+        var ligneBody = listeLigneBody[j];
+        for (var k = 0; k < ligneBody.cells.length; k++) {
+            
+          var cellFilter = tableFilter.rows[j].cells[k];
+          /* Positionne les champs du filtre */
+          this.processFilterPosition(k, ligneBody, cellFilter);
+        }
+      }
+    }
+  }
+
+  /* Correction affichage du THead par rapport au TBody (decalage visuel) */
+  document.body.style.display = "none";
+  document.body.style.display = "";
+}
+
+/**
+ * Fixer le positionnement du filtre d'un tableau V2
+ * @private
+ */
+ECW.Layout.prototype.setFilterDimensionOnTableV2 = function() {
+  /* Parcours des tables V2 */
+  for (var i = 0; i < this.listeDivEcwTableV2.length; i++) {
+    var ecwTableCurrent = this.listeDivEcwTableV2[i].ecwTable;
+    /* S'il existe un filtre rattache */
+    if (ecwTableCurrent.ecwIdFilter) {
+      var tableFilter = document.getElementById(ecwTableCurrent.ecwIdFilter);
+      /* Parcours des filtres */
+      var divTBodyEle = ecwTableCurrent.divTBody.firstChild;
+      while(divTBodyEle && divTBodyEle.nodeType == 3){
+      	divTBodyEle = divTBodyEle.nextSibling;
+	  }
+      var listeLigneBody = divTBodyEle.rows;
+      for (var j = 0; j < 1; j++) {
+        var ligneBody = listeLigneBody[j];
+        for (var k = 0; k < ligneBody.cells.length; k++) {            
+          var cellFilter = tableFilter.rows[j].cells[k];
+          /* Positionne les champs du filtre */
+          this.processFilterPosition(k, ligneBody, cellFilter);
+        }
+      }
+    }
+  }
+  /* Correction affichage du THead par rapport au TBody (decalage visuel) */
+  document.body.style.display = "none";
+  document.body.style.display = "";
+}
+
+/**
+ * Traitement du mode auto-select des ComboBox
+ * @private
+ */
+ECW.Layout.prototype.processComboBoxAutoSelect = function() {
+  /* Mode Auto-selection de la ComboBox */
+  for (var i = 0; i < this.listeDivEcwComboBoxAutoSelect.length; i++) {
+    this.listeDivEcwComboBoxAutoSelect[i].autoSelectValue();
+  }
+}
+
+/**
+ * Positionne le focus sur le layout
+ * @private
+ */
+ECW.Layout.prototype.computeFocus = function() {
+
+  /* S'il existe un premier et dernier champ visible accessible */
+  if (this.firstControl && this.lastControl) {
+
+    /* Champ a focuser */
+    if (this.ecwUI.ecwControlToFocus) {
+      this.ecwUI.ecwControlToFocus.setFocus();
+      this.ecwUI.ecwControlToFocus = null;
+    }
+    else {
+      /* Gestion du tabindex */
+      if (this.firstControlTabindex) {
+        this.firstControlTabindex.setFocus();
+        this.firstControl = this.firstControlTabindex;
+      } else {
+        this.firstControl.setFocus();
+      }
+      if (this.lastControlTabindex) {
+        this.lastControl = this.lastControlTabindex;
+      }
+    }
+  }
+}
+
+/**
+ * Test de validation des champs
+ * @type boolean
+ */
+ECW.Layout.prototype.validate = function() {
+  var listeInputAndSelect = [];
+  var listeInput = this.noeudDOM.getElementsByTagName("INPUT");
+  for (var i = 0; i < listeInput.length; ++i) {
+    listeInputAndSelect.push(listeInput[i]);
+  }
+  /* On ajoute les champs SELECT a la liste des champs a parcourir */
+  var listeSelect = this.noeudDOM.getElementsByTagName("SELECT");
+  for (var i = 0; i < listeSelect.length; ++i) {
+    listeInputAndSelect.push(listeSelect[i]);
+  }
+  var inputFirstError = null;
+  this.ecwUI.clearMessage();
+  /* Parcours de tous les champs de la page et declenchement du validate de chaque champ */
+  for (var i = 0; i < listeInputAndSelect.length; i++) {
+    var input = listeInputAndSelect[i];
+    /* Desactivation de l'helpContent avant de valider le champ */
+    if (input.ecwControl) {
+      input.ecwControl.disableHelpContent();
+    }
+    var result = this.ecwUI.isValidate(input);
+    /* Re-activation de l'helpContent apres avoir valide le champ */
+    if (input.ecwControl) {
+      input.ecwControl.enableHelpContent();
+    }
+    if (!result && inputFirstError == null) {
+      inputFirstError = input;  
+    }
+  }
+  
+  /* Parcours de toutes les zones de saisie distantes */
+  for (var i = 0; i < this.listeDivRemoteInputArea.length; i++) {
+    this.controlRemoteInputArea(this.listeDivRemoteInputArea[i]);
+  }
+  
+  if (inputFirstError != null) {
+    /* Focus sur le champ et affichage du message */
+    this.ecwUI.setFocusAndMessageError(inputFirstError);
+    return false;
+  }
+  return true;
+}
+
+/**
+ * Recherche s'il existe un input en erreur dans la zone de saisie distante.
+ * @param div 
+ * @private
+ */
+ECW.Layout.prototype.controlRemoteInputArea = function(div) {
+  var inputs = div.getElementsByTagName("INPUT");
+  var existError = false;
+  var size = inputs.length;
+  var ecwControl, i;
+  /* Premier parcours pour determiner s'il existe au moins une erreur */
+  for (i = 0 ; i < size && !existError; i++) {
+    ecwControl = inputs[i].ecwControl;
+    if (ecwControl && ecwControl.validValue==false) {
+      existError = true;
+    }
+  }
+
+  if (existError) {
+    if (!isClass(div, "ecwRemoteInputAreaError")) {
+      addClass(div, "ecwRemoteInputAreaError");
+    }
+  } else {
+    removeClass(div, "ecwRemoteInputAreaError");
+  }
+
+  /* Second parcours pour ajouter/retirer le style */
+  for (i = 0 ; i < size ; i++) {
+    ecwControl = inputs[i].ecwControl;
+    if (ecwControl && ecwControl.ecwLabel) {
+      if (existError) {
+        if (ecwControl.validValue==false) {
+          addClass(ecwControl.ecwLabel, "ecwRemoteInputAreaLabelInvalid");
+        } else {
+          removeClass(ecwControl.ecwLabel, "ecwRemoteInputAreaLabelInvalid");
+        }
+        if (ecwControl.required) {
+          addClass(ecwControl.ecwLabel, "ecwRemoteInputAreaLabelRequired");
+        } else {
+          removeClass(ecwControl.ecwLabel, "ecwRemoteInputAreaLabelRequired");
+        }
+      } else {
+        removeClass(ecwControl.ecwLabel, "ecwRemoteInputAreaLabelInvalid");
+        if (ecwControl.required) {
+          removeClass(ecwControl.ecwLabel, "ecwRemoteInputAreaLabelRequired");
+        }
+      }
+    }
+  }
+}
+
+/**
+ * Recalcul des tables en mode auto-height
+ * @type boolean
+ */
+ECW.Layout.prototype.processEcwTableAutoHeight = function() {
+  ecwTableProcessAutoHeight(this.listeDivEcwTable);
+  ecwTableV2ProcessAutoHeight(this.listeDivEcwTableV2);
+}
+
+/**
+ * Active le layout suivant ou precedent suivant l'action du clavier
+ * @private
+ */
+ECW.Layout.prototype.onKey = function(action) {
+  /* Activer le layout precedent, s'il en existe un */
+  if (action == "ctrl-shift-left") {
+    if (this.precedent) {
+      this.precedent.computeFocus();
+    }
+  }
+  /* Activer le layout suivant, s'il en existe un */
+  if (action == "ctrl-shift-right") {
+    if (this.suivant) {
+      this.suivant.computeFocus();
+    }
+  }
+}
+
+/**
+ * Positionnement du focus sur le layout.
+ */
+ECW.Layout.prototype.setFocus = function() {
+  /* Gestion du tabindex */
+  if (this.firstControlTabindex) {
+    this.firstControlTabindex.setFocus();
+  } else {
+    this.firstControl.setFocus();
+  }
+}
+
+/**
+* Delegation de la synchronisation du header
+* a chaque tableV2
+* @private
+*/ 
+ECW.Layout.prototype.forceSynchroTableHeader = function() {
+ for (var i = 0; i < this.listeDivEcwTableV2.length; i++) {
+ 	//parcour des tables V2
+    var ecwTableCurrent = this.listeDivEcwTableV2[i].ecwTable;
+    ecwTableCurrent.forceSynchroTableHeader();
+ }
+ /* Prise en compte de la synchro Table V1
+ for (var i = 0; i < this.listeDivEcwTable.length; i++) {
+ 	//parcour des tables (v1)
+    var ecwTableCurrent = this.listeDivEcwTable[i].ecwTable;    
+    ecwTableCurrent.forceSynchroTableHeader();    
+ }
+ */
+}
+

@@ -1,0 +1,1261 @@
+/**
+ * @fileoverview Defini les fonctions communes a ECW
+ * @author Pascal Le Mens (pascal.lemens@mpsa.com)
+ * @version $Revision: 1.96.4.2 $
+ */
+ 
+var ECW_isIE;
+var ECW_isIE11;
+var ECW_isGecko;
+var ECW_isGecko_35;
+var ECW_isGecko_1_7_5;
+var ECW_isSafari;
+var ECW_isOther; // safest bet is to try what one would try under Gecko
+
+// [Bug 0003285] enregistrement de la frappe (keydown) d'un raccourci clavier
+var ECW_isAltKeyPressed = false;
+
+/** */
+var ECW_autoId = 0;
+
+
+/** Taille de l'ascenseur verticale du navigateur */
+var ecwScrollBarWidth = 17;
+
+/** Identifiant de la popup de blocage */
+var ecwIdPopupBlockIHM = "ecwPopupBlockIHM";
+
+/** Hauteur de la barre d'aide contextuelle */
+var ecwHelpContextHeight = 17;
+
+/** Hauteur de la barre de message */
+var ecwMessageBarHeight = 14;
+
+/** Lettre utilisable comme raccourci */
+//L'accessKey 'P' est reservee pour l'impression
+var ecwLettresAccessKey = "ABCEFGHIJKLMNOQRSTUVWXYZ";
+
+/**
+ * Detection du navigateur utilise
+ * @private
+ */
+function ecwDetectBrowser() {
+  /* User agent */
+  var ua = navigator.userAgent.toLowerCase();
+
+  ECW_isGecko = (navigator.product == "Gecko");
+  ECW_isGecko_35 = ((navigator.product == "Gecko") && (ua.indexOf("/3.") != -1));
+  ECW_isGecko_1_7_5 = ((navigator.product == "Gecko") && (ua.indexOf("1.7.5") != -1));
+  ECW_isIE = !ECW_isGecko && ( ua.indexOf ( "msie" ) != -1 );
+  ECW_isIE11 = !(window.ActiveXObject) && "ActiveXObject" in window;
+  ECW_isSafari = !ECW_isGecko && !ECW_isIE && (ua.indexOf("safari") != -1);
+  ECW_isOther = !ECW_isGecko && !ECW_isIE && !ECW_isSafari;
+}
+
+/* Detection du navigateur */
+/* lors du chargement du script */
+ecwDetectBrowser();
+
+// alert("ECW_isIE = " + ECW_isIE + "\nECW_isGecko = " + ECW_isGecko
+//  + "\nECW_isGecko_1_7_5 = " + ECW_isGecko_1_7_5
+//  + "\nECW_isSafari = " + ECW_isSafari + "\nECW_isOther = " + ECW_isOther);
+
+
+
+/**
+ * Actions des touches du clavier
+ * @private
+ */
+function OnKey(event) {
+  if (!event) {
+    event = window.event;
+  }
+  // [Bug 0003285] enregistrement de la frappe (keydown) d'un raccourci clavier
+  ECW_isAltKeyPressed = event.altKey;
+  
+  var kbActions = {
+      8: "backSpace", 9: "tab", 13: "enter", 16: "shift", 17: "ctrl", 18: "alt", 27: "esc", 32:
+      "space", 33: "pageUp", 34: "pageDown", 35: "end", 36: "home", 37: "left", 38: "up", 39:
+      "right", 40: "down", 45: "inser", 46: "suppr",
+      48: "0", 49: "1", 50: "2", 51: "3", 52: "4", 53: "5", 54: "6", 55: "7", 56: "8", 57: "9",
+      112: "F1", 113: "F2", 114: "F3", 115: "F4", 116: "F5", 117: "F6",
+      118: "F7", 119: "F8", 120: "F9", 121: "F10", 122: "F11", 123: "F12",
+      65: "A", 66: "B", 67: "C", 68: "D", 69: "E", 70: "F", 71: "G", 72: "H", 73: "I", 74: "J",
+      75: "K", 76: "L", 77: "M", 78: "N", 79: "O", 80: "P", 81: "Q", 82: "R", 83: "S", 84: "T",
+      85: "U", 86: "V", 87: "W", 88: "X", 89: "Y", 90: "Z", 188: ","
+  };
+  var action = kbActions[event.keyCode];
+  //alert("action = " + action);
+  
+  if (action && event.ctrlKey && event.shiftKey) {
+    action = "ctrl-shift-" + action;
+  } else if (action && event.ctrlKey) {
+    action = "ctrl-" + action;
+  }
+  /* IE */
+  event.cancelBubble = true;
+  /* Mozilla */
+  if (event.stopPropagation) {
+    event.stopPropagation();
+  }
+  if (action == "F1" && event.altKey) {
+    alert(ecwVersion);
+  }
+  if (action == "F12" && event.altKey) {
+    ecwDisplayTimers();
+  }
+  if (action == "alt" && event.altKey) {
+    if (ecwActiveUI.ecwAccessKey) {
+      // ecwActiveUI.ecwAccessKey.show();
+    }
+  }
+
+  /* Aide de la page */
+  if (action == "," && event.altKey) {
+    /* Declenchement */
+    if (ecwActiveUI.onHelp) {
+      return ecwActiveUI.onHelp();
+    }
+  }
+
+  /* Touche Home */
+  if (action == "esc" && event.shiftKey) {
+    /* Declenchement */
+    if (ecwActiveUI.onHome) {
+      return ecwActiveUI.onHome();
+    }
+  }
+
+  /* Touche Print */
+  if (action == "P" && event.altKey) {
+    /* Declenchement */
+    if (ecwActiveUI.onPrint) {
+      return ecwActiveUI.onPrint();
+    }
+  }
+
+  /* Champ ayant le focus */
+  var wChpActif = ecwActiveUI.champActif;
+
+  /* Touche Entree */
+  if (action == "enter") {
+    /* Si ce n'est pas une table */
+    /* Si ce n'est pas un calendrier ouvert */
+    /* Si ce n'est pas une aide a la saisie ouverte */
+    /* Si ce n'est pas un bouton */
+    /* Si ce n'est pas un menu */
+    /* Si ce n'est pas un arbre */
+    /* Si ce n'est pas une textarea */
+    if (wChpActif && (wChpActif.noeudDOM.ecwTable == null)
+    && ((wChpActif.noeudDOM.ecwCalendar == null)
+          || (wChpActif.noeudDOM.ecwCalendar && !wChpActif.noeudDOM.ecwCalendar.isDisplay))
+    && ((wChpActif.noeudDOM.ecwComboBox == null)
+          || (wChpActif.noeudDOM.ecwComboBox.ecwTable.noeudDOM.style.display == "none"))
+    && ((wChpActif.noeudDOM.type != "button") && (wChpActif.noeudDOM.nodeName != "BUTTON"))
+    && (wChpActif.noeudDOM.ecwMenu == null)
+    && (wChpActif.noeudDOM.ecwTreeList == null)
+    && ((wChpActif.noeudDOM.type != "textarea") && (wChpActif.noeudDOM.nodeName != "TEXTAREA"))) {
+
+      /* RAZ Event pour IE sur ENTER */
+      if (ECW_isIE) {
+        if (!event) {
+          event = window.event;
+        }
+        event.returnValue = false;
+      }
+      
+      /* Declenchement */
+      if (ecwActiveUI.onEnter && ecwActiveUI.uiEnterKeyActive ) {
+        wChpActif.noeudDOM.blur();
+        /* on force le passage en MAJ/min car sous IE certains evenements
+         * onChange passent a la trappe. */
+        if (wChpActif.noeudDOM.ecwControl) {
+          wChpActif.noeudDOM.ecwControl.manageCase();
+        }
+        ecwActiveUI.desactiveUIEnterKey();
+        return ecwActiveUI.onEnter();
+      }
+    }
+  }
+
+  /* Gestion de la touche ESC */
+  if (action == "esc") {
+    /* Si c'est une table */
+    if (wChpActif && wChpActif.noeudDOM.ecwTable) {
+      /* Champ associe a une combobox non deroulee */
+      if (wChpActif.noeudDOM.ecwTable.ecwComboBox && wChpActif.noeudDOM.ecwTable.noeudDOM.style.display == "none") {
+        /* Declenchement */
+        if (ecwActiveUI.onEscape) {
+          return ecwActiveUI.onEscape();
+        }
+      }
+    }
+    /* Si c'est un calendrier */
+    else if (wChpActif && wChpActif.noeudDOM.ecwCalendar) {
+      /* Calendrier non affichee */
+      if (!wChpActif.noeudDOM.ecwCalendar.isDisplay) {
+        /* Declenchement */
+        if (ecwActiveUI.onEscape) {
+        	if (ECW_isIE) {
+        		ecwActiveUI.onEscape();
+        		return false;
+        	} else {        	        	
+          		return ecwActiveUI.onEscape();
+        	}        	
+        }
+      }
+    }
+    /* Si c'est un menu */
+    else if (wChpActif && wChpActif.noeudDOM.ecwMenu) {
+      wChpActif.noeudDOM.ecwMenu.onEscape();
+    }
+    /* Sinon */
+    else if (ecwActiveUI.onEscape) {
+      return ecwActiveUI.onEscape();
+    }
+  }
+  
+  /* Empeche le back du navigateur */
+  if (action == "backSpace") {
+    /* Si ce n'est pas un input type text */
+    /* Si ce n'est pas une textarea */
+    /* Si ce n'est pas une aide a la saisie ouverte */
+    /* Si ce n'est pas une table */
+    if (wChpActif  && (
+            (wChpActif.noeudDOM.nodeName == "INPUT" && wChpActif.noeudDOM.type == "text" && !wChpActif.noeudDOM.readOnly)
+         || (wChpActif.noeudDOM.nodeName == "INPUT" && wChpActif.noeudDOM.type == "password" && !wChpActif.noeudDOM.readOnly)
+		 || (wChpActif.noeudDOM.nodeName == "TEXTAREA" && wChpActif.noeudDOM.type == "textarea" && !wChpActif.noeudDOM.readOnly) 
+         || (wChpActif.noeudDOM.ecwComboBox  && wChpActif.noeudDOM.ecwComboBox.ecwTable.noeudDOM.style.display != "none") 
+         || (wChpActif.noeudDOM.ecwTable) 
+      )) {
+      // Propagation
+    } else {
+      return false;
+    }
+  }
+
+  /* Action sur le champ actif */
+  if (action && ecwActiveUI.champActif) {
+
+    /* Changement de layout */
+    if (action == "ctrl-shift-left" || action == "ctrl-shift-right") {
+      var layout = ecwGetLayout(ecwActiveUI.champActif.noeudDOM);
+      return layout.onKey(action);
+    }
+ 
+    /* Touche Ctrl */
+    if (event.ctrlKey) {
+      /* Element dans un onglet */
+      var noeudActuel = ecwActiveUI.champActif.noeudDOM;
+      while (noeudActuel.parentNode) {
+        if (noeudActuel.parentNode.ecwTabFolder) {
+          return noeudActuel.parentNode.ecwTabFolder.onKey(action);
+        } else {
+          noeudActuel = noeudActuel.parentNode;
+        }
+      }
+    }
+
+    /* Aide a la saisie */
+    if (ecwActiveUI.champActif.ecwComboBox) {
+      return ecwActiveUI.champActif.ecwComboBox.onKey(action, event);
+    }
+    
+    /* Noeud actif */
+    var NodeActive = ecwActiveUI.champActif.noeudDOM;
+
+    /* Table */
+    if (NodeActive.ecwTable) {
+      return NodeActive.ecwTable.onKey(action);
+    }
+    /* Table : Champ de saisie d'une page */
+    if (NodeActive.ecwTableToPaginate) {
+      return NodeActive.onKey(action);
+    }
+    /* Menu */
+    if (NodeActive.ecwMenu) {
+      return NodeActive.ecwMenu.onKey(action);
+    }
+    /* Calendrier */
+    if (NodeActive.ecwCalendar) {
+      return NodeActive.ecwCalendar.onKey(action, event);
+    }
+    /* Onglet */
+    if (NodeActive.ecwTabFolder) {
+      return NodeActive.ecwTabFolder.onKey(action);
+    }
+    /* Arbre */
+    if (NodeActive.ecwTreeList) {
+      return NodeActive.ecwTreeList.onKey(action);
+    }
+    /* Heure */
+    if (NodeActive.ecwTime) {
+      return NodeActive.ecwTime.onKey(action);
+    }
+    /* Boutons */
+    if (NodeActive.tagName == "BUTTON" || (NodeActive.tagName == "INPUT" && NodeActive.type == "button")) {
+      /* Test de la touche alt pour eviter les conflits avec accesskey */
+      if (!event.altKey) {
+        if (ecwActiveUI.ecwAccessKey && ecwActiveUI.ecwAccessKey.active.indexOf(action) >  - 1) {
+          var wlabel = ecwActiveUI.ecwAccessKey.keys[ecwActiveUI.ecwAccessKey.active.indexOf(action)];
+          /* Si accesskey est un bouton  */
+          if (wlabel.ecwKeyNode.tagName == "BUTTON") {
+            /* Positionner le focus sur le bouton */
+            document.getElementById(wlabel.htmlFor).ecwControl.setFocus();
+            /* et declencher l'evenement onclick si il existe */
+            if (document.getElementById(wlabel.htmlFor).onclick) {
+              document.getElementById(wlabel.htmlFor).onclick();
+            }
+            event.returnValue = false;
+          }
+        } else {
+          /* Gestion des touches sur un champ */
+          ecwActiveUI.champActif.onKey(action);
+        }
+      }
+    }
+  }
+}
+
+/**
+ * Ajoute le style specifie a l'objet
+ * @param obj Objet
+ * @param theClass Nom du style CSS
+ * @private
+ */
+function addClass(obj, theClass) {
+  if (obj) {
+    if (obj.className && obj.className != "") {
+      if (obj.className.indexOf(theClass) ==  - 1) {
+        obj.className = theClass + " " + obj.className;
+      }
+    } else {
+      obj.className = theClass;
+    }
+  }
+}
+
+/**
+ * Supprime le style specifie de l'objet
+ * @param obj Objet
+ * @param theClass Nom du style CSS
+ * @private
+ */
+function removeClass(obj, theClass) {
+  /* Test de l'existence de l'objet */
+  if (obj && obj.className) {
+    var oldClass = obj.className;
+    var start = oldClass.indexOf(theClass);
+    var len = theClass.length;
+    if (0 == start) {
+      if (len == oldClass.length) {
+        obj.className = "";
+      } else {
+        obj.className = oldClass.substr(len + 1);
+      }
+    } else if (0 < start && ' ' == oldClass.charAt(start - 1)) {
+      var before = oldClass.substr(0, start - 1);
+      var after = oldClass.substr(start + len);
+      obj.className = before + after;
+    }
+  }
+}
+
+/**
+ * Verifie l'existence du style
+ * @private
+ */
+function isClass(obj, theClass) {
+  return (obj.className.indexOf(theClass) >= 0)
+}
+
+/**
+ * Ajout du Timer pour le focus sous Mozilla
+ * @private
+ */
+function ecwFocus(noeud) {
+
+  /* Timer necessaire pour le focus au onload sous mozilla */
+  if (ECW_isGecko) {
+    window.nodeAfocuser = noeud;
+    var timer = setTimeout("window.nodeAfocuser.focus();", 0);
+  } else {
+    noeud.focus();
+  }
+}
+
+/**
+ * Retourne la premiere div du style specifie pour un objet
+ * @private
+ */
+function getFirstDivByClass(obj, className) {
+  return getFirstChildByClass(obj, "DIV", className);
+}
+
+/**
+ * Retourne la premiere div du style specifie pour un objet
+ * @private
+ */
+function getFirstChildByClass(obj, tagName, className) {
+  var i;
+  var result;
+  var child;
+  var nbChildren = obj.childNodes.length;
+  for (var i = 0; i < nbChildren; i++) {
+    child = obj.childNodes[i];
+    if (child.tagName == tagName && child.className == className) {
+      result = child;
+      break;
+    }
+  }
+  return result;
+}
+
+/**
+ * Retourne un tableau contenant les elements DIV de l'objet
+ * qui ont le style specifie
+ * @private
+ */
+function getChildsByClass(obj, className) {
+  var i;
+  var cClass = new Array;
+  var child;
+  var nbChildren = obj.childNodes.length;
+  for (var i = 0; i < nbChildren; ++i) {
+    child = obj.childNodes[i];
+    if (child.tagName == "DIV" && child.className == className) {
+      cClass[cClass.length] = child;
+    }
+  }
+  return cClass;
+}
+
+/**
+ * Retourne le premier descendant correspondant au type (tagName) specifie.
+ * Equivalent &agrave; OBJ.getElementsByTagName(TAGNAME)[0].
+ * @private
+ */
+function getFirstChildByTagName(obj, tagName) {
+  var upcTagName = tagName.toUpperCase();
+  var firstChildArray = [];
+  firstChildArray[0] = obj;
+  for (var i = 0; i < firstChildArray.length; ++i) {
+    var node = firstChildArray[i];
+    var child = node.firstChild;
+    while (child) {
+      if (child.tagName && child.tagName.toUpperCase() == upcTagName) {
+        return child;
+      } else {
+        firstChildArray[firstChildArray.length] = child;
+        child = child.nextSibling;
+      }
+    }
+  }
+  return null;
+}
+
+/**
+ * Renvoie un tableau avec tous les fils direct de type 'tagName'.
+ * @private
+ */
+function getChildrenByTagName(node, tagName) {
+  var upcTagName = tagName.toUpperCase();
+  var childArray = [];
+  var child = node.firstChild;
+  while (child) {
+    if (child.tagName && child.tagName.toUpperCase() == upcTagName) {
+      childArray[childArray.length] = child;
+    }
+    child = child.nextSibling;
+  }
+  return childArray;
+}
+
+/**
+ * Retourne le noeud suivant correspondant au type (tagName) specifie.
+ * @private
+ */
+function getNextNodeByTagName(obj, tagName) {
+  var upcTagName = tagName.toUpperCase();
+  var node = obj.nextSibling;
+  while (node) {
+    if (node.tagName && node.tagName.toUpperCase() == upcTagName) {
+      return node;
+    }
+    node = node.nextSibling;
+  }
+  return null;
+}
+
+/**
+ * Desactive la possibilite de selectionner un champ de texte
+ * a l'aide de la souris
+ * @private
+ */
+function desactiverSelectionTexte(element) {
+  /* pour IE */
+  element.onselectstart = ecwFalseFunction;
+  /* pour Mozilla */
+  // V2
+  switch (element.tagName.toLowerCase()) {
+    case "input" :
+    case "textarea" :
+    case "select" :
+      break
+    default :
+      element.onmousedown = ecwFalseFunction;
+  }
+}
+
+/**
+ * Supprime les espaces avant et apres une chaine de caracteres
+ * @private
+ */
+String.prototype.trim = function() {
+  return this.replace(/(^\s*)|(\s*$)/g, "");
+}
+
+/**
+ * Recupere le style de l'element specifie
+ * @private
+ */
+function ecwGetComputedStyle(element) {
+  var computedStyle = ("defaultView" in document) ? document.defaultView.getComputedStyle(element,
+    ""): element.currentStyle;
+  return computedStyle;
+}
+
+/**
+ * Recupere le texte d'un noeud en crossBrowser
+ * @private
+ */
+function ecwGetInnerText(noeud) {
+  // Comment ne pas faire de test a chaque fois ? 
+  // charger un script propre au browser ?
+  var tc = noeud.textContent;
+  if (tc) {
+    return tc;
+  } else {
+    return noeud.innerText;
+  }
+}
+
+/**
+ * Positionne le texte d'un noeud en crossBrowser
+ * @private
+ */
+function ecwSetInnerText(noeud, text) {
+  
+  if (noeud.textContent) {
+    noeud.textContent = text;
+  } else {
+    noeud.innerText = text;
+  }
+}
+
+/**
+ * Ajoute la classe specifiee au texte specifie qui est contenu dans une balise
+ * @private
+ */
+function ecwAddSpan(obj, cssclass, text) {
+  var txt = obj;
+  /* Cas d'un span dans l'objet */
+  var elem = obj.getElementsByTagName("SPAN")[0];
+  if (elem && elem.className != cssclass) {
+    txt = elem;
+  } else {
+    /* Cas d'un div dans l'objet */
+    elem = obj.getElementsByTagName("DIV")[0];
+    if (elem) {
+      txt = elem;
+    }
+  }
+  var encodeText = ecwEncodeForRegExp(text);
+  var monTexte = RegExp(encodeText, "i").exec(txt.innerHTML);
+  txt.innerHTML = txt.innerHTML.replace(monTexte, "<span class='" + cssclass + "'>" + monTexte +
+    "</span>");
+}
+
+/**
+ * Encodage d'une valeur pour RegExp
+ * @param value Valeur a encoder
+ * @return Valeur encodee
+ * @private
+ */
+function ecwEncodeForRegExp(value) {
+
+  var encodeValue = "";
+  for (var i = 0; i < value.length; i++) {
+    /* Caracteres speciaux */
+    if ((value.charAt(i) == "\\") || (value.charAt(i) == ".") || (value.charAt(i) == "$")
+      || (value.charAt(i) == "[") || (value.charAt(i) == "]")
+      || (value.charAt(i) == "(") || (value.charAt(i) == ")")
+      || (value.charAt(i) == "{") || (value.charAt(i) == "}")
+      || (value.charAt(i) == "^") || (value.charAt(i) == "?")
+      || (value.charAt(i) == "*") || (value.charAt(i) == "+") || (value.charAt(i) == "-")) {
+
+      encodeValue += "\\";
+    }
+    encodeValue += value.charAt(i);
+  }
+  return encodeValue;
+}
+
+/**
+ * Supprime la classe specifie au texte de l'objet contenu dans une balise.
+ * Inverse l'effet de la fonction ecwAddSpan()
+ * @private
+ */
+function ecwRemoveSpan(obj, cssclass) {
+  var mesSpan = obj.getElementsByTagName("SPAN");
+  for (var i = 0; i < mesSpan.length; i++) {
+    if (mesSpan[i].className == cssclass) {
+      if (mesSpan[i].nextSibling) {
+        mesSpan[i].nextSibling.nodeValue = mesSpan[i].firstChild.nodeValue +
+          mesSpan[i].nextSibling.nodeValue;
+        mesSpan[i].parentNode.removeChild(mesSpan[i]);
+      } else {
+        mesSpan[i].parentNode.innerHTML = mesSpan[i].innerHTML;
+      }
+      break;
+    }
+  }
+}
+
+/**
+ * D&eacute;sactive la page en cours (pour patienter lors d'un submit)
+ */
+function ecwWait() {
+  var underlay = new ECW.UnderLay();
+  underlay.underLayDIV.onfocus = function(){}
+  underlay.underLayDIV.onclick = function(){}
+  underlay.show();
+}
+
+/**
+ * Retourne la visibilite de l'objet
+ * L'element peut ne pas etre visible du fait d'un container non visible lui-meme
+ * @param noeudDOM Balise du DOM a tester
+ * @param bodyVisible considere que le noeud BODY est visible meme s'il ne l'est pas.
+ *        Parametre utile pour un calcul de visibilite lors de l'initialisation.
+ * @private
+ */
+function ecwIsVisible(noeudDOM, bodyVisible) {
+  var display;
+  var visibility;
+  var c;
+  bodyVisible = true == bodyVisible;
+  while (noeudDOM) {
+    // Si le flag vaut true, on verifie qu'on arrive au noeud BODY AVANT de faire les tests de visibilite
+    if (bodyVisible && noeudDOM.nodeName == "BODY") {
+      // Si on a itere jusqu'au noeud BODY
+      return true;
+    }
+    display = noeudDOM.style.display;
+    c = display.charAt(0);
+    if (('n' == c || 'N' == c) && "none" == display.toLowerCase()) {
+      return false;
+    }
+    visibility = noeudDOM.style.visibility;
+    c = visibility.charAt(0);
+    if (('h' == c || 'H' == c) && "hidden" == visibility.toLowerCase()) {
+      return false;
+    }
+    // Si le flag vaut false, on verifie qu'on arrive au noeud BODY APRES avoir fait les tests de visibilite
+    if (!bodyVisible && noeudDOM.nodeName == "BODY") {
+      // Si on a itere jusqu'au noeud BODY et que celui-ci est visible -> true
+      return true;
+    }
+    // sinon, on itere sur le noeud parent
+    noeudDOM = noeudDOM.parentNode;
+  }
+  // Impossible a atteindre : on passe forcement par le noeud BODY.
+  return false;
+}
+
+/**
+ * @private
+ */
+function getTargetElement(currentEvent) {
+  var eventNav;
+  var eventNavTarget;
+  if (!currentEvent) {
+    eventNav = window.event;
+  } else {
+    eventNav = currentEvent;
+  }
+  if (ECW_isGecko) {
+    eventNavTarget = eventNav.target;
+  } else if (ECW_isIE) {
+    eventNavTarget = eventNav.srcElement;
+  }
+  return(eventNavTarget);
+}
+
+/**
+ * @private
+ */
+function ecwIsFocusFormElement(event) {
+
+  var formElementFocus = false;
+
+  if (event == undefined) {
+    formElementFocus = false;
+  } else {
+    var eventNavTarget = getTargetElement(event);
+    if ((eventNavTarget.tagName.toLowerCase() == 'input') ||
+        (eventNavTarget.tagName.toLowerCase() == 'select')) {
+      formElementFocus = true;
+    }
+  }
+  return(formElementFocus);
+}
+
+/**
+ * Remplace tous les caracteres ' par '' pour une valeur de parametre.
+ * @param value Valeur a encoder. 
+ * @private
+ */
+function ecwEncodeJSParameterValue(value) {
+  var result = value.replace(/'/g, "\\'"); 
+  return result;
+}
+
+/**
+ * Concatenates a substring until the determinated length is reached.
+ * carPad : caractere de padding
+ * sens=0 : padding avec caractere s a gauche
+ * sens=1 : padding avec caractere s a droite
+ * sens=2 : centre
+ */
+function pad(chaine, lgMax, carPad, sens){
+  return carPad || (carPad = " "), (lgMax -= chaine.length) > 0 ? (carPad = new Array(Math.ceil(lgMax / carPad.length)
+    + 1).join(carPad)).substr(0, sens = !sens ? lgMax : sens == 1 ? 0 : Math.ceil(lgMax / 2))
+    + chaine + carPad.substr(0, lgMax - sens) : chaine;
+}
+
+/**
+ * V&eacute;rifie si c'est un nombre.
+ */
+function ecwIsValidNumber(value) {
+  /* C'est un nombre */
+  var validator = new RegExp("^[0-9]*$");
+  return validator.test(value);
+}
+
+/**
+ * Construit un appel de m&eacute;thode &agrave; partir d'un nom de m&eacute;thode
+ * et du nombre d'arguments.
+ * 
+ * @private
+ */
+function ecwMethodCall(method, nArgs) {
+  var mthdCall = method + "(";
+  if (0 != nArgs) {
+    mthdCall += "arguments[0]";
+    for (var i = 1; i < nArgs; ++i) {
+      mthdCall += ",arguments[" + i + "]";
+    }
+  }
+  mthdCall += ")";
+  return mthdCall;
+}
+
+/**
+ * M&eacute;thode appel&eacute;e lors d'un rel&acirc;chement de touche juste AVANT
+ * la m&eacute;thode <code>onKeyUp()</code> de l'&eacute;l&eacute;ment.
+ * <br>
+ * Cette m&eacute;thode est appel&eacute;e depuis le composant actif : le pointeur
+ * <code>this</code> pointe donc sur ce composant.
+ * 
+ * @private
+ */
+function ecwOnKeyUp() {
+  var ctrl = ecwActiveUI.champActif;
+  if (ctrl) {
+    // Traitement ECW dans le onkeyup (AVANT la methode originale).
+    // SURTOUT NE PAS TOUCHER AU CHAMP VALUE DU NOEUD DOM : EFFETS DE BORD INDESIRABLES
+    
+    // On appelle la methode 'onkeyup' originale.
+    if (ctrl.noeudDOM.onkeyupHTML) {
+      eval(ecwMethodCall("ctrl.noeudDOM.onkeyupHTML", arguments.length));
+    }
+  }
+}
+
+function ecwOnChange() {
+  var ctrl = ecwActiveUI.champActif;
+  if (ctrl) {
+    // Traitement ECW dans le onchange (AVANT la methode originale).
+    ctrl.manageCase();
+    // onchange pour la combo
+    if (ctrl.noeudDOM.onchangeComboBox) {
+      ctrl.noeudDOM.onchangeComboBox();
+    }
+    // On appelle la methode 'onchange' originale.
+    if (ctrl.noeudDOM.onchangeHTML) {
+      eval(ecwMethodCall("ctrl.noeudDOM.onchangeHTML", arguments.length));
+    }
+  }
+}
+
+function getAbsolutePos(el) {
+  var SL = 0, ST = 0;
+  var is_div = /^div$/i.test(el.tagName);
+  if (is_div && el.scrollLeft)
+    SL = el.scrollLeft;
+  if (is_div && el.scrollTop)
+    ST = el.scrollTop;
+  var r = { x: el.offsetLeft - SL, y: el.offsetTop - ST };
+  if (el.offsetParent) {
+    var tmp = this.getAbsolutePos(el.offsetParent);
+    r.x += tmp.x;
+    r.y += tmp.y;
+  }
+  return r;
+}
+
+/**
+ * Renvoie le charset d&eacute;fini dans la balise META. Si aucun charset n'est
+ * d&eacute;fini, renvoie null.
+ */
+function ecwGetCharset() {
+  var metaList = document.getElementsByTagName("META");
+  var len = metaList.length;
+  for (var i = 0; i < len; ++i) {
+    var meta = metaList[i];
+    if (meta.httpEquiv&& meta.content) {
+      var a = meta.content.toLowerCase().indexOf("charset");
+      var b = meta.content.indexOf("=", a);
+      // normalement, le charset est la derniere info de la balise -> c = -1
+      var c = meta.content.indexOf(";", b);
+      if (-1 == c) {
+        // cas normal
+        return meta.content.substr(b + 1);
+      } else {
+        // normalement impossible a atteindre
+        return meta.content.substring(b + 1, c - 1);
+      }
+    }
+  }
+  return null;
+}
+
+/**
+ * Affecte un id au noeud DOM pass&eacute; en param&egrave;tre si celui-ci ne porte pas d'id.
+ */
+function ecwAffectId(noeudDOM){
+  if (!noeudDOM.id) {
+    var idGen;
+    do {
+      // tant qu'il existe un element portant deja cet id, on genere un nouvel id et on incremente le compteur.
+      idGen = "ecwId_" + ECW_autoId;
+      ++ECW_autoId;
+    } while (document.getElementById(idGen))
+    noeudDOM.id = idGen;
+  }
+}
+
+/**
+ * Force le rafra&icirc;chissement de l'affichage. Cette m&eacute;thode peut &ecirc;tre
+ * appel&eacute;e dans un <code>setTimeout</code> pour d&eacute;synchroniser le rafra&icirc;chissement.
+ */
+function ecwRefreshUI() {
+  document.body.className = document.body.className;
+}
+
+/**
+ * D&eacute;sactive toues les aides &agrave; la saisie pr&eacute;sentes dans un formulaire.
+ * <br>
+ * Cette m&eacute;thode est destin&eacute;e &agrave; nettoyer un formulaire de
+ * toutes les  aides &agrave; la saisie (ex : JJ/MM/AAAA dans les calendriers).
+ * @param form le formulaire &acute; nettoyer (objet de type <code>HTMLForm</code>).
+ */
+function ecwDisableHelpContents(form) {
+  for (var i in form.elements) {
+    var noeudDOM = form.elements[i];
+    if (noeudDOM) {
+      if (noeudDOM.ecwControl && noeudDOM.ecwControl.helpContent) {
+        noeudDOM.ecwControl.disableHelpContent();
+      } else if (noeudDOM.ecwTimeField) {
+        noeudDOM.ecwTimeField.disableHelpContent();
+      }
+    }
+  }
+}
+
+/**
+ * Active toutes les aides &agrave; la saisie pr&eacute;sentes dans un formulaire.
+ * <br>
+ * Cette m&eacute;thode est destin&eacute;e &agrave; r&eacute;tablir les aides
+ * &agrave; la saisie.
+ * @param form le formulaire (objet de type <code>HTMLForm</code>).
+ */
+function ecwEnableHelpContents(form) {
+  for (var i in form.elements) {
+    var noeudDOM = form.elements[i];
+    if (noeudDOM) {
+      if (noeudDOM.ecwControl && noeudDOM.ecwControl.helpContent) {
+        noeudDOM.ecwControl.enableHelpContent();
+      } else if (noeudDOM.ecwTimeField) {
+        noeudDOM.ecwTimeField.enableHelpContent();
+      }
+    }
+  }
+}
+
+/**
+ * Surcharge le ou les submits afin d'appeler automaitquement la methode
+ * 'ecwClearForm()' avant de poster la page.
+ * @private
+ */
+function ecwOverrideSubmits() {
+    /* Surcharge le(s) submit(s) */
+  var form = document.forms;
+  var len = form.length;
+  for (var i = 0; i < len; ++i) {
+    var ecwSubmit = new ECW.Submit(form[i]);
+    ecwSubmit.prepareSubmit = ecwOnSubmit;
+  }
+}
+
+/**
+ * Cette classe est ajoutee a chaque formulaire (form) de la page lors de
+ * la creation de l'ECW.UI.
+ * <br>
+ * Elle surcharge la methode 'submit' de chaque formulaire : lors du submit,
+ * elle appellera d'abord une methode prepareSubmit (a definir).
+ * <br>
+ * Elle contient une reference au formulaire auquel elle est associee et
+ * sauvegarde la methode 'submit' native du formulaire. Elle s'enregistre
+ * egalement aupres du formulaire sous le nom 'ecwSubmit'.
+ * @private
+ */
+ECW.Submit = function(form) {
+  this.form = form;
+  form.ecwSubmit = this;
+  this.nativeSubmit = form.submit;
+  form.submit = this.submit;
+}
+
+/**
+ * Methode statique qui remplace la methode 'submit' de chaque formulaire.
+ * @private
+ */
+ECW.Submit.prototype.submit = function() {
+  /* ATTENTION : methode 'statique' qui remplace le submit du formulaire.
+   * -> lorsqu'elle est appele , 'this' pointe sur le formulaire et non
+   * pas sur l'objet ECW.Submit ! */
+  var ok = true;
+  if (this.ecwSubmit.prepareSubmit) {
+    /* On recopie le callback sur le formulaire pour que 'this' pointe
+     * sur le formulaire dans la methode appelee. */
+    this.prepareSubmit = this.ecwSubmit.prepareSubmit;
+    ok = this.prepareSubmit();
+  }
+  /* ATTENTION : test different de (true == ok)
+   * -> teste si la methode renvoie true ou ne renvoie rien. */
+  if (false != ok) {
+    /* Si la methode 'prepareSubmit' ne renvoie pas false (i.e. renvoie 'true'
+     * ou ne renvoie rien), on remet le submit original sur le formulaire et
+     * on le (re-)declenche.
+     */
+    this.submit = this.ecwSubmit.nativeSubmit;
+    this.submit();
+  }
+}
+
+/**
+ * M&eacute;thode a redefinir pour ajouter un traitement sur le 'submit' d'un formulaire.
+ * Lorsque cette methode est appelee, 'this' pointe sur un objet de classe HTMLForm.
+ * @private
+ */
+ECW.Submit.prototype.prepareSubmit = null;
+
+/**
+ * M&eacute;thode d&eacute;clench&eacute;e lors du submit d'un formulaire.
+ * Dans cette m&eacute;thode, <code>this</code> pointe sur un objet de classe HTMLForm.
+ * @private
+ */
+function ecwOnSubmit() {
+  ecwDisableHelpContents(this);
+}
+
+function ecwEmptyFunction() {}
+
+function ecwFalseFunction() { return false; }
+
+function ecwTrueFunction() { return true; }
+
+/**
+ * Verifie la validite d'un numerique.
+ * @private
+ */
+function ecwIsNumeric(strString) {
+  var strValidChars = "0123456789.-";
+  var strChar;
+  var blnResult = true;
+
+  if (strString.length == 0) return false;
+
+  // test strString consists of valid characters listed above
+  for (i = 0; i < strString.length && blnResult == true; i++) {
+    strChar = strString.charAt(i);
+
+    if (strValidChars.indexOf(strChar) == -1) {
+      blnResult = false;
+    }
+  }
+  return blnResult;
+}
+
+/**
+ * Convertit la date en int.
+ * @private
+ */
+function ecwDateInt() {
+  var now = new Date();
+  var h = now.getHours();
+  var m = now.getMinutes();
+  var s = now.getSeconds();
+  return (h * 60 * 60) + (m * 60) + s;
+}
+
+/**
+ * Methode Sleep.
+ * @param intTime Duree du sleep.
+ * @private
+ */
+function ecwSleep(intTime) {
+  if (!ecwIsNumeric(intTime)) {
+    return; // Arret de l'execution
+  }
+
+  intTime = (intTime / 1000);
+  var exp = ecwDateInt() + intTime; // TimeOut
+  while(exp > ecwDateInt()) {
+    ;
+  }
+}
+
+/**
+ * Renvoie un parametre defini dans param.js.
+ * @param key le nom du parametre.
+ */
+function ecwGetParameter(key) {
+  return ecwParameters[key];
+}
+
+/**
+ * Creation d'une tr avec une td contenant un element dans un tbody.
+ * @param tbody TBody de la table.
+ * @param elt Elt a integrer.
+ * @private
+ */
+function ecwCreateTrTdInTBody(tbody, elt) {
+
+  var tr = document.createElement("TR");
+  var td = document.createElement("TD");
+  td.setAttribute("align", "center");
+  td.appendChild(elt);
+  tr.appendChild(td);
+  tbody.appendChild(tr);
+}
+
+/**
+ * Creation d'une td contenant un element dans un tr.
+ * @param tr Tr de la ligne.
+ * @param elt Elt a integrer.
+ * @private
+ */
+function ecwCreateTdInTr(tr, elt) {
+
+  var td = document.createElement("TD");
+  td.setAttribute("align", "center");
+  td.appendChild(elt);
+  tr.appendChild(td);
+}
+
+/**
+ * Validator pour les champs date.
+ * @param value la valeur du champ a valider.
+ * @param  ecwCalendar calendar associe au champ pour eventuellement utiliser la methode de validation du calendar.
+ */
+function ecwDateValidator(value,calendarPattern) {
+  var datePattern;
+  if (!calendarPattern) {
+    datePattern = ecw.I18N.get("date");
+  } else {
+    return Date.checkDate(value,calendarPattern);
+  }
+  var jjPattern = ecw.I18N.get("calendar_%d");
+  var mmPattern = ecw.I18N.get("calendar_%m");
+  var aaPattern = ecw.I18N.get("calendar_%y");
+  var aaaaPattern = ecw.I18N.get("calendar_%Y");
+  
+  var numPattern = datePattern;
+  numPattern = numPattern.replace(new RegExp(aaaaPattern, "gi"), "[0-9]{4}");
+  numPattern = numPattern.replace(new RegExp(aaPattern, "gi"), "[0-9]{2}");
+  numPattern = numPattern.replace(new RegExp(mmPattern, "gi"), "[0-9]{1,2}");
+  numPattern = numPattern.replace(new RegExp(jjPattern, "gi"), "[0-9]{1,2}");
+  var numExp = new RegExp(numPattern);
+  // On teste si la valeur saisie respecte le format du pattern
+  // (sans verifier pour l'instant de la validite de la date)
+  if (null == value.match(numExp))
+    return false;
+  
+  // On decompose la valeur saisie pour voir si elle correspond
+  // a une date correcte
+  var order = datePattern.split(/\W+/);
+  var array = value.split(/\D+/);
+  var i = 0;
+  var j = 0;
+  var jj = null;
+  var mm = null;
+  var aa = null;
+  while (i < array.length && j < order.length) {
+    switch(order[j]) {
+      case jjPattern :
+        if (null == jj) jj = parseInt(array[i++], 10);
+        break;
+      case mmPattern :
+        if (null == mm) mm = parseInt(array[i++], 10);
+        break;
+      case aaPattern :
+      case aaaaPattern :
+        if (null == aa) aa = parseInt(array[i++], 10);
+        break;
+      default :
+        break;
+    }
+    ++j;
+  }
+  // Si une des valeurs (jour/mois/annee) n'est pas renseignee,
+  // on lui affecte une valeur qui ne pose pas de probleme
+  // (1er jour, mois de 31 jours, annee bissextile)
+  if (null == jj)
+    jj = 1;
+  if (null == mm)
+    mm = 0;
+  if (null == aa)
+    aa = 2000;
+  // Si l'annee saisie est sur deux caracteres, on lui ajoute 1900 ou 2000
+  // pour arriver entre 1970 et 2069 (valeurs arbitraires).
+  if (null != aa && 100 > aa)
+    aa += (aa < 70 ? 2000 : 1900);
+  var date = new Date(aa, mm - 1, jj);
+  return date.getDate() == jj && date.getMonth() == (mm - 1) && date.getFullYear() == aa;
+}
+
+/**
+ * Met en majuscule la premiere lettre d'une chaine.
+ * @param chaine Chaine a traiter.
+ * @private
+ */
+function ecwUpperFirstLetter(chaine) {
+
+  var result = null;
+  if (chaine) {
+    result = chaine.substring(0, 1).toUpperCase() + chaine.substring(1, chaine.length);
+  }
+  return result;
+}
+
+/**
+ * Recherche le layout auquel appartient le noeudDOM
+ * @private
+ */
+function ecwGetLayout(noeudDOM){
+  var layout;
+  var node = noeudDOM;
+  while (node.parentNode && !layout) {
+    if (node.parentNode.ecwLayout) {
+      layout = node.parentNode.ecwLayout;
+    } else {
+      node = node.parentNode;
+    }
+  }
+  return layout;
+}
+
+/**
+ * Evalution des javascript.
+ */
+function ecwEvalScript(noeudDOM) {
+  // chargement en memoire des scripts 
+  var scripts = noeudDOM.getElementsByTagName("script");
+  for (var i=0; i< scripts.length; i++) {
+    eval(scripts[i].innerHTML);
+  }  
+}
+
+
+/**
+ * Formatage d'une date
+ * @private
+ */
+function ecwGetCurrentDate() {
+
+  var currentDate = new Date();
+
+  /* Format : dd/mm/yyyy hh:nn:ss */
+  var sepDate = "/";
+  var formatDate = ecwPad(currentDate.getDate().toString(), 2, "0", 0) + sepDate;
+  formatDate += ecwPad((currentDate.getMonth() + 1).toString(), 2, "0", 0) + sepDate;
+  formatDate += currentDate.getFullYear() + " ";
+  var sepHour = ":";
+  formatDate += ecwPad(currentDate.getHours().toString(), 2, "0", 0) + sepHour;
+  formatDate += ecwPad(currentDate.getMinutes().toString(), 2, "0", 0) + sepHour;
+  formatDate += ecwPad(currentDate.getSeconds().toString(), 2, "0", 0);
+
+  return (formatDate);
+}
+
+/**
+ * Recuperer une reference sur JQUERY
+ * @public
+ */
+function ecwGetJquery() {
+	return $;	
+}
+
+/**
+ * Introspection sur un objet javascript
+ * @private
+ */
+function inspectObjectECW(obj) {
+	var chaine = "Object : obj<BR>";
+	var tmp="";
+	for(var i in obj) {
+		tmp = obj[i];		
+		if (typeof(tmp)=="function" ) tmp="function()";
+		chaine = chaine + "<BR><B>"+i+"</B> = "+tmp;
+	}
+	return chaine;	
+}
+
+/**
+ * afficher une fenetre de debug avec un message
+ * uniquement pour le debug ECW
+ * @private
+ */
+function debugWindowECW(msg) {	
+	var wBug = window.open("", "ECWDebugWindow", 'resizable=1,scrollbars=1,width=800,height=500');
+	wBug.document.write(msg);
+	wBug.document.bgColor="lightblue";
+	wBug.document.close(); 	
+}
+
+/**
+ * Verifier la presence d'un element dans un tableau (array)
+ * @param value : la valeur a rechercher
+ * @param table : le tableau contenant les valeurs 
+ * @return indice de l'element dans le tableau (-1 = non trouve)
+ * Solution basee sur une methode JQuery
+ */
+function ecwCheckInArray(value,table) {	
+	return $.inArray(value,table); 	
+}
+ 
+
+

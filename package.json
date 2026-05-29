@@ -4,10 +4,23 @@
   "main": "index.js",
   "scripts": {
     "test": "playwright test",
+    "test:calendar": "playwright test tests/calendar/CAL0101.spec.ts tests/calendar/CAL0102.spec.ts --workers=1",
+    "test:topology": "playwright test tests/topology/ --no-deps",
+    "test:quality": "playwright test tests/quality/ --no-deps",
+    "test:production": "playwright test tests/production_goals/ tests/production_programme/ --no-deps",
+    "test:smoke": "playwright test --no-deps --grep \"Validation of creation\"",
+    "test:regression": "playwright test --no-deps",
     "clean:allure": "rimraf allure-results allure-report",
+    "clean:reports": "rimraf reports allure-results allure-report screenshots logs test-results",
+    "test:clean": "npm run clean:reports && playwright test",
     "report:generate": "allure generate allure-results --clean -o allure-report",
     "report:open": "allure open allure-report",
-    "test:allure": "npm run clean:allure && npm run test && npm run report:generate && npm run report:open"
+    "test:allure": "npm run clean:allure && npm run test && npm run report:generate && npm run report:open",
+    "test:allure:dated": "node scripts/run-allure.js",
+    "test:allure:file": "node scripts/run-allure.js",
+    "report:list": "node scripts/open-report.js",
+    "report:open:dated": "node scripts/open-report.js",
+    "typecheck": "tsc --noEmit"
   },
   "keywords": [],
   "author": "",
@@ -15,12 +28,16 @@
   "description": "",
   "devDependencies": {
     "@playwright/test": "^1.52.0",
-    "@types/node": "^22.13.13",
+    "@types/node": "^22.19.17",
     "allure-commandline": "^2.34.0",
     "allure-playwright": "^3.2.2",
+    "dotenv": "^16.5.0",
     "rimraf": "^6.0.1"
   },
   "dependencies": {
+    "@types/ssh2": "^1.15.5",
+    "chalk": "^5.6.2",
+    "ssh2": "^1.17.0",
     "xlsx": "^0.18.5"
   }
 }

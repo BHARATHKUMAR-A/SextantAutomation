@@ -1,1 +1,0 @@
-Language (Feature Family) for SCL:  P - x-PSA, C - x-FCA NA, F - x-FCA EMEA 

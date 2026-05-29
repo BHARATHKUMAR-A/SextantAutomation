@@ -1,0 +1,2432 @@
+/*
+ * Feuille de style ECW
+ * Attention : il faut respecter l'ordre de declaration des styles,
+ * car il influence fortement le rendu lorsque l'on a plusieurs styles.
+ * CSS prend en compte l'ordre de definition dans la css et
+ * NON pas l'ordre de declaration (class="style1 style 2")
+ * @version $Revision: 1.54.4.1 $
+ */
+@import url("../styleParam.css");
+
+* {
+	font-family: "Arial", "Liberation Sans";
+}
+
+BODY {
+	visibility: hidden;
+	background: url(invisible.gif) fixed ; /* pour eviter les saccades des barres de messages sous IE */
+}
+
+.ecwBackgroundIhm {
+	background-color: #EFEFEF;
+	border: 1px solid black;
+	margin-top: 5px;
+	width: 100%;
+}
+
+.ecwTitleZoneIhm {
+	background-color: #3F4672;
+	margin: 0 0 0 0;
+	padding: 0 0 0 0;
+	font-size: 12px;
+}
+
+.ecwRemoteInputArea * {
+	font-size: 24px;
+}
+
+.ecwRemoteInputAreaLabelInvalid {
+	color : white !important;
+}
+
+.ecwRemoteInputAreaLabelRequired {
+	background-image: url(required_white.gif) !important;
+}
+
+.ecwRemoteInputAreaError {
+	background-color: #FF0000;
+}
+
+.ecwLabelRequired {
+	vertical-align: middle;
+	background-position: right center;
+	background-repeat: no-repeat;
+	background-image: url(required.gif);  
+	padding-right: 15;
+}
+
+a.ecwTitleZoneIhm {
+	color: #FFFFFF;
+}
+
+a.ecwTitleZoneIhm:visited {
+	color: #FFFFFF;
+}
+
+a.ecwTitleZoneIhm:link {
+	color: #FFFFFF;
+}
+
+a.ecwTitleZoneIhm:hover {
+	color: #FFDE5C;
+}
+
+.ecwTitleCellIhm {
+	background: #EFEFEF url(fond_titre_2_1.gif) repeat scroll 0% 0%;
+	padding : 0px;
+}
+
+.ecwTitleSeparatorZoneIhm {
+	background-image: url(sep_titre_2_1.gif);
+	background-repeat: no-repeat !important;
+	width: 21px;
+	height: 21px;
+	offsetLeft : 0px;
+	vertical-align: middle;
+	display: inline-block;  /* pour respecter la largeur sous Moz */
+}
+
+.ecwTitleMessageWithPathIhm {
+   	color: white;
+	text-align: left;
+	font-size: 13px;
+	font-weight: bold;
+	font-family: "Arial", "Liberation Sans";
+	background-color: #3F4672;
+	margin: 0 0 0 0;
+	padding: 0 0 0 0;
+}
+
+.ecwTitleMessageIhm {
+	color: #FFDE5C;
+}
+
+.ecwTitleHeightIhm {
+	height: 20px;
+	vertical-align: middle;
+}
+
+.ecwTitleElementIhm {
+	position: relative;
+	top: 7px;
+	padding-left: 4px;
+	padding-right: 4px;
+}
+
+.ecwTitleButtonHelpIhm {
+	background-image: url(color/aide.gif);
+	background-repeat: no-repeat !important;
+	width: 21px;
+	height: 21px;
+	vertical-align: middle;
+	display: inline-block;  /* pour respecter la largeur sous Moz */
+	cursor: pointer;
+}
+
+.ecwTitleButtonHomeIhm {
+	background-image: url(color/home.gif);
+	background-repeat: no-repeat !important;
+	width: 21px;
+	height: 21px;
+	vertical-align: middle;
+	display: inline-block;  /* pour respecter la largeur sous Moz */
+	cursor: pointer;
+}
+
+.ecwTitleButtonPrintIhm {
+	background-image: url(color/imprimer.gif);
+	background-repeat: no-repeat !important;
+	width: 21px;
+	height: 21px;
+	vertical-align: middle;
+	display: inline-block;  /* pour respecter la largeur sous Moz */
+	cursor: pointer;
+}
+
+.ecwTitleButtonBackIhm {
+	background-image: url(color/retour.gif);
+	background-repeat: no-repeat !important;
+	width: 21px;
+	height: 21px;
+	vertical-align: middle;
+	display: inline-block;  /* pour respecter la largeur sous Moz */
+	cursor: pointer;
+}
+
+
+.ecwBodyIhm {
+	font-size: 14px;
+	font-family: "Arial", "Liberation Sans";
+	margin: 0;
+	padding: 6 3 3 3;
+}
+
+.ecwActionIhm {
+    background-color: #CECFCE;
+	margin: 0px;
+	padding: 0px;
+}
+
+.ecwInfoIhm {
+	font-family: "Arial", "Liberation Sans";
+	font-size: 12px;
+	color: black;
+	white-space: nowrap;
+}
+
+.ecwInvisible { 
+	position: absolute;
+	left: -2000px;
+	height: 0px;
+}
+
+.ecwLabel {
+	background-color: transparent;
+	padding-bottom: 2px;
+	white-space: nowrap;
+}
+
+.ecwControlOver {
+	/* background-color: lightBlue; */
+	/* cursor: pointer; */
+}
+
+.ecwLabelActif {
+	color: black;
+}
+
+.ecwLabelOptionActif {
+	background-color: #FFDE5C;
+}
+
+.input_text {
+	border: 1px solid Silver;
+}
+
+.input_text_Readonly {
+	border: 1px solid Silver;
+	background-color: transparent;
+	color: gray
+}
+
+.input_text_Actif {
+	background-color: #FFDE5C;
+	border: 1px solid black ;
+}
+
+.input_text_Readonly_Actif {
+	background-color: #FFDE5C;
+	border: 1px solid black ;
+	opacity: 0.5;
+	filter: alpha(opacity=50); 	
+}
+
+.input_checkbox_Actif {
+/*	Compatibilite Mozilla, IE
+  background-color: #FFDE5C; 
+	border: 1px solid red; */
+}
+
+.input_radio_Actif {
+/*	Compatibilite Mozilla, IE
+	background-color: #FFDE5C;
+	border: 1px solid red; */
+}
+
+.input_submit_Actif {
+	background-color: #FFDE5C;
+}
+
+.input_reset_Actif {
+	background-color: #FFDE5C;
+}
+
+.input_file {
+	border: 1px solid Silver;
+}
+
+.input_file_Actif {
+	background-color: #FFDE5C;
+	border: 1px solid black ;
+}
+
+.input_image_Actif {
+	background-color: #FFDE5C;
+	border: 1px solid black ;
+}
+
+.input_password {
+	border: 1px solid Silver;
+}
+
+.input_password_Actif {
+	background-color: #FFDE5C;
+	border: 1px solid black ;
+}
+
+.input_button {
+	border-top: 1px outset #919191;
+	border-right: 1px outset #000000;
+	border-bottom: 1px outset #000000;
+	border-left: 1px outset #919191;
+	background-color: #E2E2E2;
+	margin-top: 1px;
+}
+
+.input_button_Actif {
+	background-color: #FFDE5C;
+}
+
+.input_Disabled {
+	background-color: transparent;
+	border: 1px solid Silver;
+}
+
+.button {
+	border-top: 1px outset #919191;
+	border-right: 1px outset #000000;
+	border-bottom: 1px outset #000000;
+	border-left: 1px outset #919191;
+	background-color: #E2E2E2;
+	margin-top: 1px;
+	color: black; /* bug fix IDVS-9046 ECW : Disabled action buttons look enabled when using Firefox 29*/
+}
+
+.buttonTextDisabled { /* bug fix IDVS-9046 ECW : Disabled action buttons look enabled when using Firefox 29*/
+	color: #6d6d6d;
+}
+
+.button_Actif {
+	background-color: #FFDE5C;
+}
+
+.a_Actif {
+	background-color: #FFDE5C;
+	color: #3F4672;
+}
+
+a.a_Actif:link {
+	color: #3F4672;
+}
+
+a.a_Actif:visited {
+	color: #3F4672;
+}
+
+a.a_Actif:hover {
+	color: black;
+}
+
+.textarea {
+	border: 1px solid Silver;
+}
+
+.textarea_Disabled {
+	background-color: transparent;
+	border: 1px solid Silver;
+}
+
+.textarea_Readonly {
+	border: 1px solid Silver;
+	background-color: transparent;
+	color: gray;
+}
+
+.textarea_Actif {
+	background-color: #FFDE5C;
+	border: 1px solid black ;
+}
+
+.textarea_Readonly_Actif {
+	background-color: #FFDE5C;
+	border: 1px solid black ;
+}
+
+.select_Actif {
+	background-color: #FFDE5C;
+}
+
+.select_Disabled {
+	background-color: #EFEFEF;
+}
+
+.iframe_Actif {
+	background-color: #FFDE5C;
+}
+
+.ecwTabFolder {
+	background-color: #E5E5E5;
+	border: 1px solid black;  /* = ecwTabLabelSelected top */
+	padding: 10px;
+	white-space: nowrap;
+}
+
+.ecwTabItem {
+}
+
+.ecwTabLabel, .ecwTabLabelSelected {
+	float: left;
+	position: relative;
+	top: 0px;   /* pour remettre normalement */
+
+	margin-right: 2px;
+	background-color: #E5E5E5;
+
+	border: 1px solid black; /* = ecwTabFolder border top */
+	border-bottom: 0px;
+
+	padding-left: 5px;
+	padding-right: 5px;
+	padding-top: 1px;
+	padding-bottom: 1px;
+	cursor: pointer;
+	
+	color: black;
+	font-family: "Arial", "Liberation Sans";
+	font-size: 14px;
+}
+
+.ecwTabLabelSelected {
+	top: 1px;  /* = ecwTabFolder border top */
+	margin-top: -1px;
+	padding-bottom: 2px;
+	background-color: #FFDE5C;
+}
+
+.ecwTabLabelActif {
+	top: 1px;  /* = ecwTabFolder border top */
+	margin-top: -1px;
+	padding-bottom: 2px;
+	border-top: 1px solid #FFDE5C; /* = ecwTabFolder border top */
+}
+
+.ecwTabLabelDisable {
+	top: 1px;  /* = ecwTabFolder border top */
+	margin-top: -1px;
+	padding-bottom: 1px;
+	border-top: 1px solid lightGrey; /* = ecwTabFolder border top */
+    border-left: 1px solid black;
+    border-right: 1px solid black;
+    border-bottom: 1px solid black;
+	color: gray;
+	cursor: auto;
+}
+
+.ecwTable {
+	border: 1px solid buttonface;
+	background-color: white;
+	border-left: 2px solid buttonface;	
+	box-sizing: border-box;
+	text-align: left;
+}
+
+.ecwTableV2 {
+	border: 1px solid buttonface;
+	background-color: white;
+	border-left: 2px solid buttonface;	
+	box-sizing: border-box;
+	text-align: left;
+}
+
+.ecwTableActive {
+	border-left: 2px solid #FFDE5C;
+}
+
+.ecwTableHead {
+	position: absolute;
+	overflow: hidden;
+}
+.ecwTableHead table {
+	background-color: #D5D6E4;
+}
+
+.ecwTable thead td {
+	color: black !important;
+	background-color: #D5D6E4 !important;
+	font-family: "Arial", "Liberation Sans";
+	font-size: 12px;
+	font-weight: bold;
+	text-align: center;
+	overflow: none;
+	cursor: default;
+	border-top: 1px solid #8C83C5;
+	border-left: 1px solid #8C83C5;
+	border-bottom: 1px solid #8C83C5;
+	border-right: 1px solid #8C83C5;
+	padding-left: 5px;
+	padding-right: 1px;
+	padding-top: 1px;
+	padding-bottom: 1px;
+	white-space: nowrap;
+	box-sizing: border-box;
+}
+
+.ecwTableV2 thead td {
+	color: black !important;
+	background-color: #D5D6E4 !important;
+	font-family: "Arial", "Liberation Sans";
+	font-size: 12px;
+	font-weight: bold;
+	text-align: center;
+	overflow: none;
+	cursor: default;
+	border-top: 1px solid #8C83C5;
+	border-left: 1px solid #8C83C5;
+	border-bottom: 1px solid #8C83C5;
+	border-right: 1px solid #8C83C5;
+	padding-left: 5px;
+	padding-right: 1px;
+	padding-top: 1px;
+	padding-bottom: 1px;
+	white-space: nowrap;
+	box-sizing: border-box;
+}
+
+.ecwTable thead th {
+	color: black !important;
+	background-color: #D5D6E4 !important;
+	font-family: "Arial", "Liberation Sans";
+	font-size: 12px;
+	font-weight: bold;
+	text-align: center;
+	overflow: none;
+	cursor: default;
+	border-top: 1px solid #8C83C5;
+	border-left: 1px solid #8C83C5;
+	border-bottom: 1px solid #8C83C5;
+	border-right: 1px solid #8C83C5;
+	padding-left: 5px;
+	padding-right: 1px;
+	padding-top: 1px;
+	padding-bottom: 1px;
+	white-space: nowrap;
+	box-sizing: border-box;
+}
+
+.ecwTableV2 thead th {
+	color: black !important;
+	background-color: #D5D6E4 !important;
+	font-family: "Arial", "Liberation Sans";
+	font-size: 12px;
+	font-weight: bold;
+	text-align: center;
+	overflow: none;
+	cursor: default;
+	border-top: 1px solid #8C83C5;
+	border-left: 1px solid #8C83C5;
+	border-bottom: 1px solid #8C83C5;
+	border-right: 1px solid #8C83C5;
+	padding-left: 5px;
+	padding-right: 1px;
+	padding-top: 1px;
+	padding-bottom: 1px;
+	white-space: nowrap;
+	box-sizing: border-box;
+}
+
+.ecwTableSortEncours {
+	border-top: 1px solid buttonshadow !important;
+	border-left: 1px solid buttonshadow !important;
+	border-bottom: 1px solid buttonhighlight !important;
+	border-right: 1px solid buttonhighlight !important;
+}
+
+.ecwTableSortable {
+	padding-right: 15px !important;
+	background-image: url(color/tri.gif);
+	background-repeat: no-repeat;
+  	background-position: right;
+}
+
+.ecwTableSortIncrease {
+	background-image: url(color/tri_croissant.gif);
+	background-repeat: no-repeat;
+  	background-position: right;
+}
+
+.ecwTableSortDecrease {
+	background-image: url(color/tri_decroissant.gif);
+	background-repeat: no-repeat;
+  	background-position: right;
+}
+
+.ecwTableEnteteOver {
+	cursor: pointer !important;
+	/* color: white !important; */
+}
+
+.ecwTableBody {
+	overflow: auto;
+}
+
+.ecwTable tbody tr {
+	cursor: pointer;
+}
+
+.ecwTableV2 tbody tr {
+	cursor: pointer;
+}
+
+.ecwTable tbody td {
+	font-family: "Arial", "Liberation Sans";
+	font-size: 14px;
+	border-right: 1px solid buttonface;
+	padding-left: 5px;
+	padding-right: 5px;
+	white-space: nowrap;
+	padding-top: 1px;
+	padding-bottom: 1px;
+	empty-cells: show;
+}
+
+.ecwTableV2 tbody td {
+	font-family: "Arial", "Liberation Sans";
+	font-size: 14px;
+	border-right: 1px solid buttonface;
+	padding-left: 5px;
+	padding-right: 5px;
+	white-space: nowrap;
+	padding-top: 1px;
+	padding-bottom: 1px;
+	empty-cells: show;
+}
+
+.ecwTable tbody td div {
+	/* Force la taille et la police dans les div inclue dans une td */
+	font-family: "Arial", "Liberation Sans";
+	font-size: 14px;
+}
+
+.ecwTable PRE {
+    margin: 0;
+}
+
+.ecwTableV2 tbody td div {
+	/* Force la taille et la police dans les div inclue dans une td */
+	font-family: "Arial", "Liberation Sans";
+	font-size: 14px;
+}
+
+.ecwTableV2 PRE {
+    margin: 0;
+}
+
+.ecwTableAlternateLine1 {
+	background-color: white;
+}
+
+.ecwTableAlternateLine2 {
+	background-color: #F2F2F2;
+}
+
+.ecwTableLineOver {
+	background-color: #FFDE5C;
+	box-sizing: border-box;
+}
+
+.ecwTableLineActive {
+	cursor: pointer;
+	background-color: #FFDE5C;
+	box-sizing: border-box;
+}
+
+.ecwTableLineMultiple {
+	border-left-color: blue;
+	border-left-style: solid;
+	border-left-width: 0px;
+	background-color: navy;
+	color: white;
+}
+
+.ecwTableLineSelect {
+	cursor: pointer;
+	background-color: lightGrey;
+	box-sizing: border-box;
+}
+
+.ecwTableLineSelect TD {
+	padding-left: 4px;
+	padding-right: 4px;
+	empty-cells: show;	
+	border-right: 1px solid silver;	
+	border-top-color: gray;
+	border-top-style: solid;
+	border-top-width: 0px;
+	border-bottom-color: gray;
+	border-bottom-style: solid;
+	border-bottom-width: 0px;	
+}
+
+.ecwTableAlternateLine2 .ecwTableListeAction tr td {
+	border-right: 1px solid #F2F2F2 !important;
+}
+
+.ecwTableLineOver .ecwTableListeAction tr td {
+	border-right: 1px solid #E5E5E5 !important;
+	padding-top: 0px !important; 
+	padding-bottom: 0px !important;
+}
+
+.ecwTableListeAction tr td {
+    border-right: 1px solid white;
+	padding-top: 0px !important; 
+	padding-bottom: 0px !important;
+	padding: 1px 1px;
+}
+
+.ecwTableLineActive .ecwTableListeAction tr td {
+    border-right: 1px solid #FFDE5C !important;
+	border-top: 1px !important; 
+	border-bottom: 1px !important;
+}
+
+.ecwTableLineSelect .ecwTableListeAction tr td {
+    border-right: 1px solid lightGrey !important;
+	padding-top: 0px !important; 
+	padding-bottom: 0px !important;
+}
+
+.ecwTableLineMultiple .ecwTableListeAction tr td {
+    border-right: 1px solid navy !important;
+	padding-top: 0px !important; 
+	padding-bottom: 0px !important;
+}
+
+.ecwTableLineEmpty {
+	cursor: default !important;
+}
+
+.ecwTableLineEmpty td {
+	background-color: white !important;
+    border-right: 1px solid white !important;
+    empty-cells: hide !important;
+}
+
+.ecwTableLineEmpty td div {
+    background-image: url() !important;
+    background-repeat: no-repeat !important;
+}
+
+.ecwTableTextSelectFiltre {
+	color: white;
+	background-color: red;
+	font-size: 14px;
+}
+
+.ecwTableStatus {
+	background-color: white;
+	border-top: 1px solid silver;
+}
+
+.ecwTableStatus table td {
+	color: black;
+	font-family: "Arial", "Liberation Sans";
+	font-size: 12px;
+	font-weight: bold;
+	border-bottom: 0px;
+	border-left: 0px;
+	border-right: 0px;
+}
+
+.ecwTablePagination td {
+	color: black;
+	font-family: "Arial", "Liberation Sans";
+	font-size: 12px;
+	font-weight: normal;
+	border-bottom: 0px;
+	border-left: 0px;
+	border-right: 0px;
+}
+
+.ecwTableNumerotation {
+	background-color: #EAE4E4;
+	color: #777777;
+	text-align: center;
+	overflow: none;
+	cursor: default;
+	font-weight: normal;
+	font-size: 11px !important;
+	
+	border-top-color: buttonFace !important;
+	border-top-style: solid !important;
+	border-top-width: 1px !important;
+	
+	border-bottom-color: #F2F2F2 !important;
+	border-bottom-style: solid !important;
+	border-bottom-width: 1px !important;
+	
+	padding-top: 0px !important; 
+	padding-bottom: 0px !important;
+}
+
+.ecwTableReorder {
+	/* background-color: lightblue;
+	border : solid 1px black; */
+}
+
+/* Boutons de deplacement des lignes dans une table */
+.ecwTableImgLineTop {
+	background-image: url(color/tout_en_haut.gif);
+	background-repeat: no-repeat;
+	width: 23px;
+	height: 23px;
+	margin-top: 0px;
+	margin-left: 6px;
+	margin-right: 0px;
+	vertical-align: middle;
+	display: inline-block; /* pour respecter la largeur sous Mozilla */
+	cursor: pointer;
+}
+
+.ecwTableImgLineUp {
+	background-image: url(color/en_haut.gif);
+	background-repeat: no-repeat;
+	width: 23px;
+	height: 23px;
+	margin-top: 0px;
+	margin-left: 6px;
+	margin-right: 0px;
+	vertical-align: middle;
+	display: inline-block; /* pour respecter la largeur sous Mozilla */
+	cursor: pointer;
+}
+
+.ecwTableImgLineDown {
+	background-image: url(color/en_bas.gif);
+	background-repeat: no-repeat;
+	width: 23px;
+	height: 23px;
+	margin-top: 0px;
+	margin-left: 6px;
+	margin-right: 0px;
+	vertical-align: middle;
+	display: inline-block; /* pour respecter la largeur sous Mozilla */
+	cursor: pointer;
+}
+
+.ecwTableImgLineBottom {
+	background-image: url(color/tout_en_bas.gif);
+	background-repeat: no-repeat;
+	width: 23px;
+	height: 23px;
+	margin-top: 0px;
+	margin-left: 6px;
+	margin-right: 0px;
+	vertical-align: middle;
+	display: inline-block; /* pour respecter la largeur sous Mozilla */
+	cursor: pointer;
+}
+
+.ecwTableAddAllLine {
+	background-image: url(color/avance_rapide.gif);
+	background-repeat: no-repeat;
+	width: 23px;
+	height: 23px;
+	margin-top: 0px;
+	margin-left: 6px;
+	margin-right: 0px;
+	vertical-align: middle;
+	display: inline-block; /* pour respecter la largeur sous Mozilla */
+	cursor: pointer;
+}
+
+.ecwTableAddLine {
+	background-image: url(color/suivant.gif);
+	background-repeat: no-repeat;
+	width: 23px;
+	height: 23px;
+	margin-top: 0px;
+	margin-left: 6px;
+	margin-right: 0px;
+	vertical-align: middle;
+	display: inline-block; /* pour respecter la largeur sous Mozilla */
+	cursor: pointer;
+}
+
+.ecwTableRemoveLine {
+	background-image: url(color/precedent.gif);
+	background-repeat: no-repeat;
+	width: 23px;
+	height: 23px;
+	margin-top: 0px;
+	margin-left: 6px;
+	margin-right: 0px;
+	vertical-align: middle;
+	display: inline-block; /* pour respecter la largeur sous Mozilla */
+	cursor: pointer;
+}
+
+.ecwTableRemoveAllLine {
+	background-image: url(color/retour_rapide.gif);
+	background-repeat: no-repeat;
+	width: 23px;
+	height: 23px;
+	margin-top: 0px;
+	margin-left: 6px;
+	margin-right: 0px;
+	vertical-align: middle;
+	display: inline-block; /* pour respecter la largeur sous Mozilla */
+	cursor: pointer;
+}
+
+.ecwTableArrowTopBottom {
+    background-image: url(arrow_top_bottom.gif);
+    background-repeat: no-repeat;
+    width: 60px;
+    height: 20px;
+    margin-top: 0px;
+    margin-left: 0px;
+    margin-right: 0px;
+    vertical-align: middle;
+    display: inline-block; /* pour respecter la largeur sous Mozilla */
+}
+
+.ecwTableArrowBottomTop {
+    background-image: url(arrow_bottom_top.gif);
+    background-repeat: no-repeat;
+    width: 60px;
+    height: 20px;
+    margin-top: 0px;
+    margin-left: 0px;
+    margin-right: 0px;
+    vertical-align: middle;
+    display: inline-block; /* pour respecter la largeur sous Mozilla */
+}
+
+.ecwTablePreviousPage {
+	background-image: url(color/lecture_arriere.gif);
+	background-repeat: no-repeat !important;
+	width: 21px;
+	height: 21px;
+	margin-left: 5px;
+	margin-right: 5px;
+	vertical-align: middle;
+	display: inline-block;  /* pour respecter la largeur sous Mozilla */
+	cursor: pointer;
+}
+
+.ecwTableNextPage {
+	background-image: url(color/lecture_avant.gif);
+	background-repeat: no-repeat !important;
+	width: 21px;
+	height: 21px;
+	margin-left: 5px;
+	margin-right: 5px;
+	vertical-align: middle;
+	display: inline-block;  /* pour respecter la largeur sous Mozilla */
+	cursor: pointer;
+}
+
+.ecwTableFirstPage {
+	background-image: url(color/debut_lecture.gif);
+	background-repeat: no-repeat !important;
+	width: 21px;
+	height: 21px;
+	margin-left: 5px;
+	margin-right: 5px;
+	vertical-align: middle;
+	display: inline-block;  /* pour respecter la largeur sous Mozilla */
+	cursor: pointer;
+}
+
+.ecwTableLastPage {
+	background-image: url(color/fin_lecture.gif);
+	background-repeat: no-repeat !important;
+	width: 21px;
+	height: 21px;
+	margin-left: 5px;
+	margin-right: 5px;
+	vertical-align: middle;
+	display: inline-block;  /* pour respecter la largeur sous Mozilla */
+	cursor: pointer;
+}
+
+.ecwTableGoToPage {
+	background-image: url(color/valider.gif);
+	background-repeat: no-repeat !important;
+	width: 21px;
+	height: 21px;
+	margin-left: 5px;
+	margin-right: 5px;
+	vertical-align: middle;
+	display: inline-block;  /* pour respecter la largeur sous Mozilla */
+	cursor: pointer;
+}
+
+.ecwTableNone {
+}
+
+.ecwComboBox {
+	display: table-cell; /* pour Mozilla */
+  	white-space: nowrap;
+}
+
+.ecwComboBox .input_text_Readonly {
+	background-color: white;
+}
+
+.ecwComboBox .input_text_Readonly_Actif {
+	background-color: #FFDE5C;
+	opacity: 1;
+}
+
+.ecwComboBox .ecwTable {
+	position: absolute;
+}
+
+.ecwComboBox .ecwTableV2 {
+	position: absolute;
+}
+
+.ecwImageComboBox {
+	background-image: url(color/aide_a_la_saisie.gif);
+	background-repeat: no-repeat !important;
+	width: 21px;
+	height: 21px;
+	margin-top: -2px;
+	margin-left: 5px;
+	margin-right: 5px;
+	vertical-align: middle;
+	display: inline-block;  /* pour respecter la largeur sous Mozilla */
+	cursor: pointer;
+}
+
+.ecwImageCalendar {
+	background-image: url(color/calendrier.gif);
+	background-repeat: no-repeat !important;
+	width: 21px;
+	height: 21px;
+	margin-top:-2px;
+	margin-left:5px;
+	margin-right:5px;
+	vertical-align: middle;
+	display: inline-block;  /* pour respecter la largeur sous Mozilla */
+	cursor: pointer;
+}
+
+.ecwImageDisable {
+	filter: alpha(opacity=50);
+	opacity: .5;	
+}
+
+#EcwMessageBar {
+	font-size: 12px;
+	font-family: "Arial", "Liberation Sans";
+	position: fixed;
+	_position: absolute;  /* pour IE */
+	bottom: 0px;
+	_top: expression(eval(document.body.scrollTop+(document.body.clientHeight-this.clientHeight)));  /* pour IE */
+	right: 0px;
+	width: 110%;
+	padding-top: 3px;
+	padding-bottom: 3px;
+	z-index: 502; /* dessus les popups */
+}
+
+/* Style uniquement pour IE (pas d'IFRAME sous Firefox)*/
+#EcwMessageIFrame {
+	position: absolute;
+	top: expression(eval(document.body.scrollTop+(document.body.clientHeight-this.clientHeight)));
+	right: 0px;
+	width: 110%;
+	height: 21px;
+	border: 0px;
+	z-index: 501; /* dessus les popups */
+}
+
+.EcwMessageBarO {
+	text-align: center;
+	background-color: white;  
+	color: black;
+	font-weight: bold;
+}
+
+.EcwMessageBarI {
+	text-align: center;
+	background-color: green;  
+	color: white;
+	font-weight: bold;
+}
+
+.EcwMessageBarE {
+	text-align: center;
+	background-color: red;  
+	color: white;
+	font-weight: bold;
+}
+
+.EcwMessageBarW {
+	text-align: center;
+	background-color: orange;  
+	color: white;
+	font-weight: bold;
+}
+
+#EcwHelpContext {
+	font-size: 12px;
+	font-family: "Arial", "Liberation Sans";
+	text-align: center;
+	background-color: #D5D6E4;
+	position: fixed;
+	_position: absolute;  /* pour IE */
+	bottom: 20px;
+	_top: expression(eval(document.body.scrollTop+(document.body.clientHeight-this.clientHeight)-23));  /* pour IE */
+	right: 0px;
+	width: 110%;
+	padding-top: 3px;
+	padding-bottom: 3px;
+	border: 1px solid black;
+	z-index: 502; /* dessus les popups */	
+}
+
+/* Style uniquement pour IE (pas d'IFRAME sous Firefox)*/
+#EcwHelpIFrame {
+	position: absolute;
+	top: expression(eval(document.body.scrollTop+(document.body.clientHeight-this.clientHeight)-21));
+	right: 0px;
+	width: 110%;
+	height: 23px;
+	border: 0px;
+	z-index: 501; /* dessus les popups */
+}
+		
+div.suggestionList {
+	z-index: 500;
+	position: absolute;
+}
+
+div.suggestionList table {
+	border: 0px solid #333333; 
+	background-color: #ffffff; 
+	font-family: Lucida Console;
+	font-size: 11px; 
+	cursor: default;
+	border-spacing: 0px;
+	border-collapse: collapse;
+} 
+
+tr.suggestionList_element_on {
+	background-color: blue; 
+	color: white;
+}
+
+tr.suggestionList_element_off {
+	background-color: #ffffff;
+}
+
+#EcwUnderLay {
+	position: absolute;
+	width: 110%;
+	height: 110%;
+	cursor: wait;
+	bottom: 0;
+	right: 0;
+	z-index: 500; /* dessus les popups */
+	background: white;
+	filter: alpha(opacity=50);
+	opacity: .5;	
+}
+	
+#EcwMsgBox {
+	font-family: "Arial", "Liberation Sans";
+	font-size: 12px;
+	opacity: 1.0;
+	filter: alpha(opacity=100);   
+	cursor: default;
+	background-color: #EFEFEF;
+	border-top: 1px solid black;
+	border-left: 1px solid black;
+	border-bottom: 1px solid black;
+	border-right: 1px solid black;
+	position: absolute;
+	z-index: 501; /* dessus les popups */
+}
+
+#EcwMsgBoxTitle {
+	text-align: left;
+	font-weight: bold;
+	background-color: #3F4672;
+	color: white;
+	margin: 0px;
+	padding: 3px;
+}   
+   
+#EcwMsgBox .W {
+	/* background-color: orange !important; */
+	background-color: #3F4672;
+}      
+
+#EcwMsgBox .E {
+	/* background-color: red !important; */
+	background-color: #3F4672;
+}   
+
+#EcwMsgBox .I {
+	/* background-color: green !important; */
+	background-color: #3F4672;
+}   
+
+#EcwMsgBoxMessage {
+	padding: 15 10 5 10;
+	text-align: left;
+	padding-left: 60;
+	background-repeat: no-repeat;
+	background-position: left;
+}
+
+.attention {
+	background-image: url(attention.gif);
+}
+
+.question {
+	background-image: url(question.gif);
+}
+     
+#EcwMsgBoxButtons {
+	text-align: right;
+	padding: 10;
+}      
+
+.EcwMsgBoxButton {
+	font-weight: bold;
+	cursor: default;
+	padding-left: 2;
+	padding-right: 2;
+	margin-left: 10;
+}
+
+.ecwButtonGroup {
+
+}
+
+.ecwButton {
+	font-weight: bold;
+	font-size: 12px;
+	cursor: default;
+	_width: 100%; /* pour IE, et FireFox 1.5 */
+	padding-left: 2;
+	padding-right: 2;
+}
+
+.ecwButtonImg {
+	border : 0;
+	font-size: 10px;
+	font-weight: bold;
+	color : #5E6A46;
+	cursor: default;
+	_width: 100%; /* pour IE, et FireFox 1.5 */
+	padding-left: 2;
+	padding-right: 2;
+	background-color : transparent;
+}
+
+.ecwButtonTexteOver {
+    text-decoration: underline;
+}
+
+.ecwIcone, .ecwButtonNoIcon, .ecwConsult, .ecwAdd, .ecwModify, .ecwDelete, .ecwValidate, .ecwCancel,
+.ecwHelp, .ecwPrint, .ecwRefresh, .ecwReset, .ecwDuplicate, .ecwUp, .ecwDown,
+.ecwPrevious, .ecwNext, .ecwDetail, .ecwCondense, .ecwSave, .ecwExport, .ecwSearch,
+.ecwSecurity, .ecwWarning, .ecwInformation, .ecwCalculate, .ecwZoom, .ecwCopy, .ecwPaste,
+.ecwCut, .ecwConfigure, .ecwEmail, .ecwGraph, .ecwWord, .ecwPdf,
+.ecwAddUser, .ecwColor, .ecwPcinfo, .ecwImage, .ecwTransaction,
+.ecwBack, .ecwTop, .ecwBottom, .ecwFirstPage, .ecwPreviousPage, .ecwNextPage, .ecwLastPage,
+.ecwRewind, .ecwForward, .ecwEmpty, .ecwMove, .ecwAddScan, .ecwRemoveScan{
+	vertical-align: middle;
+	display: inline-block;  /* pour respecter la largeur sous Moz */
+	height: 20px;
+	background-repeat: no-repeat;
+    padding-left: 23px;
+}
+
+.ecwButtonNoIcon {
+    padding-left: 0px;
+}
+
+/* Styles du ButtonGroup */
+.ecwMove {
+	background-image: url(color/deplacer.gif);
+}
+
+.ecwConsult {
+	background-image: url(color/visualiser.gif);
+}
+
+.ecwAdd {
+	background-image: url(color/nouveau_creer.gif);
+}
+
+.ecwModify {
+	background-image: url(color/saisie_modifier.gif);
+}
+
+.ecwDelete {
+	background-image: url(color/supprimer.gif);
+}
+
+.ecwValidate {
+	background-image: url(color/valider.gif);
+}
+
+.ecwCancel {
+	background-image: url(color/annuler.gif);
+}
+
+.ecwHelp {
+	background-image: url(color/aide.gif);
+}
+
+.ecwPrint {
+	background-image: url(color/imprimer.gif);
+}
+
+.ecwRefresh {
+	background-image: url(color/rafraichir.gif);
+}
+
+.ecwReset {
+	background-image: url(color/remise_a_zero.gif);
+}
+
+.ecwDuplicate {
+	background-image: url(color/dupliquer.gif);
+}
+
+.ecwUp {
+	background-image: url(color/en_haut.gif);
+}
+
+.ecwDown {
+	background-image: url(color/en_bas.gif);
+}
+
+.ecwPrevious {
+	background-image: url(color/precedent.gif);
+}
+
+.ecwNext {
+	background-image: url(color/suivant.gif);
+}
+
+.ecwDetail {
+	background-image: url(color/developper.gif);
+}
+
+.ecwCondense {
+	background-image: url(color/reduire.gif);
+}
+
+.ecwSave {
+	background-image: url(color/enregistrer.gif);
+}
+
+.ecwExport {
+	background-image: url(color/excel.gif);
+}
+
+.ecwSearch {
+	background-image: url(color/rechercher.gif);
+}
+
+.ecwSecurity {
+	background-image: url(color/acces_restreint.gif);
+}
+
+.ecwWarning {
+	background-image: url(color/alerte.gif);
+}
+
+.ecwInformation {
+	background-image: url(color/information.gif);
+}
+
+.ecwCalculate {
+	background-image: url(color/calculatrice.gif);
+}
+
+.ecwZoom {
+	background-image: url(color/zoomer.gif);
+}
+
+.ecwCopy {
+	background-image: url(color/copier.gif);
+}
+
+.ecwPaste {
+	background-image: url(color/coller.gif);
+}
+
+.ecwCut {
+	background-image: url(color/couper.gif);
+}
+
+.ecwConfigure {
+	background-image: url(color/outils.gif);
+}
+
+.ecwEmail {
+	background-image: url(color/email.gif);
+}
+
+.ecwGraph {
+	background-image: url(color/graphique.gif);
+}
+
+.ecwWord {
+	background-image: url(color/word.gif);
+}
+
+.ecwPdf {
+	background-image: url(color/pdf.gif);
+}
+
+.ecwAddUser {
+	background-image: url(color/ajout_personne.gif);
+}
+
+.ecwColor {
+	background-image: url(color/couleurs.gif);
+}
+
+.ecwPcinfo {
+	background-image: url(color/fiche_descriptive_pcinfo.gif);
+}
+
+.ecwImage {
+	background-image: url(color/image.gif);
+}
+
+.ecwTransaction {
+	background-image: url(color/home.gif);
+}
+
+.ecwBack {
+	background-image: url(color/retour.gif);
+}
+
+.ecwTop {
+	background-image: url(color/tout_en_haut.gif);
+}
+
+.ecwBottom {
+	background-image: url(color/tout_en_bas.gif);
+}
+
+.ecwFirstPage {
+	background-image: url(color/debut_lecture.gif);
+}
+
+.ecwPreviousPage {
+	background-image: url(color/lecture_arriere.gif);
+}
+
+.ecwNextPage {
+	background-image: url(color/lecture_avant.gif);
+}
+
+.ecwLastPage {
+	background-image: url(color/fin_lecture.gif);
+}
+
+.ecwRewind {
+	background-image: url(color/retour_rapide.gif);
+}
+
+.ecwForward {
+	background-image: url(color/avance_rapide.gif);
+}
+
+.ecwEmpty {
+	background-image: url(color/transparent.gif);
+}
+
+.ecwAddScan {
+    background-image: url(color/developper.gif);
+}
+
+.ecwRemoveScan {
+    background-image: url(color/reduire.gif);
+}
+
+#sablier {
+	position: absolute;
+	width: 103%;
+	height: 101%;
+	cursor: default;
+	z-index: 99;
+	background-color: white;
+	margin-left: -14px;
+	margin-top: -14px;
+}
+
+#sablier TABLE {
+	margin-top: 80px;
+}
+
+#sablier .image {
+	width: 70px;
+	height: 90px;
+	background-image: url(sablier.gif);
+	background-position: center top;
+	background-repeat: no-repeat;
+}
+
+#sablier .message {
+	color: #848484;
+	font-weight: bold;
+}
+
+.ecwLabelEmpty {
+	background-repeat: no-repeat;
+	width: 16px;
+	height: 16px;
+  	vertical-align: middle;
+	display: inline-block;  /* pour respecter la largeur sous Moz*/
+	margin-left: 4px;
+}
+
+
+.ecwLabelPictoInvalid {
+	/* background-image: url(invalid.gif); */
+	background-image: url(champ_invalid.gif);
+	margin-left: 4px;
+}
+
+.ecwLabelPictoValid {
+	/* background-image: url(valid.gif); */
+	background-image: url(champ_valid.gif);
+	margin-left: 4px;
+}
+
+.ecwLabelInvalid {
+	color: red;
+}
+
+.ecwLabelValid {
+	color: black;
+}
+
+.ecwInputRequired {
+	/* border: 1px solid red; */
+}
+
+.ecwLabelRequired {
+	vertical-align: middle;
+	background-position: right center;
+	background-repeat: no-repeat;
+	background-image: url(required.gif);  
+	padding-right: 15;
+}
+
+.ecwUpperCase {
+	text-transform: uppercase;
+}
+
+.ecwLowerCase {
+	text-transform: lowercase;
+}
+
+.ecwHelpContent {
+	color: gray;
+	text-transform: none;
+}
+
+.ecwInputValid {
+	border: 1px solid green;
+}
+
+.ecwInputInvalid {
+	border: 1px solid red;
+}
+
+/* STYLE POUR LES ACCESSKEY */
+
+/* touche affectee par defaut */
+.ecwAccesskey {
+	text-decoration: underline;
+}
+/* touche apres alt appuye */
+.ecwAccesskeyShow {
+	color: green;
+}
+
+.ecwSeparator {
+	background-color: #5E6A46;
+	width: 2px;
+	height: 20px;
+	background-image: url(separator.gif);  
+	margin-left: 5px;
+	margin-right: 5px;
+}
+
+.ecwEspacor {
+	height: 20px;
+	background-image: url(espaceur.gif);
+	background-repeat : repeat;
+}
+
+#EcwHelpPopup {
+	font-family: "Arial", "Liberation Sans";
+	font-size: 12px;
+	opacity: 1.0;
+	filter: alpha(opacity=100);   
+	cursor: default;
+	background-color: #FFFCEF;
+	border-top: 1px solid black;
+	border-left: 1px solid black;
+	border-bottom: 1px solid black;
+	border-right: 1px solid black;
+	position: absolute;
+	z-index: 502;
+}
+
+#EcwPopupTitle {
+	text-align: left;
+	font-weight: bold;
+	background-color: #3F4672;
+	color: white;
+	margin: 2px;
+	padding: 3px;
+}   
+   
+#EcwPopupPage {
+	border: 1px solid black;
+	margin: 10;
+	padding: 10;
+	text-align: left;
+	background-repeat: no-repeat;
+	background-position: left;
+}
+
+#EcwPopupButtons {
+	text-align: right;
+	padding: 10;
+}      
+
+.EcwPopupButton {
+	font-weight: bold;
+	cursor: default;
+	padding-left: 2;
+	padding-right: 2;
+	margin-left: 10;
+}
+
+
+/* ComboBox Ajax */
+.ecwImageComboBoxLoad {
+	background-image: url(aide_a_la_saisie_load.gif);
+	background-repeat: no-repeat !important;
+	width: 21px;
+	height: 21px;
+	margin-top: -2px;
+	margin-left: 5px;
+	margin-right: 5px;
+	vertical-align: middle;
+	display: inline-block;  /* pour respecter la largeur sous Mozilla */
+}
+
+.ecwImageComboPreviousPage {
+	background-image: url(color/precedent.gif);
+	background-repeat: no-repeat !important;
+	width: 21px;
+	height: 21px;
+	margin-left: 5px;
+	margin-right: 5px;
+	vertical-align: middle;
+	display: inline-block;  /* pour respecter la largeur sous Mozilla */
+	cursor: pointer;
+}
+
+.ecwImageComboNextPage {
+	background-image: url(color/suivant.gif);
+	background-repeat: no-repeat !important;
+	width: 21px;
+	height: 21px;
+	margin-left: 5px;
+	margin-right: 5px;
+	vertical-align: middle;
+	display: inline-block;  /* pour respecter la largeur sous Mozilla */
+	cursor: pointer;
+}
+
+.ecwImageDocument {
+	background-image: url(document.gif);
+	background-repeat: no-repeat !important;
+	width: 16px;
+	height: 16px;
+	padding-left: 18px !important;
+	white-space: nowrap;
+}
+
+/* Liste style TreeView */
+.ecwTreeView {
+	border-right: 2px inset;
+	border-left: 2px inset;
+	border-top: 2px inset;
+	border-bottom: 2px inset;
+	background-color: #EFEFEF;
+	font-size: 14px;
+	font-weight: normal;
+	overflow: auto;
+}
+
+.ecwTreeView li {
+    cursor: pointer;
+	padding: 0px;
+	margin: 0px;
+	list-style-type: none;
+	text-align:left;
+}
+
+.ecwTreeView li TABLE{
+    cursor: pointer;
+}
+
+.ecwTreeViewList {
+	background-color: #EFEFEF;
+	margin: 0px;
+	padding: 0px;
+}
+
+.ecwTreeViewList ul {
+	margin-right: 0px;
+	margin-left: 12px;
+	margin-bottom: 0px;
+	margin-top: 0px;
+	padding: 0px;
+	list-style-type: square;
+}
+
+.ecwTreeViewList a {
+	text-decoration: none;
+	color: black;
+}
+
+.ecwTreeview_parent_close {
+	background-position: 0px 50%;
+	background-repeat: no-repeat;
+	background-image: url(treeview_plus.gif);
+}
+
+.ecwTreeview_parent_open {
+	background-image: url(treeview_minus.gif);
+	background-position: 0px 50%;
+	background-repeat: no-repeat;
+}
+
+.ecwTreeview_child {
+	background-image: url(treeview_ligne.gif);
+	background-position: 0px 50%;
+	background-repeat: no-repeat;
+}
+
+.ecwTreeview_label {
+	white-space: normal;
+	margin : 0px 0px 0px 18px;
+}
+
+.ecwTreeView TABLE {
+	font-family:"Arial","Liberation Sans";
+	font-size:14px;
+	font-weight:normal;
+}
+
+.ecwTreeView SPAN {
+	padding-right: 0px;
+	padding-left: 18px;
+	padding-bottom: 0px;
+	padding-top: 0px;
+	margin: 0px;
+	display: block;
+}
+
+.ecwTreeview_child_value {
+    display: block;
+}
+
+.ecwTreeViewLineActive {
+	color: black !important;
+	background-color: #FFDE5C !important;
+}
+
+.ecwTreeViewLineSelect {
+	background-color: lightGrey !important;
+}
+
+.ecwTreeViewLineMultiple {
+	color: white !important;
+	background-color: navy !important;
+}
+
+.ecwTreeViewLineOver {
+	color: black !important;
+	background-color: #FFDE5C !important;
+}
+
+.ecwTreeViewOld {
+	border-right: 2px inset;
+	border-left: 2px inset;
+	border-top: 2px inset;
+	border-bottom: 2px inset;
+	background-color: #EFEFEF;
+	font-size: 14px;
+	font-weight: normal;
+}
+
+.ecwTreeViewScrollOld {
+	overflow: auto;
+}
+
+.ecwTreeViewOld li {
+	padding: 0px;
+	margin: 0px;
+	list-style-type: none;
+}
+
+.ecwTreeViewOld SPAN {
+	padding-right: 0px;
+	padding-left: 18px;
+	padding-bottom: 0px;
+	padding-top: 0px;
+	margin: 0px;
+	display: block;
+}
+
+.ecwTreeviewOld_parent {
+	background-position: 0px 50%;
+	background-repeat: no-repeat;
+	background-image: url(treeview_plus.gif);
+}
+
+.ecwTreeviewOld_parent_actif {
+	background-image: url(treeview_minus.gif);
+	background-position: 0px 50%;
+	background-repeat: no-repeat;
+}
+
+.ecwTreeviewOld_child {
+	background-image: url(treeview_ligne.gif);
+	background-position: 0px 50%;
+	background-repeat: no-repeat;
+}
+
+.ecwMenu {
+	position: absolute;
+	text-align: left;
+	background: buttonface;
+	background-color: #E2E2E2;
+	padding: 2px;
+	border-top: 1px outset #919191;
+	border-right: 1px outset #000000;
+	border-bottom: 1px outset #000000;
+	border-left: 1px outset #919191;
+	cursor: pointer;
+	z-index: 100;
+	left: -1000px; /* pour eviter de voir le menu au chargement */
+	font-size: 14px;
+}
+
+.ecwMenu hr {
+	width: auto;
+}
+
+.ecwMenu .ecwMenuItem {
+	display: block;
+	padding: 2px;
+	padding-left: 23px;
+	padding-right: 20px;
+	white-space: nowrap;
+}
+
+.ecwMenu .ecwMenuItem.ecwMenuSelected {
+	background-color: #FFDE5C;
+}
+
+.ecwMenu .ecwMenuItem.ecwMenuDisabled {
+	color: #AAAAAA;
+}
+
+.ecwMenu .ecwMenuSeparator {
+	border-top: 1px solid #AAAAAA;
+	margin-top: 4px;
+	margin-bottom: 4px;
+}
+
+.ecwIconeMenu, .ecwMenuConsult, .ecwMenuAdd, .ecwMenuModify, .ecwMenuDelete, .ecwMenuValidate, .ecwMenuCancel,
+.ecwMenuHelp, .ecwMenuPrint, .ecwMenuRefresh, .ecwMenuReset, .ecwMenuDuplicate, .ecwMenuUp, .ecwMenuDown,
+.ecwMenuPrevious, .ecwMenuNext, .ecwMenuDetail, .ecwMenuCondense, .ecwMenuSave, .ecwMenuExport, .ecwMenuSearch,
+.ecwMenuSecurity, .ecwMenuWarning, .ecwMenuInformation, .ecwMenuCalculate, .ecwMenuZoom, .ecwMenuCopy, .ecwMenuPaste,
+.ecwMenuCut, .ecwMenuConfigure, .ecwMenuEmail, .ecwMenuGraph, .ecwMenuWord, .ecwMenuPdf,
+.ecwMenuAddUser, .ecwMenuColor, .ecwMenuPcinfo, .ecwMenuImage, .ecwMenuTransaction,
+.ecwMenuBack, .ecwMenuTop, .ecwMenuBottom, .ecwMenuFirstPage, .ecwMenuPreviousPage, .ecwMenuNextPage, .ecwMenuLastPage,
+.ecwMenuRewind, .ecwMenuForward {
+	background-position: 0px;
+	background-repeat: no-repeat;
+    padding-left: 23px;
+}
+
+.ecwMenuConsult {
+    background-image: url(color/visualiser.gif);
+}
+
+.ecwMenuAdd {
+    background-image: url(color/nouveau_creer.gif);
+}
+
+.ecwMenuModify {
+    background-image: url(color/saisie_modifier.gif);
+}
+
+.ecwMenuDelete {
+    background-image: url(color/supprimer.gif);
+}
+
+.ecwMenuValidate {
+    background-image: url(color/valider.gif);
+}
+
+.ecwMenuCancel {
+    background-image: url(color/annuler.gif);
+}
+
+.ecwMenuHelp {
+    background-image: url(color/aide.gif);
+}
+
+.ecwMenuPrint {
+    background-image: url(color/imprimer.gif);
+}
+
+.ecwMenuRefresh {
+    background-image: url(color/rafraichir.gif);
+}
+
+.ecwMenuReset {
+    background-image: url(color/remise_a_zero.gif);
+}
+
+.ecwMenuDuplicate {
+    background-image: url(color/dupliquer.gif);
+}
+
+.ecwMenuUp {
+    background-image: url(color/en_haut.gif);
+}
+
+.ecwMenuDown {
+    background-image: url(color/en_bas.gif);
+}
+
+.ecwMenuPrevious {
+    background-image: url(color/precedent.gif);
+}
+
+.ecwMenuNext {
+    background-image: url(color/suivant.gif);
+}
+
+.ecwMenuDetail {
+    background-image: url(color/developper.gif);
+}
+
+.ecwMenuCondense {
+    background-image: url(color/reduire.gif);
+}
+
+.ecwMenuSave {
+    background-image: url(color/enregistrer.gif);
+}
+
+.ecwMenuExport {
+    background-image: url(color/excel.gif);
+}
+
+.ecwMenuSearch {
+    background-image: url(color/rechercher.gif);
+}
+
+.ecwMenuSecurity {
+    background-image: url(color/acces_restreint.gif);
+}
+
+.ecwMenuWarning {
+    background-image: url(color/alerte.gif);
+}
+
+.ecwMenuInformation {
+    background-image: url(color/information.gif);
+}
+
+.ecwMenuCalculate {
+    background-image: url(color/calculatrice.gif);
+}
+
+.ecwMenuZoom {
+    background-image: url(color/zoomer.gif);
+}
+
+.ecwMenuCopy {
+    background-image: url(color/copier.gif);
+}
+
+.ecwMenuPaste {
+    background-image: url(color/coller.gif);
+}
+
+.ecwMenuCut {
+    background-image: url(color/couper.gif);
+}
+
+.ecwMenuConfigure {
+    background-image: url(color/outils.gif);
+}
+
+.ecwMenuEmail {
+    background-image: url(color/email.gif);
+}
+
+.ecwMenuGraph {
+    background-image: url(color/graphique.gif);
+}
+
+.ecwMenuWord {
+    background-image: url(color/word.gif);
+}
+
+.ecwMenuPdf {
+    background-image: url(color/pdf.gif);
+}
+
+.ecwMenuAddUser {
+    background-image: url(color/ajout_personne.gif);
+}
+
+.ecwMenuColor {
+    background-image: url(color/couleurs.gif);
+}
+
+.ecwMenuPcinfo {
+    background-image: url(color/fiche_descriptive_pcinfo.gif);
+}
+
+.ecwMenuImage {
+    background-image: url(color/image.gif);
+}
+
+.ecwMenuTransaction {
+    background-image: url(color/home.gif);
+}
+
+.ecwMenuBack {
+    background-image: url(color/retour.gif);
+}
+
+.ecwMenuTop {
+    background-image: url(color/tout_en_haut.gif);
+}
+
+.ecwMenuBottom {
+    background-image: url(color/tout_en_bas.gif);
+}
+
+.ecwMenuFirstPage {
+    background-image: url(color/debut_lecture.gif);
+}
+
+.ecwMenuPreviousPage {
+    background-image: url(color/lecture_arriere.gif);
+}
+
+.ecwMenuNextPage {
+    background-image: url(color/lecture_avant.gif);
+}
+
+.ecwMenuLastPage {
+    background-image: url(color/fin_lecture.gif);
+}
+
+.ecwMenuRewind {
+    background-image: url(color/retour_rapide.gif);
+}
+
+.ecwMenuForward {
+    background-image: url(color/avance_rapide.gif);
+}
+
+.ecwButtonMenu  {  
+	padding-right: 14px !important;
+	background-position: right center;
+	background-repeat: no-repeat;
+	background-image: url(actions.gif);
+}
+
+.ecwCalendar {
+	display: table-cell; /* pour Mozilla */
+  	white-space: nowrap;
+}
+
+/*
+ * CSS des popups
+ */
+
+/* les marges IE et mozilla ne sont pas les memes pour les FORM */
+FORM {
+	margin:0;  
+}
+
+.ecwUnderLayPopup, .ecwUnderLayPopupWait {
+	cursor:not-allowed;
+	position: absolute;
+	width: 110%;
+	height: 110%;
+	cursor: wait;
+	bottom: 0;
+	right: 0;
+	z-index: 98;
+	background: white;
+	filter: alpha(opacity=50);
+	opacity: .5;	
+}
+
+.ecwUnderLayPopupFullScreen {
+	cursor:default;
+	position: absolute;
+	width: 110%;
+	height: 110%;
+	bottom: 0;
+	right: 0;
+	z-index: 98;
+	background: white;
+}
+
+.ecwUnderLayPopupWait {	
+	background-image: url(sablier.gif);
+	background-position:center center;
+	background-repeat:no-repeat;
+}
+
+#ecwLoadingPopup {
+	border :1px solid red;
+	padding:3px;
+	position:absolute;
+	right:10;
+	top:35;
+	z-index:500;
+	background-color:white;
+}
+#ecwLoadingPopup div.text {
+	color:red;
+}
+#ecwLoadingPopup div.wait {
+	width:16px;
+	height:16px;
+	background-image:url(loading.gif);
+}
+
+.ecwAlertIcon {
+	width:50px;
+	height:40px;
+	background-image:url(alert.gif);
+	background-repeat:no-repeat; 
+}
+.ecwConfirmIcon {
+	width:50px;
+	height:48px;
+	background-image:url(question.gif);
+	background-repeat:no-repeat; 
+}
+.ecwINFOIcon {
+	width:50px;
+	height:40px;
+	background-image:url(info.gif);
+	background-repeat:no-repeat; 
+}
+.ecwWARNIcon {
+	width:50px;
+	height:40px;
+	background-image:url(warn.gif);
+	background-repeat:no-repeat; 
+}
+.ecwERRORIcon {
+	width:50px;
+	height:40px;
+	background-image:url(error.gif);
+	background-repeat:no-repeat; 
+}
+
+.ecwWindowPopup {
+	position:absolute;	
+	width:auto;
+	border:2px outset;
+	background:white;
+}
+
+.ecwWindowPopup .ecwBackgroundIhm {
+  width:auto;
+  margin:0;	
+}
+
+.ecwWindowPopup .ecwTitleZoneIhm {
+  cursor:move;
+}
+
+.bodyPopup {
+}	
+
+.ecwWindowPopup.off .ecwTableBody {
+	overflow: hidden;
+	_overflow: auto;
+}
+
+.ecwWindowPopup.off .ecwTitlePopup {
+	background-color:#555555;
+}
+
+
+.ecwWindowPopupFullScreen {
+	position:absolute;	
+	background:white;
+	width: 100%;
+}
+.ecwWindowPopupFullScreen .ecwBackgroundIhm {
+	background-color: #EFEFEF;
+	border: 1px solid black;
+	margin-top: 5px;
+}
+.ecwWindowPopupFullScreen .ecwTitleZoneIhm {
+  cursor:default;
+}
+.ecwWindowPopupFullScreen.off .ecwTableBody {
+	overflow: hidden;
+	_overflow: auto;
+}
+.ecwWindowPopupFullScreen.off .ecwTitlePopup {
+	background-color:#555555;
+}
+
+
+.ecwTitlePopup {
+	padding:3px;
+	background-color:#3F3A90;
+	color:white;
+	font-weight:bold;
+	/*margin-bottom:2px;*/
+	z-index:500;
+	cursor:move;
+	/*padding-right:80px;*/
+	background-image: url("fond-titre.gif") !important;
+	/*background: navy;*/
+}
+
+.ecwHistoryBar {
+	background-color:#3F3A90;
+	color:white;
+	padding:3px;
+	margin-top:0px;
+	top:22px;left:0;
+	position:absolute;
+	border-bottom:1px solid black;
+	width:100%;
+	z-index:200;
+}
+
+.ecwHistoryBar a {
+	color:white;
+}
+
+/* Pour transferer les scripts via le innerHTML sans le rendre visible */
+PRE.script { display:none; 	}
+
+.largeur { overflow:hidden;}
+.w25 { width:25px; }
+.w50 { width:50px; }
+.w100 { width:100px;}
+.w150 { width:150px; }
+.w200 { width:200px; }
+
+/* CSS ECW GRID */
+
+.ecwGrid {
+  background-color:#EFEFEF;
+  border-style : outset; 
+  border-width : thin;
+  border-color : #7C7C7C; /*gris !*/
+  border-width:1px 1px 1px 2px;
+}
+
+.ecwGridActive {
+	border-left: 2px solid #FECE00;
+}
+
+.ecwGridHead {
+	text-align: left;
+}
+
+.ecwGridBody {
+  overflow: auto;
+}
+
+.ecwGrid TABLE {
+}
+
+.ecwGrid THEAD {
+  border-color : #7C7C7C; /*gris !*/
+  background-color : #D5D6E4;
+}
+
+
+.ecwGrid TH {
+	color: black !important;
+	background-color: #D5D6E4 !important;
+	font-family: "Arial", "Liberation Sans";
+	font-size: 12px;
+	font-weight: bold;
+	text-align: center;
+	cursor: default;
+  border-collapse : collapse; 
+  border:1px solid #8C83C5;
+	white-space: nowrap;
+	box-sizing: border-box;
+} 
+
+
+.ecwGridLineEmpty {
+	cursor: default !important;
+}
+
+.ecwGridAlternateLine1 {
+	background-color: white;
+}
+
+.ecwGridAlternateLine2 {
+	background-color: #F2F2F2;
+}
+
+.ecwGridLineOver {
+	background-color: #FFDE5C;
+	box-sizing: border-box;
+}
+
+
+.ecwGridLineActive {
+	cursor: pointer;
+	background-color: #FECE00;
+	box-sizing: border-box;
+}
+
+
+.ecwGrid TD {
+  font-size:12px;
+  text-align:left;
+}
+
+.ecwGridCellActive {
+	cursor: pointer;
+	background-color: rgb(255,102,0) !important;
+	box-sizing: border-box;
+}
+
+.ecwGridLineActive TD {
+	border-right-color: #FECE00;	
+	box-sizing: border-box;
+}
+
+.ecwGridLineSelect {
+	cursor: pointer;
+	background-color: #D3D3D3 !important;
+	box-sizing: border-box;
+}
+
+.ecwGridCellSelect {
+	cursor: pointer;
+	background-color: #B3B3B3 !important;
+	box-sizing: border-box;
+}
+
+.ecwGridLineSelect TD {
+	empty-cells: show;	
+	box-sizing: border-box;
+}
+
+.ecwGrid INPUT {
+  font-size: 12px;
+  font-weight: bold;
+  text-align:left;
+  cursor: text;
+  border:none;
+/*
+  padding:0px;
+  padding-left:2px;
+  overflow:hidden;
+*/
+  background:transparent;
+}
+
+.ecwGrid INPUT.modified {
+  background-color: rgb(255,255,102) !important;
+  color: black;
+}
+
+.ecwGrid INPUT.error {
+  color:red !important;
+}
+
+.ecwGrid INPUT.edit {
+  background-color: white ! important;
+  color:red ! important;
+}
+
+.ecwGrid INPUT.password {
+  color: #FEFEFE   !important;
+}
+
+.ecwGrid SELECT {
+  font-size: 12px;
+  font-weight: bold;
+  text-align:left;
+  cursor: text;
+  border:none;
+  padding:0px;
+  padding-left:2px;
+  background:transparent;
+}
+
+.ecwGrid SELECT OPTION {
+  background-color: white !important;
+}
+
+.ecwGrid SELECT.modified {
+  background-color: rgb(255,255,102) !important;
+  color: black;
+}
+
+.ecwGrid SELECT.modified OPTION {
+  background-color: rgb(255,255,102) !important;
+  color: black;
+}
+
+.ecwGrid SELECT.error {
+  color:red !important;
+}
+
+.ecwGrid SELECT.edit {
+  background-color: white ! important;
+  color:red ! important;
+}
+
+
+.ecwAlignRight {
+	text-align:right;
+}
+
+.ecwAlignLeft {
+	text-align:left;
+}
+
+.ecwAlignJustify {
+	text-align:justify;
+}
+
+.ecwAlignCenter {
+	text-align:center;
+}	

@@ -1,6 +1,0 @@
-📁 Created screenshot folder: reports\artifacts\screenshots\Login_Test
-📸 Screenshot attached: reports\artifacts\screenshots\Login_Test\step1_navigate_to_page.png
-📸 Screenshot attached: reports\artifacts\screenshots\Login_Test\step2_entered_username.png
-📸 Screenshot attached: reports\artifacts\screenshots\Login_Test\step3_entered_password.png
-📸 Screenshot attached: reports\artifacts\screenshots\Login_Test\step4_click_signInBtn.png
-Valid User with Non SA Role logged in and User with Non SA role unable to see application functionalities.

@@ -1,0 +1,4147 @@
+/**
+ * @fileoverview D&eacute;fini l'objet <b>ECW.Table</b> (liste de valeurs)
+ * @author u218179
+ * @version $Revision: 1.186 $
+ */
+ 
+/**
+ * D&eacute;fini l'objet <b>ECW.Table</b>
+ * @private
+ */
+ECW.Table = function(noeud, ui, layout) {
+
+  ecwStartTimer("ECW.Table");
+  
+  ecwSetAttribute(this, "noeudDOM", noeud);
+  ecwSetAttribute(this, "ecwUI", ui);
+  ecwSetAttribute(this, "ecwLayout", layout);
+  ecwSetAttribute(this, "input", null);
+  this.nbligne = 8;
+  this.nbligneInitial = 8;
+  ecwSetAttribute(this, "ligneActive", null);
+  ecwSetAttribute(this, "tabLigneMulti", new Array());
+  ecwSetAttribute(this, "lignes", null);
+  ecwSetAttribute(this, "divTHead", null);
+  ecwSetAttribute(this, "divTBody", null);
+  ecwSetAttribute(this, "divTStatus", null);
+  ecwSetAttribute(this, "ligneMultiSelect", false);
+  ecwSetAttribute(this, "tabNameKey", new Array());
+  ecwSetAttribute(this, "comparators", new Array());
+  ecwSetAttribute(this, "ecwTable", this);
+  this.texteFiltre = "";
+  this.searchColumn = 0;
+  ecwSetAttribute(this, "lastSelectedLine", null);
+  this.numerotation = false;
+  this.showSelection = true;
+  this.alternateColor = false;
+  ecwSetAttribute(this, "tableFormat", null);
+  this.canReorder = false;
+  this.hiddenPage = false;
+  this.selectionDoubleTable = false;
+  ecwSetAttribute(this, "divActionsDoubleSelect", null);
+  ecwSetAttribute(this, "divTableTargetSelect", null);
+  ecwSetAttribute(this, "ecwTableTargetSelect", null);
+  ecwSetAttribute(this, "ecwTableSrcSelect", null);
+
+  this.sortColId = null;
+  this.sortIncrease = false;
+  
+    /* Ensemble des messages d'erreur affiche par ce composant. */
+    ecwSetAttribute(this, "messages", new Array());
+
+  /* Mode debug */
+  this.modeDebug = false;
+
+  /* Constructeur */
+  
+  if (this.noeudDOM.getAttribute("ecwHiddenPage")
+  		&& this.noeudDOM.getAttribute("ecwHiddenPage") == "true") {
+  	this.hiddenPage = true;  	
+  }
+  
+   /* Recuperation du mode de selection des lignes (single ou multiple) */
+  var attrEcwNbLines = this.noeudDOM.attributes.ecwNbLines;
+  if (attrEcwNbLines) {
+    this.nbligne = attrEcwNbLines.nodeValue;
+    this.nbligneInitial = attrEcwNbLines.nodeValue;
+  }
+  
+  var attrEcwIdFilter = this.noeudDOM.attributes.ecwIdFilter;
+  if (attrEcwIdFilter) {
+    this.ecwIdFilter = attrEcwIdFilter.nodeValue;
+  }
+  
+  /* Recuperation du mode de selection des lignes (single ou multiple) */
+  var attrEcwSelection = this.noeudDOM.attributes.ecwSelection;
+  if (attrEcwSelection && attrEcwSelection.nodeValue == "multiple") {
+    this.ligneMultiSelect = true;
+  }
+  else if (attrEcwSelection && attrEcwSelection.nodeValue == "doubleTable") {
+    this.selectionDoubleTable = true;
+    this.ligneMultiSelect = true;
+  }
+
+  /* Dans le cas d'une comboBox, rendre invisible la DIV de la liste */
+  if (this.noeudDOM.parentNode.className.indexOf("ecwComboBox") >= 0) {
+    addClass(this.noeudDOM, "ecwInvisible");
+  }
+  /* Table classique */
+  else {
+
+    /* Table Ajax */
+    if (this.noeudDOM.getAttribute("ecwAction") != null) {
+
+      /* Page courante */
+      this.currentPage = 1;
+      var initPage = this.noeudDOM.getAttribute("ecwInitPage");
+      if (initPage) {
+        this.currentPage = initPage;
+      }
+
+      this.ajaxAction = this.noeudDOM.getAttribute("ecwAction");
+      if (this.noeudDOM.getAttribute("ecwPageSize") != null) {
+        this.pageSize = this.noeudDOM.getAttribute("ecwPageSize");
+      }
+      if (this.noeudDOM.getAttribute("ecwIdParameters") != null) {
+        this.ajaxParameters = this.noeudDOM.getAttribute("ecwIdParameters").split(",");
+      }
+
+      var colId = this.noeudDOM.getAttribute("ecwDefaultSort");
+      if (colId && ecwIsValidNumber(colId)) {
+        this.sortColId = colId;
+        this.sortIncrease = true;
+        var defaultSort = this.noeudDOM.getAttribute("ecwDefaultTypeSort");
+        if (defaultSort && defaultSort == "Decrease") {
+          this.sortIncrease = false;
+        }          
+      }
+
+      /* Tableau pour rendu visuel */
+      this.createTableFormat();
+
+      /* Mise a jour de la Table en Ajax */
+      this.refreshInternalAjax();
+    }
+    /* Table sans Ajax */
+    else {
+      /* Appel du constructeur de l'objet Table */
+      this.constructeur();
+    }
+  }
+
+  /* Ajout du champ invisible de selection de la liste */
+  var inputTable = document.createElement("INPUT");
+  this.noeudDOM.insertBefore(inputTable, this.noeudDOM.firstChild);
+  inputTable.className = "ecwInvisible";
+  inputTable.setAttribute("autocomplete", "off");
+  inputTable.id = "inputEcwTable_" + this.noeudDOM.id;
+  if (this.noeudDOM.getAttribute("accesskey")) {
+    inputTable.accessKey = this.noeudDOM.accessKey  // pour IE
+    inputTable.setAttribute("accesskey", this.noeudDOM.getAttribute("accesskey")); // pour Mozilla
+    this.noeudDOM.accessKey = ""; // Effacer le lien (pour IE)
+  }
+  ecwSetAttribute(inputTable, "ecwTable", this);
+  ecwSetAttribute(this, "input", inputTable);
+  ecwSetAttribute(this.noeudDOM, "input", inputTable);
+  /* Copie le title sur l'input de la liste */
+  inputTable.title = this.noeudDOM.title; 
+  /* Supprime le title du div */
+  this.noeudDOM.title = "";
+  ecwSetAttribute(this.noeudDOM, "ecwTable", this);
+  
+  /* Evenement onkeyup (utilisation du clavier) */
+  ecwSetAttribute(inputTable, "onkeyup", ecwTableOnKeyUp);
+
+  ecwStopTimer("ECW.Table");
+}
+
+function ecwTableOnKeyUp(event) {
+  var touches = " abcdefghijklmnopqrstuvwxyz0123456789_-@#éèùàç$.:";
+  if (touches.indexOf(this.value.toLowerCase()) >= 0 && this.value != "") {
+    this.ecwTable.findChar(this.value);
+  }
+  this.value = "";
+}
+
+/**
+ * Noeud du DOM comportant la liste des donnees
+ * @private
+ */
+ECW.Table.prototype.noeudDOM = null;
+
+/**
+ * Objet ECW.UI d'appartenance
+ * @private
+ */
+ECW.Table.prototype.ecwUI = null;
+
+/**
+ * Objet ECW.Layout d'appartenance
+ * @private
+ */
+ECW.Table.prototype.ecwLayout = null;
+
+/**
+ * Champ input invisible
+ * @private
+ */
+ECW.Table.prototype.input = null;
+
+/**
+ * Nombre de lignes visibles dans la table
+ * @private
+ */
+ECW.Table.prototype.nbligne = null;
+
+/**
+ * Nombre de lignes initiales visibles dans la table
+ * Contrairement a l'attribut nbligne, celui ci ne varie pas en fonction de l'ajustement automatique du calcul de la hauteur de la table
+ * @private
+ */
+ECW.Table.prototype.nbligneInitial = null;
+
+/**
+ * Ligne de donnees selectionnee par l'utilisateur
+ * @private
+ */
+ECW.Table.prototype.ligneActive = null;
+
+/**
+ * Tableau des lignes selectionnees en multi selection
+ * @private
+ */
+ECW.Table.prototype.tabLigneMulti = null;
+
+/**
+ * Toutes les lignes de donnees de la liste
+ * @private
+ */
+ECW.Table.prototype.lignes = null;
+
+/**
+ * DIV contenant l'entete fixe
+ * @private
+ */
+ECW.Table.prototype.divTHead = null;
+
+/**
+ * DIV contenant les lignes de la table
+ * @private
+ */
+ECW.Table.prototype.divTBody = null;
+
+/**
+ * DIV contenant la barre d'etat
+ * @private
+ */
+ECW.Table.prototype.divTStatus = null;
+
+/**
+ * Multi-selection
+ * @private
+ */
+ECW.Table.prototype.ligneMultiSelect = null;
+
+/**
+ * Tableau des cles postees
+ * @private
+ */
+ECW.Table.prototype.tabNameKey = null;
+
+/**
+ * Objet ECW.Table
+ * @private
+ */
+ECW.Table.prototype.ecwTable = null;
+
+/**
+ * Chaine de filtrage utilisee pour positionner la selection
+ * @private
+ */
+ECW.Table.prototype.texteFiltre = null;
+
+/**
+ * Colonne de recherche
+ * @private
+ */
+ECW.Table.prototype.searchColumn = null;
+
+/**
+ * Derniere ligne selectionnee
+ * @private
+ */
+ECW.Table.prototype.lastSelectedLine = null;
+
+/**
+ * Ev&egrave;nement d&eacute;clench&eacute; sur la touche [Suppr]
+ * @type Function
+ */
+ECW.Table.prototype.onDelete = null;
+
+/**
+ * Ev&egrave;nement d&eacute;clench&eacute; sur la touche [Inser]
+ * @type Function
+ */
+ECW.Table.prototype.onInsert = null;
+
+/**
+ * Ev&egrave;nement d&eacute;clench&eacute;
+ * sur s&eacute;lection d'un &eacute;l&eacute;ment en multi-s&eacute;lection
+ * @type Function
+ */
+ECW.Table.prototype.onMultiSelect = null;
+
+/**
+ * Ev&egrave;nement d&eacute;clench&eacute;
+ * sur s&eacute;lection d'un &eacute;l&eacute;ment en mono-s&eacute;lection
+ * @type Function
+ */
+ECW.Table.prototype.onSelect = null;
+
+/**
+ * Ev&egrave;nement d&eacute;clench&eacute; sur la touche [Entr&eacute;e]
+ * @type Function
+ */
+ECW.Table.prototype.onExecute = null;
+  
+/**
+ * Ev&egrave;nement d&eacute;clench&eacute; sur la touche [Echap]
+ * @type Function
+ * @private
+ */
+ECW.Table.prototype.onEscape = null;
+
+/**
+ * Num&eacute;rotation automatique des lignes de la table. 
+ * Valeur par defaut false
+ * @private
+ */
+ECW.Table.prototype.numerotation = false;
+
+/**
+ * Colorisation des lignes en alternance
+ * @private
+ */
+ECW.Table.prototype.alternateColor = false;
+
+/**
+ * Visualisation de la selection.
+ * @private
+ */
+ECW.Table.prototype.showSelection = true;
+
+/**
+ * Tableau de placement utilise lors :
+ *  - d'un reordonnancement
+ *  - d'une selection avec double tableau
+ * @private
+ */
+ECW.Table.prototype.tableFormat = null;
+
+/**
+ * Div affichant les boutons permettant de reordonner les lignes
+ * @private
+ */
+ECW.Table.prototype.divReorder = null;
+
+/**
+ * Permet de savoir si les lignes de la table peuvent etre reordonnees
+ * @private
+ */
+ECW.Table.prototype.canReorder = false;
+
+/**
+ * Double table pour selection.
+ * @private
+ */
+ECW.Table.prototype.selectionDoubleTable = false;
+
+/**
+ * Div de la zone d'actions pour la selection avec une double table.
+ * @private
+ */
+ECW.Table.prototype.divActionsDoubleSelect = null;
+
+/**
+ * Table cible pour selection avec double table.
+ * @private
+ */
+ECW.Table.prototype.ecwTableTargetSelect = null;
+
+/**
+ * Div ecwTable de la table cible pour selection avec double table.
+ * @private
+ */
+ECW.Table.prototype.divTableTargetSelect = null;
+
+/**
+ * Table source pour selection avec double table.
+ * @private
+ */
+ECW.Table.prototype.ecwTableSrcSelect = null;
+
+/**
+ * Ev&egrave;nement d&eacute;clench&eacute; lors d'une modification de la s&eacute;lection dans la double table
+ * @type Function
+ */
+ECW.Table.prototype.onSelectionChanged = null;
+
+/**
+ * Numero de la page courante dans la pagination
+ * Uniquement utilisee avec Ajax
+ * @private
+ */
+ECW.Table.prototype.currentPage = 1;
+
+/**
+ * Nombre d'elements (de lignes) pour la page courante.
+ * @private
+ */
+ECW.Table.prototype.currentPageSize = -1;
+
+/**
+ * Nombre de pages au total.
+ * @private
+ */
+ECW.Table.prototype.numberOfPage = 0;
+
+/**
+ * Nombre d'elements (de lignes) au total.
+ * @private
+ */
+ECW.Table.prototype.numberOfElement = -1;
+
+/**
+ * Input utilise pour saisir un numeor de page.
+ * @private
+ */
+ECW.Table.prototype.inputGoToPage = null;
+
+/**
+ * Mode debug
+ * @private
+ */
+ECW.Table.prototype.setModeDebug = function() {
+  this.modeDebug = true;
+}
+
+/**
+ * Ev&egrave;nement d&eacute;clench&eacute; apr&egrave;s le rafra&icirc;chissement Ajax
+ * @type Function
+ */
+ECW.Table.prototype.onRefresh = null;
+
+/**
+ * Identifiant de la colonne de tri.
+ * @private
+ */
+ECW.Table.prototype.sortColId = null;
+
+/**
+ * Ordre croissant ou decroissant de la colonne de tri.
+ * @private
+ */
+ECW.Table.prototype.sortIncrease = false;
+
+/**
+ * hauteur de la table
+ * @private
+ */
+ECW.Table.prototype.ecwHeightTable = 0;
+
+/**
+ * hauteur de l'entete de la table
+ * @private
+ */
+ECW.Table.prototype.ecwHeightHeadTable = 0;
+
+/**
+ * largeur de la table
+ * @private
+ */
+ECW.Table.prototype.ecwWidthTable = 0;
+
+/**
+ * Ajustement automatique de la hauteur de la table en fonction de la taille de la page
+ * @private
+ */
+ECW.Table.prototype.autoHeight = false;
+
+/**
+ * Identifiant du tableau herbergeant des filtres
+ * @private
+ */
+ECW.Table.prototype.ecwIdFilter;
+
+/**
+ * Tableau des comparateurs definis sur cette table par l'utilisateur.
+ * @private
+ */
+ECW.Table.prototype.comparators;
+
+/**
+ * Constructeur de l'objet Table
+ * @private
+ */
+ECW.Table.prototype.constructeur = function() {
+
+  if (this.noeudDOM.getAttribute("ecwCanReorder")
+      && this.noeudDOM.getAttribute("ecwCanReorder") == "true") {
+    this.canReorder = true;
+  }
+
+  if (this.noeudDOM.getAttribute("ecwNumerotation")
+      && this.noeudDOM.getAttribute("ecwNumerotation") == "true") {
+    this.numerotation = true;
+    this.numerotate();
+  }
+
+  if (this.noeudDOM.getAttribute("ecwShowSelection")
+      && this.noeudDOM.getAttribute("ecwShowSelection") == "false") {
+    this.showSelection = false;
+  }
+  
+  if (this.noeudDOM.getAttribute("ecwAlternateColor")
+      && this.noeudDOM.getAttribute("ecwAlternateColor") == "true") {
+    this.alternateColor = true;
+  }
+  
+  /* Ajustement automatiquement de la hauteur de la table en fonction de la taille de la page */
+  if ((this.noeudDOM.getAttribute("ecwAutoHeight") != null)
+      && (this.noeudDOM.getAttribute("ecwAutoHeight") == "true")) {
+    this.autoHeight = true;
+  } else {
+    this.autoHeight = false;
+  }
+
+  /* Creation des DIV pour ECW.Table */
+  this.createStructureDOM();
+
+  /* Traitement a effectuer sur les lignes */
+  this.creerComportementLignes();
+
+  /* Supprimer la selection texte du navigateur */
+  if (this.showSelection) {
+    //desactiverSelectionTexte(this.noeudDOM);
+  }
+  
+ 
+  
+  this.fixerDimensions();
+
+	
+
+  if (!this.showSelection) {
+      return;
+  }
+
+  /* Creation de la zone d'actions pour la double table */
+  if (this.selectionDoubleTable) {
+    this.createDivActionsDoubleSelect();
+  }
+
+  /* Creation des balises <select> cachee */
+  this.createHiddenSelect();
+
+  /* Modif V2.0 : Mise a jour du tri par defaut */
+  if (!this.ajaxAction && this.noeudDOM.attributes.ecwDefaultSort) {
+    this.initSort();
+  }
+
+  /* Dans le cas d'un comboBox, rendre invisible la DIV de la liste */
+  if (this.noeudDOM.parentNode.className.indexOf("ecwComboBox") >= 0) {
+    addClass(this.noeudDOM, "invisible");
+  }
+  
+  /* Selection Double Table */
+  if (this.selectionDoubleTable) {
+    this.processSelectionDoubleTable();
+  }
+  /* Pas de Double Table */
+  else {
+    /* Reordonnancement */
+    if (this.canReorder && (this.divReorder == null)) {
+
+      /* Creation de la zone d'actions pour reordonner la table */
+      this.createDivReorder();
+
+      /* Tableau pour rendu visuel */
+      this.createTableFormat();
+
+      var tr = getFirstChildByTagName(this.tableFormat, "TR");
+      var td = document.createElement("TD");
+      tr.appendChild(td);
+    
+      /* Ajout de la div de reordonnancement */
+      td.appendChild(this.divReorder);
+    }
+  }
+  if (this.ecwComboBox) {
+    this.ecwComboBox.listBuilded = true;
+  }
+  
+}
+
+/**
+ * Traitement de la selection avec double table.
+ * @private
+ */
+ECW.Table.prototype.processSelectionDoubleTable = function() {
+
+  /* Tableau pour rendu visuel */
+  this.createTableFormat();
+
+  /* Boutons d'actions pour la double table */
+  var tr = this.tableFormat.getElementsByTagName("TR")[1];
+  var td = document.createElement("TD");
+  tr.appendChild(td);
+
+  td.appendChild(this.divActionsDoubleSelect);
+
+  /* Creation de la table cible */
+  this.createDivTableTargetSelect();
+
+  /* Ajout de la nouvelle table */
+  td = document.createElement("TD");
+  tr.appendChild(td);
+  td.appendChild(this.divTableTargetSelect);
+
+  ecwSetAttribute(this, "ecwTableTargetSelect", new ECW.Table(this.divTableTargetSelect, this.ecwUI));
+  ecwSetAttribute(this.ecwTableTargetSelect, "ecwTableSrcSelect", this);
+  ecwSetAttribute(this.ecwTableTargetSelect, "tabNameKey", this.tabNameKey);
+
+  /* Libelle de la nouvelle table */
+  var labelTableSelect = document.getElementById(this.noeudDOM.getAttribute("ecwIdLabelSelection"));
+  if (labelTableSelect) {
+    var firstLine = getFirstChildByTagName(this.tableFormat, "TR");
+    var cellLabelSelection = firstLine.cells[2];
+    /* Lien entre label et table */
+    labelTableSelect.htmlFor = this.ecwTableTargetSelect.noeudDOM.id;
+    cellLabelSelection.appendChild(labelTableSelect);
+  }
+
+  /* Suppression des lignes non selectionnees dans la table cible */
+  var tbodyTableSelect = getFirstChildByTagName(this.ecwTableTargetSelect.divTBody, "TBODY");
+  var allTr = tbodyTableSelect.getElementsByTagName("TR");
+  var countTr = allTr.length;
+  for (var i = countTr - 1; i >= 0; i--) {
+    /* tbody -> tr */
+    /* si ecwSelection != "true", suppression */
+    if (!this.isSelectedInDoubleTable(allTr[i])) {
+      tbodyTableSelect.removeChild(allTr[i]);
+    }
+  }
+
+  /* Suppression des lignes selectionnees dans la table source */
+  var tbodyTable = getFirstChildByTagName(this.divTBody, "TBODY");
+  allTr = tbodyTable.getElementsByTagName("TR");
+  countTr = allTr.length;
+  for (var i = countTr - 1; i >= 0; i--) {
+    /* tbody -> tr */
+    /* si ecwSelection == "true", suppression */
+    if (this.isSelectedInDoubleTable(allTr[i])) {
+      tbodyTable.removeChild(allTr[i]);
+    }
+  }
+
+  /* Maj des comportements des lignes */
+  this.majAllTableLinesBehaviour();
+
+  /* Mise a jour des <select> caches */
+  this.genererSelect(this.ecwTableTargetSelect.lignes);
+
+  /* Reordonnancement de la table cible */
+  if (this.canReorder) {
+
+    /* Creation de la zone d'actions pour reordonner la table */
+    this.ecwTableTargetSelect.createDivReorder();
+    this.canReorder = false;
+    this.ecwTableTargetSelect.canReorder = true;
+
+    var tr = this.tableFormat.getElementsByTagName("TR")[1];
+    var td = document.createElement("TD");
+    tr.appendChild(td);
+
+    /* Ajout de la div de reordonnancement */
+    td.appendChild(this.ecwTableTargetSelect.divReorder);
+  }
+
+  /* Mise a jour des entetes */
+  this.updateHeader(this);
+  this.updateHeader(this.ecwTableTargetSelect);
+}
+
+/**
+ * Retourne true si c'est une ligne selectionnee
+ * pour la selection avec double table.
+ * @param lineTr Ligne a verifier
+ * @private
+ */
+ECW.Table.prototype.isSelectedInDoubleTable = function(lineTr) {
+  var selected = false;
+  if (lineTr
+      && lineTr.getAttribute("ecwSelection")
+      && lineTr.getAttribute("ecwSelection") == "true") {
+    selected = true;
+  }
+  return selected;
+}
+
+/**
+ * Cree un tableau pour formatter :
+ *  - les boutons d'actions pour le reordonnancement,
+ *  - le placement des doubles tables
+ * @private
+ */
+ECW.Table.prototype.createTableFormat = function() {
+
+  /* Creation d'un tableau de formattage */
+  if (this.tableFormat == null) {
+    ecwSetAttribute(this, "tableFormat", document.createElement("TABLE"));
+    this.tableFormat.setAttribute("border", "0");
+    this.tableFormat.cellSpacing = "2";
+    this.tableFormat.cellPadding = "4";
+    this.tableFormat.setAttribute("align", "center");
+
+    var tbody = document.createElement("TBODY");
+    this.tableFormat.appendChild(tbody);
+
+    this.noeudDOM.parentNode.insertBefore(this.tableFormat, this.noeudDOM.nextSibling);
+
+    /* Si selection avec double table */
+    if (this.selectionDoubleTable) {
+      /* Ligne des labels */
+      var firstTr = document.createElement("TR");
+      tbody.appendChild(firstTr);
+
+      var cellTd = document.createElement("TD");
+      firstTr.appendChild(cellTd);
+
+      /* Recherche d'un label associe */
+      /* -> Label de table ou label pour table de selection */
+      var labels = this.ecwLayout.noeudDOM.getElementsByTagName("LABEL");     
+      for (var i = 0; i < labels.length; i++) {
+        if (labels[i].htmlFor && (labels[i].htmlFor == this.noeudDOM.id)) {
+          /* Deplacement de la balise <label> */
+          cellTd.appendChild(labels[i]);
+          break;
+        }
+      }
+
+      /* Espace */
+      cellTd = document.createElement("TD");
+      firstTr.appendChild(cellTd);
+
+      /* Cellule pour Libelle double table */
+      cellTd = document.createElement("TD");
+      firstTr.appendChild(cellTd);
+    }
+
+    /* Ligne pour les tables */
+    var tr = document.createElement("TR");
+    tbody.appendChild(tr);
+    
+    var td = document.createElement("TD");
+    td.setAttribute("align", "center");
+    tr.appendChild(td);
+
+    if (this.noeudDOM) {
+      td.appendChild(this.noeudDOM);
+    }
+  }
+}
+
+/**
+ * Retourne la table utilis&eacute;e pour la s&eacute;lection
+ */
+ECW.Table.prototype.getTableSelect = function() {
+  return this.ecwTableTargetSelect;
+}
+
+/**
+ * Cree les zones DIV contenant les donnees et l'entete
+ * @private
+ */
+ECW.Table.prototype.createStructureDOM = function() {
+
+  /* <div class="ecwTableTitle"> */
+
+  /* <div class="ecwTableHead"> */
+  this.createTableHead();
+
+  /* <div class="ecwTableBody"> */
+  this.createTableBody();
+
+  /* <div class="ecwTableFoot"> */
+  
+}
+
+/**
+ * Creation de la DIV class="ecwTableHead"
+ * utilisee pour afficher les entetes de colonnes
+ * @private
+ */
+ECW.Table.prototype.createTableHead = function() {
+
+  /* Recherche de la balise <TABLE> et de la balise <THEAD> */
+  var currentTable = getFirstChildByTagName(this.noeudDOM, "TABLE");
+  if (!(currentTable && currentTable.tHead)){
+      return;
+  }
+
+  var wdivTHead = document.createElement("DIV");
+  wdivTHead.className = "ecwTableHead";
+ 
+  /* Ajout de la DIV class="ecwTableHead" */
+  // On l'ajoute plutot a la fin de la methode pour eviter les maj intempestives
+  // -> possibilite de fuite memoire : on l'ajoute tout de suite !
+  this.noeudDOM.appendChild(wdivTHead);
+
+  ecwSetAttribute(this, "divTHead", wdivTHead);
+ 
+  /* Creation d'un clone de <TABLE> : Modif V2.0*/
+  var cloneTable = currentTable.cloneNode(true);
+  cloneTable.cellSpacing = "0";
+  cloneTable.cellPadding = "0";
+  wdivTHead.appendChild(cloneTable);
+ 
+  if (!this.showSelection){
+    /* Ajout de la DIV class="ecwTableHead" */
+    //this.noeudDOM.appendChild(wdivTHead);
+    return;
+  }
+
+  /* Activer les zones sensibles de l'entete pour le tri des colonnes si la table doit etre triee */
+  /* Recherche des colonnes triables sur toutes les lignes d'entete */
+  var listeLigneEntete = this.divTHead.getElementsByTagName("TR");
+  var nbLignesEntete = listeLigneEntete.length;
+  for (var i = 0; i < nbLignesEntete; ++i) {
+
+    var colonnes = listeLigneEntete[i];
+    var nbColCells = colonnes.cells.length;
+    for (var j = 0; j < nbColCells; ++j) {
+      var cell = colonnes.cells[j];
+      /* Tri seulement pour les colonnes ayant l'attribut ecwTableSortable */
+      if (isClass(cell, "ecwTableSortable")) {
+        cell.ecwTable = this;
+        cell.ecwTable.triActif = 0;
+    
+        /* Evenement onmouseover */
+        cell.onmouseover = function() {
+          if (window.addClass) {
+            window.addClass(this, "ecwTableEnteteOver");
+          }
+        }
+        /* Evenement onmouseout */
+        cell.onmouseout = function() {
+          if (window.removeClass) {
+            window.removeClass(this, "ecwTableEnteteOver");
+          }
+        }
+        /* Evenement onclick */
+        cell.onclick = function() {
+ 
+          /* Test si le tableau n'est pas vide */
+          if (this.ecwTable.lignes && this.ecwTable.lignes.length != 0) {
+    
+            /* Faire patienter l'utilisateur pendant le tri */
+            if (window.addClass) {
+                window.addClass(this, "ecwTableSortEncours");
+            }
+            if (this.ecwTable.lignes.length > 100) {
+              ecwActiveUI.setMessage("W", ecw.I18N.get("sortInProgress"));
+            }
+            celluleATrier = this;
+
+            /* Tri javascript */
+            if (!this.ecwTable.ajaxAction) {
+              var cmdTri = "celluleATrier.ecwTable.sortByColumn(celluleATrier);";
+              cmdTri += " removeClass(celluleATrier, 'ecwTableSortEncours');";
+              cmdTri += " ecwActiveUI.clearMessage();";
+              var timer = setTimeout(cmdTri, 0);
+            }
+            /* Tri serveur avec appel Ajax */
+            else {
+              /* Indice de la colonne de tri */
+              var sortId = this.cellIndex;
+              if (this.ecwTable.numerotation) {
+                sortId = sortId - 1;
+              }
+
+              /* Ordre de la colonne de tri */
+              if(this.ecwTable.sortColId != sortId){
+                /* Si changement de colonne, tri increase (compatibilite avec table non ajax) */
+                this.ecwTable.sortIncrease = true;
+              }else{
+                /* Sinon tri inverse */
+                this.ecwTable.sortIncrease = !this.ecwTable.sortIncrease;
+              }
+
+              this.ecwTable.sortColId = sortId;
+
+              if (this.ecwTable.ecwComboBox) {
+                  /* Mise a jour de la combo en ajax */
+                  this.ecwTable.currentPage = 1;
+                  this.ecwTable.ecwComboBox.refreshInternalAjax();
+                  this.ecwTable.ecwComboBox.showAfterAjax();          
+              } else {
+                   /* Mise a jour de la Table en Ajax */
+                  this.ecwTable.refreshInternalAjax();        
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+  /* Ajout de la DIV class="ecwTableHead" */
+  //this.noeudDOM.appendChild(wdivTHead);
+}
+
+/**
+ * Creation de la DIV class="ecwTableBody"
+ * utilisee pour afficher les donnees
+ * @private
+ */
+ECW.Table.prototype.createTableBody = function() {
+
+  var wdivTBody = document.createElement("DIV");
+  wdivTBody.className = "ecwTableBody";
+  wdivTBody.ecwTable = this;
+
+  /* Positionnement du Tabindex, */
+  /* car sous Firefox 1.5, une div de style overflow:auto devient focusable */
+  if (ECW_isGecko) {
+    wdivTBody.tabIndex = -1;
+  }
+
+  /* Ajout de la DIV class="ecwTableBody" */
+  this.noeudDOM.appendChild(wdivTBody);
+  ecwSetAttribute(this.noeudDOM, "ecwTable", this);
+
+  /* Si la balise <TABLE> existe */
+  var baliseTable = getFirstChildByTagName(this.noeudDOM, "TABLE");
+  if (baliseTable) {
+    baliseTable.cellSpacing = "0";
+    baliseTable.cellPadding = "0";
+
+    /* appendChild() : effectue un deplacement du noeud <TABLE> */
+    /* sous la <DIV class="ecwTableBody"> */
+    wdivTBody.appendChild(baliseTable);
+
+    ecwSetAttribute(this, "divTBody", wdivTBody);
+  }
+}
+
+/**
+ * Creation de la DIV class="ecwTableStatus"
+ * utilisee pour afficher une barre d'etat
+ * @private
+ */
+ECW.Table.prototype.createTableStatus = function() {
+
+  var wdivTStatus = document.createElement("DIV");
+  wdivTStatus.className = "ecwTableStatus";
+  wdivTStatus.innerHTML = "BEN - Status";
+
+  /* Ajout de la DIV class="ecwTableStatus" */
+  this.noeudDOM.appendChild(wdivTStatus);
+  
+  ecwSetAttribute(this, "divTStatus", wdivTStatus);
+}
+
+/**
+ * Creation des balises <select> cachee
+ * @private
+ */
+ECW.Table.prototype.createHiddenSelect = function() {
+
+  /* Recuperation des cles de la liste pour le generation des SELECT */
+  var tabAttKey = getFirstChildByTagName(this.noeudDOM, "TABLE");
+  if (tabAttKey) {
+  
+    var i = 0;
+    var keyNameCurrent = tabAttKey.getAttribute("ecwKeyName" + i);
+    /* Parcours des cles */
+    while (keyNameCurrent) {
+      this.tabNameKey[i] = keyNameCurrent;
+      /* Balise <SELECT> */
+      var wSelect = document.createElement("SELECT");
+      /*    .....    ou canReorder pour placer toute keyVal dans le select */
+      if (this.ligneMultiSelect || this.canReorder) {
+        wSelect.multiple = true;
+        var tmpSuffix = (ecwTabNameSuffix)?"[]":""; 
+        wSelect.name = this.tabNameKey[i] + tmpSuffix; //+ "[]";  //[] pour PHP        
+      } else {
+        wSelect.name = this.tabNameKey[i];
+      }
+      wSelect.size = "3";
+      wSelect.id = "listeSelect" + this.tabNameKey[i];
+      this.noeudDOM.appendChild(wSelect);
+      /* Donne provisoirement le focus pour que IE prenne en compte le SELECT [SIFAECW-528] */
+      /* Uniquement pour le mode reorder : [SIFAECW-542] */
+      if (!this.ecwComboBox && this.canReorder) {
+        wSelect.focus();
+      }
+
+      /* Le style display:'none' sous IE dans un SELECT multiple empeche la generation dynamique des OPTION */
+      wSelect.style.visibility = "hidden";
+      wSelect.style.position = "absolute";
+      //wSelect.style.width = "200px";
+      //wSelect.style.height = "200px";
+
+      /* Suivant */
+      ++i;
+      keyNameCurrent = tabAttKey.getAttribute("ecwKeyName" + i);
+    }
+  }
+}
+
+/**
+ * Detection d'un table vide.
+ * @private
+ */
+ECW.Table.prototype.detectEmptyTable = function() {
+
+  /* Detection d'une table vide */
+  if (this.lignes && this.lignes.length == 1) {
+    if (isClass(this.lignes[0], "ecwTableLineEmpty")) {
+      this.lignes = null;
+    }
+  }
+}
+
+/**
+ * Cree le comportement des lignes sur les actions
+ * @private
+ */
+ECW.Table.prototype.creerComportementLignes = function() {
+
+  if (this.noeudDOM.getElementsByTagName("TBODY").length > 0) {
+
+    this.lignes = getFirstChildByTagName(this.divTBody, "TBODY").rows;
+
+    /* Detection d'une table vide */
+    this.detectEmptyTable();
+
+    if (this.lignes) {
+
+      var indiceColonne = 0;
+      if (this.numerotation) {
+        indiceColonne = 1;
+      }
+      if (this.ecwComboBox && this.ecwComboBox.noeudDOM.getAttribute("ecwColumnIndex")) {
+        var rang = parseInt(this.ecwComboBox.noeudDOM.getAttribute("ecwColumnIndex"));
+        indiceColonne += rang;
+        this.searchColumn = indiceColonne;
+      }
+
+      var ligne;
+      var nbLignes = this.lignes.length;
+      for (var j = 0; j < nbLignes; ++j) {
+        ligne = this.lignes[j];
+        /* Suppression des styles pour la ligne */
+        this.removeStyleLines(ligne);
+
+        /* Coloration des lignes par alternance */
+        if (this.alternateColor) {
+          if (j % 2 == 0) {
+            /* j est pair */
+            addClass(ligne, "ecwTableAlternateLine1");
+          } else {
+            /* j est impair */
+            addClass(ligne, "ecwTableAlternateLine2");
+          }
+        }
+        ecwSetAttribute(ligne, "ecwTable", this);
+        ligne.ecwTable.triActif = 0;
+        /* Precalcul du rowIndex pour gagner du temps sous Mozilla */
+        ligne.rIndex = j + 1;
+
+        ligne.chaineCar = ecwGetInnerText(ligne.getElementsByTagName("TD")[indiceColonne]);
+
+        /* Evenement onclick sur une ligne */
+        ligne.onclick = ecwTableLigneOnClick;
+
+        /* Evenement onmouseover sur une ligne */
+        ligne.onmouseover = ecwTableLigneOnMouseOver;
+
+        /* Evenement onmouseout sur une ligne */
+        ligne.onmouseout = ecwTableLigneOnMouseOut;
+      }
+    }
+  }
+}
+
+function ecwTableLigneOnMouseOver(event) {
+  if (this.ecwTable.showSelection) {
+    addClass(this, "ecwTableLineOver");
+  }
+  var listeTD = this.getElementsByTagName("TD");
+  for (var k = 0; k < listeTD.length; ++k) {
+    var div = listeTD[k].getElementsByTagName("DIV");
+    if (div && div.length > 0) {
+      var obj = div[0];
+      if (ecwGetComputedStyle(obj).overflow == "hidden") {
+        /* Si balise <pre> */
+        var balisePre = obj.getElementsByTagName("PRE");
+        if (balisePre && balisePre.length > 0) {
+          obj.title = balisePre[0].innerHTML.trim();
+        } else {
+          /* Si balise <span> */
+          var baliseSpan = obj.getElementsByTagName("SPAN");
+          if (baliseSpan && baliseSpan.length > 0) {
+            obj.title = baliseSpan[0].innerHTML.trim();
+          } else {
+            obj.title = obj.innerHTML.trim();
+          }
+        }
+      }
+    }
+  }
+}
+
+function ecwTableLigneOnMouseOut(event) {
+  if (this.ecwTable.showSelection) {
+    removeClass(this, "ecwTableLineOver");
+  }
+}
+
+function ecwTableLigneOnClick(event) {
+  removeClass(this, "ecwTableLineOver");
+  if (!event) {
+    event = window.event;
+  }             
+  if (this.ecwTable.ligneMultiSelect) {
+    if (event.ctrlKey) {
+      this.ecwTable.cocherLigne(this);
+    } else if (event.shiftKey) {
+      this.ecwTable.shiftCocherLigne(this);
+    }
+    /* Annulation de la selection des lignes */
+    /* uniquement pour le mode classique (pas de selection avec double table) */
+    else {
+      this.ecwTable.unselectLines();
+    }
+  }
+
+  this.ecwTable.selectionnerLigne(this, false, event);
+  this.ecwTable.lastSelectedLine = this;
+  if (this.ecwTable.ecwComboBox) {
+    this.ecwTable.ecwComboBox.executerActionLigne(this);
+  }
+  
+  if (this.ecwTable.noeudDOM.getAttribute("ecwAutoExecuteOnClick") == "true") {
+    removeClass(this, "ecwTableLineOver");
+    this.ecwTable.executerActionLigne(this);
+  }
+
+  /* Si une action de type Icone a ete declenchee */
+  if (window.ecwTableAction) {
+    eval(window.ecwTableAction);
+  }
+  window.ecwTableAction = null;
+  
+  /* Generation du select en mode mutli-select */
+  /* car si onEnter, le desactiver n'est pas appele */
+  if (!this.ecwTable.canReorder && (this.ecwTable.ecwTableSrcSelect == null) && (this.ecwTable.ecwTableTargetSelect == null)) {
+    if (this.ecwTable.ligneMultiSelect && this.ecwTable.tabLigneMulti.length > 0) {
+      this.ecwTable.genererSelect(this.ecwTable.tabLigneMulti);
+    }
+  }
+
+}
+
+/**
+ * Calcul la hauteur et la largeur de la liste
+ * @private
+ */
+ECW.Table.prototype.fixerDimensions = function() {
+  /* Precise la hauteur du DIV principal en fonction du nb lignes maxi a afficher */
+  if (this.noeudDOM.attributes.ecwNbLines) {
+    this.nbligne = parseInt(this.noeudDOM.attributes.ecwNbLines.nodeValue, 10);
+  }
+  var hauteurEntete = 0;
+  var hauteurTab = 0;
+  
+  /* Si l'entete existe */
+  if (this.divTHead) {
+    /* Recuperation de la valeur de offsetHeight */
+    /* offsetHeight est uniquement valable si le noeud est visible */
+    var offHeight = getFirstChildByTagName(this.noeudDOM, "THEAD").offsetHeight;
+    this.divTHead.style.height = offHeight;
+    hauteurEntete = offHeight;
+  }
+  
+  this.ecwHeightHeadTable = hauteurEntete;
+  /* Si la table contient au moins une ligne */
+  if (this.lignes && this.lignes.length > 0) {
+    /* Si c'est une combo, calcul de la hauteur au plus juste */  
+    if (this.ecwTable.ecwComboBox) {
+      var nbLineToShow = this.lignes.length;
+      if (this.lignes.length > this.nbligne) {
+        nbLineToShow = this.nbligne;
+      }
+      hauteurTab = (this.lignes[0].offsetHeight) * nbLineToShow;
+    }
+    /* C'est une table */
+    else {
+      hauteurTab = (this.lignes[0].offsetHeight) * this.nbligne;
+    }
+  }
+  /* Aucune ligne dans le tableau */
+  else {
+    if (this.divTBody) {    
+      /* Ajout d'une ligne pour le calcul de la hauteur d'une ligne */
+      var tbodyVide = getFirstChildByTagName(this.divTBody, "TBODY");
+      if (!tbodyVide) {
+        tbodyVide = document.createElement("TBODY");
+        getFirstChildByTagName(this.divTBody, "TABLE").appendChild(tbodyVide);
+      }
+
+      var trVide = document.createElement("TR");
+      tbodyVide.appendChild(trVide);
+      var tdVide = document.createElement("TD");
+      trVide.appendChild(tdVide);
+      tdVide.innerHTML = "LIGNE DE TEST";
+
+      /* Calcul de la hauteur totale */
+      var firstLine = getFirstChildByTagName(getFirstChildByTagName(this.divTBody, "TBODY"), "TR");
+      hauteurTab = firstLine.offsetHeight * this.nbligne;
+
+      /* Suppression de la ligne */
+      tbodyVide.removeChild(trVide);
+    }
+    /* Combo Ajax */
+    else {
+      hauteurTab = 20;
+    }
+  }
+  if (this.divTBody) {
+  	if(!(ECW_isGecko_35 && this.ecwIdFilter)) {
+    	this.divTBody.style.height = hauteurEntete + hauteurTab;
+    }
+  }
+  this.ecwHeightTable = hauteurEntete + hauteurTab;
+
+  /* Fixe la largeur de la liste */
+  var wlargeur = 0;
+
+  /* Pour eviter l'ascenseur horizontal en cas de manque de place */  
+  if (ECW_isGecko && this.divTBody) {
+    /* Position de la balise <table> */
+    this.divTBody.firstChild.style.position = "absolute";
+  }
+
+  /* Si l'entete existe */
+  if (this.divTHead) {
+    this.divTHead.style.width = this.divTBody.firstChild.offsetWidth;
+
+    /* Si la table contient au moins une ligne */
+    if (this.lignes != null && this.lignes.length > 0) {
+      if (this.lignes[0].parentNode.parentNode.offsetWidth > this.divTHead.offsetWidth) {
+        wlargeur = this.lignes[0].parentNode.parentNode.offsetWidth;
+      } else {
+        wlargeur = this.divTHead.offsetWidth;
+      }
+    } else {
+      wlargeur = this.divTHead.offsetWidth;
+    }
+
+  }
+  /* Si l'entete n'existe pas */
+  else {
+    /* Si la table contient au moins une ligne */
+    if (this.lignes != null && this.lignes.length > 0) {
+      wlargeur = this.lignes[0].parentNode.parentNode.offsetWidth;
+    } else {
+      wlargeur = 20;
+    }
+  }
+
+  /* Pour Mozilla */
+  if (ECW_isGecko && this.divTBody) {
+    /* Position de la balise <table> */
+    this.divTBody.firstChild.style.position = "";
+  }
+
+  /* Si l'ascenseur vertical s'affiche il faut ajouter la largeur de l'ascenseur */
+  if (this.lignes && this.lignes.length > this.nbligne) {
+    wlargeur += ecwScrollBarWidth;
+  }
+
+  /* Si barre de status */
+  if (this.divTStatus) {
+    var owStatus = this.ecwTable.divTStatus.offsetWidth;
+    if (wlargeur < owStatus) {
+      wlargeur = owStatus;
+    }
+  }
+
+  this.ecwWidthTable  = wlargeur;
+
+  if (this.divTBody) {
+    this.divTBody.style.width = wlargeur;
+    /* Pour une table, calcul de la longueur, car position: static */
+    if (!this.ecwTable.ecwComboBox) {
+      this.noeudDOM.style.width = this.divTBody.offsetWidth + 3;
+    }
+    /* Pour une Combo, PAS de calcul de la longueur, car position: absolute */
+  }
+  
+  /* Modif V2.0 : disabled des champs input et select du TBODY du divTHead */
+  /* pour ne pas polluer l'entete avec le focus */
+  if ((this.divTHead) && (this.divTBody)) {
+    var divTHeadTBody = getFirstChildByTagName(this.divTHead, "TBODY");
+    if (divTHeadTBody) {
+      var lines = divTHeadTBody.getElementsByTagName("INPUT");
+      for (var indiceLines = 0; indiceLines < lines.length; indiceLines++) {
+        lines[indiceLines].disabled = true;
+      }
+
+      lines = divTHeadTBody.getElementsByTagName("SELECT");
+      for (var indiceLines = 0; indiceLines < lines.length; indiceLines++) {
+        lines[indiceLines].disabled = true;
+      }
+
+      lines = divTHeadTBody.getElementsByTagName("BUTTON");
+      for (var indiceLines = 0; indiceLines < lines.length; indiceLines++) {
+        lines[indiceLines].disabled = true;
+      }
+    }
+  }
+  //Forcer le mode absolute pour IE apres les calculs de dimension
+  if (ECW_isIE && this.divTBody) { 
+  	this.divTBody.firstChild.style.position = "absolute";
+  }
+}
+
+/**
+ * Permet de forcer le style POSITION pour le tableau
+ * Valeur force : chaine vide => permet un recalcul correct dans le cas d'un tableau
+ * avec filtre
+ * @private
+ */
+ECW.Table.prototype.forceNoPositionForCompatibility = function() {
+	if (this.divTBody) this.divTBody.firstChild.style.position = "";		
+}
+
+/**
+ * Positionne la ligne selectionnee en ligne active sans faire le focus
+ * @param ligne Ligne selectionnee
+ * @param cursorTop = true permet de positionner le curseur au plus haut dans la liste
+ * @param event Evenement
+ * @private
+ */
+ECW.Table.prototype.selectionnerLigneWithOutFocus = function(ligne, cursorTop, event) {
+
+  /* Deselectionner la ligne active */
+  if (this.ligneActive) {
+    removeClass(this.ligneActive, "ecwTableLineActive");
+    removeClass(this.ligneActive, "ecwTableLineSelect");
+    if (this.ligneActive != ligne) {
+      ecwRemoveSpan(this.ligneActive.getElementsByTagName("TD")[this.searchColumn],
+        "ecwTableTextSelectFiltre");
+    }
+  }
+
+  /* Selectionne la nouvelle ligne active */
+  this.ligneActive = ligne;
+  if (this.ligneActive && this.showSelection) {
+    addClass(ligne, "ecwTableLineActive");
+  }
+
+  /* Mise a jour du select cache, sauf si canReorder ou le select */
+  /* porte sur l'ensemble des lignes si l'ordre a ete modifie */
+  if ((!this.canReorder && !this.selectionDoubleTable && (this.ecwTableSrcSelect == null) && (this.ecwTableTargetSelect == null))
+      || (!this.canReorder && (this.ecwTableSrcSelect != null) && (this.ecwTableTargetSelect != null)) ) {
+       this.genererSelect(new Array(this.ligneActive));
+  }
+
+  /* Scrolling */
+  hauteurEntete = 0;
+  if (this.divTHead) {
+    hauteurEntete = this.divTHead.offsetHeight;
+  }
+  /* Scrolling de la ligne superieure */
+  if (ligne && ligne.offsetTop - hauteurEntete < this.ligneActive.parentNode.parentNode.parentNode.scrollTop) {
+    this.ligneActive.parentNode.parentNode.parentNode.scrollTop = ligne.offsetTop - hauteurEntete;
+  }
+  /* Scrolling de la ligne inferieure */
+  if (ligne && ligne.offsetTop + ligne.offsetHeight >
+    this.ligneActive.parentNode.parentNode.parentNode.scrollTop +
+    this.ligneActive.parentNode.parentNode.parentNode.offsetHeight) {
+    this.ligneActive.parentNode.parentNode.parentNode.scrollTop = ligne.offsetTop +
+      ligne.offsetHeight - this.ligneActive.parentNode.parentNode.parentNode.offsetHeight;
+  }
+
+  /* Positionnement de la ligne selectionnee /*
+  /* pour qu'elle soit en premiere position */
+  if (ligne && cursorTop) {
+    this.ligneActive.parentNode.parentNode.parentNode.scrollTop = ligne.offsetTop - hauteurEntete;
+  }
+
+  /* Derniere ligne selectionnee */
+  this.lastSelectedLine = ligne;
+}
+
+/**
+ * Positionne la ligne selectionnee en ligne active
+ * @param ligne Ligne selectionnee
+ * @param cursorTop = true permet de positionner le curseur au plus haut dans la liste
+ * @param event Evenement
+ * @private
+ */
+ECW.Table.prototype.selectionnerLigne = function(ligne, cursorTop, event) {
+
+  this.selectionnerLigneWithOutFocus(ligne, cursorTop, event);
+
+  /* Pour un tableau, */
+  /* Si l'input invisible n'est pas disable, focus */
+  //Modif V2.0
+  if ((!this.input.disabled) && (!ecwIsFocusFormElement(event))) {
+    this.setFocus();
+  }
+
+  /* Evenement onSelect */
+  if (this.onSelect) {
+    this.onSelect();
+  }
+}
+
+/**
+ * S&eacute;lectionne la ligne correspondante &agrave; l'index.
+ * @param index l'index de la ligne &agrave; s&eacute;lectionner
+ * (0 -> premi&egrave;re ligne).
+ */
+ECW.Table.prototype.selectLine = function(index) {
+  if (this.lignes) {
+    if (index) {
+      if (index >= this.lignes.length)
+        index = this.lignes.length - 1;
+    } else {
+      index = 0;
+    }
+    this.selectionnerLigne(this.lignes[index]);
+  }
+}
+
+/**
+ * S&eacute;lectionne la ligne correspondante &agrave; l'index sans donner
+ * le focus &agrave; la table.
+ * @param index l'index de la ligne &agrave; s&eacute;lectionner
+ * (0 -> premi&egrave;re ligne).
+ */
+ECW.Table.prototype.selectLineWithOutFocus = function(index) {
+  if (this.lignes) {
+    if (index) {
+      if (index >= this.lignes.length)
+        index = this.lignes.length - 1;
+    } else {
+      index = 0;
+    }
+    this.selectionnerLigneWithOutFocus(this.lignes[index]);
+    this.desactiver();
+  }
+}
+
+/**
+ * Desactive la table : passe la ligne de l'etat selectionne actif a l'etat selectionne non-actif
+ * @private
+ */
+ECW.Table.prototype.desactiver = function() {
+  this.hideUIMessage();
+  removeClass(this.noeudDOM, "ecwTableActive");
+  /* Si selection d'une ligne */
+  if (this.ligneActive) {
+    removeClass(this.ligneActive, "ecwTableLineActive");
+
+    /* Si le tableau n'est pas reordonnable */
+    /* et si ce n'est pas le tableau de selection (double table) */    
+    if (!this.canReorder && (this.ecwTableSrcSelect == null) && (this.ecwTableTargetSelect == null)) {
+    
+      /* Mono-selection */
+      if ((!this.ligneMultiSelect) || this.tabLigneMulti.length == 0) {
+        if (this.showSelection) {
+          addClass(this.ligneActive, "ecwTableLineSelect");
+        }
+        /* Selection de la ligne active */
+        if (!this.canReorder && (this.ecwTableSrcSelect == null)) {
+            this.genererSelect(new Array(this.ligneActive));
+        }    
+      }
+      /* Multi-selection */
+      else {
+        if (this.tabLigneMulti.length > 0) {
+          this.genererSelect(this.tabLigneMulti);
+        }
+      }
+    }
+    /* Si ordonnable ou selection avec double table */
+    else {
+      addClass(this.ligneActive, "ecwTableLineSelect");
+    }
+  }
+}
+
+/**
+ * Active la table : passe la ligne de l'etat selectionne non-actif a l'etat selectionne actif
+ * @private
+ */
+ECW.Table.prototype.activer = function() {
+  this.showUIMessage();
+  if (!this.showSelection) {
+    return;
+  }
+  addClass(this.noeudDOM, "ecwTableActive");
+  if (this.ligneActive) {
+    removeClass(this.ligneActive, "ecwTableLineSelect");
+    addClass(this.ligneActive, "ecwTableLineActive");
+    this.setFocus();
+  } else {
+    /* Lignes presentes */
+    if (this.lignes && this.lignes.length > 0) {
+      this.selectionnerLigne(this.lignes[0]);
+    }
+    /* Tableau vide */
+    else {
+      this.setFocus();
+    }
+  }
+}
+
+/**
+ * Actions des touches du clavier
+ * @private
+ */
+ECW.Table.prototype.onKey = function(action) {
+
+  /* Si le table est integre dans une ComboBox */
+  if (this.ecwComboBox) {
+    this.ecwComboBox.onKey(action);
+  }
+  /* Sinon : liste classique */
+  else {
+
+    if (action == "esc" && this.ecwUI.onEscape) {
+      this.ecwUI.onEscape();
+    }
+
+    if (action == "inser" && this.onInsert) {
+      this.onInsert();
+    }
+
+    /* Evenements uniquement valables pour un tableau NON vide */
+    if (this.lignes && this.lignes.length > 0) {
+      if (action == "space") {
+        if (this.ligneActive.ecwTable.ligneMultiSelect) {
+          this.cocherLigne(this.ligneActive);
+        }
+        /* Evenement onSelect */
+        if (this.onSelect) {
+          this.onSelect();
+        }
+      }
+      if (action == "suppr" && this.onDelete) {
+        this.onDelete();
+      }
+      if (action == "enter" && this.onExecute) {
+        /* RAZ Event pour IE sur ENTER */
+        if (ECW_isIE) {
+          if (!event) {
+            event = window.event;
+          }
+          event.returnValue = false;
+        }
+        this.onExecute();
+      }
+      
+      /* Actions des touches de navigation du clavier (up, down, pageUp, pageDown, home, end) */
+      if (action == "home" || action == "end" || action == "pageDown" || action == "pageUp" || action == "down" || action == "up"){
+        this.onKeyNavigation(action);
+        return false;
+      }
+      
+      if (action == "backSpace") {
+        this.ecwTable.texteFiltre = this.ecwTable.texteFiltre.substr(0, this.ecwTable.texteFiltre.length - 1);
+        this.ecwTable.findChar("");
+      }
+      if (action == "ctrl-C") {
+        this.copyTable();
+      }
+      
+      /* Multi-selection */
+      if (this.ligneMultiSelect) {
+        if (action == "ctrl-A") {
+          this.selectAll();
+        }
+      }
+
+      /* Table non Ajax */
+      if (this.ajaxAction) {
+        if (action == "ctrl-home") {
+          this.firstPage();
+        }else if (action == "ctrl-end") {
+          this.lastPage();          
+        }
+      }else 
+      /* Reordonnancement */
+      if (this.canReorder) {
+        if (action == "ctrl-home") {
+          this.lineTop();
+        }
+        if (action == "ctrl-end") {
+          this.lineBottom();          
+        }
+        if (action == "ctrl-up") {
+          this.lineUp();
+        }
+        if (action == "ctrl-down") {
+          this.lineDown();
+        }
+      }
+
+
+    }
+    /* Deplacement de ligne */
+    if (this.selectionDoubleTable) {
+      if (action == "right") {
+        this.addLine();
+      }
+      if (action == "ctrl-right") {
+        this.addAllLine();
+      }
+    }
+    if (this.ecwTableSrcSelect) {
+      if (action == "left") {
+        this.ecwTableSrcSelect.removeLine();
+      }
+      if (action == "ctrl-left") {
+        this.ecwTableSrcSelect.removeAllLine();
+      }
+    }
+  }
+}
+
+/**
+ * Actions des touches de navigation du clavier.
+ * (up, down, pageUp, pageDown, home, end) 
+ * @private
+ */
+ECW.Table.prototype.onKeyNavigation = function(action) {
+  var position = 0;
+  if(this.ligneActive){
+    position = this.ligneActive.rIndex;
+  }
+  var existAscenseur = (this.lignes && this.lignes.length > this.nbligne);
+  var hauteurEntete = 0;
+  if (this.divTHead) {
+    hauteurEntete = this.divTHead.offsetHeight;
+  }
+  
+  /* Table non AJAX */
+  if(!this.ajaxAction){
+
+    if (action == "home") {
+    
+      this.initFindChar();
+      this.selectionnerLigne(this.lignes[0]);
+    }else if (action == "end") {
+    
+      this.initFindChar();
+      this.selectionnerLigne(this.lignes[this.lignes.length - 1]);
+    }else if (action == "pageDown") {
+    
+      if(position+this.nbligne>this.lignes.length){
+        this.initFindChar();
+        this.selectionnerLigne(this.lignes[this.lignes.length - 1]);
+      }else{
+        this.changerSelectionLigne(this.nbligne);
+      }
+      if(existAscenseur){
+        this.ligneActive.parentNode.parentNode.parentNode.scrollTop = this.ligneActive.offsetTop - hauteurEntete;
+      }
+    }else if (action == "pageUp") {
+    
+      if(position-this.nbligne<=0){
+        this.initFindChar();
+        this.selectionnerLigne(this.lignes[0]);
+      }else{
+        this.changerSelectionLigne( -this.nbligne);
+      }
+      if(existAscenseur){
+        this.ligneActive.parentNode.parentNode.parentNode.scrollTop = this.ligneActive.offsetTop - hauteurEntete;
+      }
+    }else if(action == "down"){
+    
+      this.changerSelectionLigne(1);
+    }else if(action == "up"){
+    
+      this.changerSelectionLigne(-1);
+    }
+
+   /* Table AJAX */
+  }else{
+
+    var actionChangePage = null;
+    var selectLastLine = false;
+    /* sans ascenseur */
+    if(!existAscenseur){
+  
+      if (action == "home") {
+        actionChangePage = "firstPage";
+      }else if (action == "end") {
+        actionChangePage = "lastPage";
+      }else if (action == "pageDown") {
+        actionChangePage = "nextPage";
+      }else if (action == "pageUp") {
+        actionChangePage = "previousPage";
+      }else if(action == "down"){
+
+        /* Si on est sur la 1iere ligne on retourne a la 1iere page, sinon on remonte d'une ligne */
+        if(position==this.lignes.length){
+          actionChangePage = "nextPage";
+        }else{
+          this.changerSelectionLigne(1);
+        }
+      }else if(action == "up"){
+        
+        /* Si on est sur la 1iere ligne on retourne a la 1iere page, sinon on descend d'une ligne */
+        if(position==1){
+          actionChangePage = "previousPage";
+          selectLastLine = true;
+        }else{
+          this.changerSelectionLigne(-1);
+        }
+      }
+      
+    /* avec ascenseur */
+    }else {
+  
+      if (action == "home") {
+        
+        /* Si on est sur la 1iere ligne on retourne a la 1iere page, sinon on retourne deja au debut de la page courante */
+        if(position==1){
+          actionChangePage = "firstPage";
+        }else{
+          this.initFindChar();
+          this.selectionnerLigne(this.lignes[0]);
+        }
+      }else if (action == "end") {
+        
+        /* Si on est sur la derniere ligne on va sur la derniere page, sinon on retourne deja a la fin de la page courante */
+        if(position==this.lignes.length){
+          actionChangePage = "lastPage";
+        }else{
+          this.initFindChar();
+          this.selectionnerLigne(this.lignes[this.lignes.length - 1]);
+        }
+      }else if (action == "pageDown") {
+        
+        /* Si on est sur la derniere ligne on va a la page suivante */
+        /* sinon on avance de nbLigne ou moins, suivant ce qu'il reste */
+        if(position==this.lignes.length){
+          actionChangePage = "nextPage";
+        }else{
+          if(position+this.nbligne>this.lignes.length){
+            this.initFindChar();
+            this.selectionnerLigne(this.lignes[this.lignes.length - 1]);
+          }else{
+            this.changerSelectionLigne(this.nbligne);
+          }
+          this.ligneActive.parentNode.parentNode.parentNode.scrollTop = this.ligneActive.offsetTop - hauteurEntete;
+        }
+      }else if (action == "pageUp") {
+        
+        /* Si on est sur la premiere ligne on retourne a la page precedente */
+        /* sinon on recule de nbLigne ou moins, suivant ce qu'il reste */
+        if(position==1){
+          actionChangePage = "previousPage";
+        }else{
+  
+          if(position-this.nbligne<=0){
+            this.initFindChar();
+            this.selectionnerLigne(this.lignes[0]);
+          }else{
+            this.changerSelectionLigne( -this.nbligne);
+          }
+          this.ligneActive.parentNode.parentNode.parentNode.scrollTop = this.ligneActive.offsetTop - hauteurEntete;
+        }
+      }else if(action == "down"){
+        if(position==this.lignes.length){
+          actionChangePage = "nextPage";
+        }else{
+          this.changerSelectionLigne(1);
+        }
+      }else if(action == "up"){
+        if(position==1){
+          actionChangePage = "previousPage";
+          selectLastLine = true;
+        }else{
+          this.changerSelectionLigne(-1);
+        }
+      }
+    }
+    
+    if(actionChangePage){
+    	var obj = this;
+    	if(this.ecwComboBox){
+    	  obj = this.ecwComboBox;
+    	}
+      if(actionChangePage=="firstPage"){
+        obj.firstPage();
+      }else if(actionChangePage=="previousPage"){
+        obj.previousPage(selectLastLine);
+      }else if(actionChangePage=="nextPage"){
+        obj.nextPage();
+      }else if(actionChangePage=="lastPage"){
+        obj.lastPage();
+      }
+    }
+  
+  }
+}
+
+/**
+ * Deplace le curseur de selection d'une ligne
+ * @private
+ */
+ECW.Table.prototype.changerSelectionLigne = function(position) {
+  if (this.lignes) {
+    if (this.ligneActive) {
+      var rIndexLigne = this.ligneActive.rIndex;
+      this.initFindChar();
+//alert('rIndexLigne:'+rIndexLigne+'\nposition:'+position+'\nlength:'+this.lignes.length)
+      if (rIndexLigne + position > 0 && rIndexLigne + position <= this.lignes.length) {
+        this.selectionnerLigne(this.lignes[rIndexLigne + position - 1]);
+      } else {
+        if (position > 0) {
+          this.onKey("end");
+        } else {
+          this.onKey("home");
+        }
+      }
+    } else {
+      this.onKey("home");
+    }
+  }
+}
+
+/**
+ * Mise a jour des couleurs alternees
+ * @private
+ */
+ECW.Table.prototype.processAlternateColor = function() {
+
+  if (this.lignes) {
+    /* Pour les tableaux ayant des couleurs de lignes alternees */
+    if (this.alternateColor && this.showSelection) {
+      var ligne;
+      var nbLignes = this.lignes.length;
+      for (var i = 0; i < nbLignes; ++i) {
+        ligne = this.lignes[i];
+        if (i % 2 == 0) {
+          /* i est pair */
+          removeClass(ligne, "ecwTableAlternateLine2");
+          addClass(ligne, "ecwTableAlternateLine1");
+        } else {
+          /* i est impair */
+          removeClass(ligne, "ecwTableAlternateLine1");
+          addClass(ligne, "ecwTableAlternateLine2");
+        }
+      }
+    }
+  }
+}
+  
+/**
+ * Lance le tri sur une colonne de la liste
+ * @private
+ */
+ECW.Table.prototype.sortByColumn = function(col) {
+  this.initFindChar();
+  this.searchColumn = col.cellIndex;
+
+  /* Recuperation de la table contenant les donnees a trier en passant par le DIV principal */
+  var table = getFirstChildByTagName(this.divTBody, "TABLE");
+  if (col.ecwTable.triActif != 0) {
+    if (Math.abs(col.ecwTable.triActif) - 1 == col.cellIndex) {
+      if (col.ecwTable.triActif > 0) {
+        removeClass(col, "ecwTableSortIncrease");
+        addClass(col, "ecwTableSortDecrease");
+        col.ecwTable.triActif =  - (col.cellIndex + 1);
+        ecw_sort(col.ecwTable.triActif, table, this.comparators);
+      } else {
+        removeClass(col, "ecwTableSortDecrease");
+        addClass(col, "ecwTableSortIncrease");
+        col.ecwTable.triActif = col.cellIndex + 1;
+        ecw_sort(col.ecwTable.triActif, table, this.comparators);
+      }
+    } else {
+      var tr = col.parentNode;
+      var listeTd = tr.cells;
+      var tdOld = listeTd[Math.abs(col.ecwTable.triActif) - 1];
+      removeClass(tdOld, "ecwTableSortDecrease");
+      removeClass(tdOld, "ecwTableSortIncrease");
+      addClass(col, "ecwTableSortIncrease");
+      col.ecwTable.triActif = col.cellIndex + 1;
+      ecw_sort(col.ecwTable.triActif, table, this.comparators);
+    }
+  } else {
+    addClass(col, "ecwTableSortIncrease");
+    col.ecwTable.triActif = col.cellIndex + 1;
+    ecw_sort(col.ecwTable.triActif, table, this.comparators);
+  }
+  
+  /* Mise a jour des lignes alternees */
+  this.processAlternateColor();
+
+  /* Mise a jour de la numerotation */
+  this.processNumerotation();
+
+  /* Mise a jour de la numerotation */
+  this.processIndex();
+
+  /* Selection de la 1ere ligne */
+  this.selectionnerLigne(this.lignes[0]);
+}
+
+/**
+ * Selectionne ou deselectionne une ligne en mode MultiSelection
+ * @private
+ */
+ECW.Table.prototype.cocherLigne = function(ligne,modeShift) {
+  var obj = ligne;
+   /* modeShift : flag permettant de contourner un bug lors 
+   * de la multiselection de ligne avec shift et lorsque l'on va 
+   * de bas en haut
+   * Correctif pas tres elegant mais limite les effets de bord
+   * car cette methode est utilisee dans de nombreux cas.
+   * */
+  if (modeShift==null) modeShift=false;
+  if (isClass(obj, "ecwTableLineMultiple")) {
+    var j = 0;
+    var tabMulti = new Array;
+    for (var i = 0; i < this.tabLigneMulti.length; i++) {
+      if (this.tabLigneMulti[i] != ligne) {
+        tabMulti[j] = this.tabLigneMulti[i];
+        j++;
+      }
+    }
+    this.tabLigneMulti = tabMulti;
+    removeClass(obj, "ecwTableLineMultiple");
+  } else {
+    /* Retient la premiere ligne selectionnee si elle ne l'est pas encore */
+    if(!modeShift && this.lastSelectedLine && this.lastSelectedLine.rIndex!=ligne.rIndex 
+        && !isClass(this.lastSelectedLine, "ecwTableLineMultiple")){
+      addClass(this.lastSelectedLine, "ecwTableLineMultiple");
+      this.tabLigneMulti[this.tabLigneMulti.length] = this.lastSelectedLine;
+    }
+    this.tabLigneMulti[this.tabLigneMulti.length] = ligne;
+    addClass(obj, "ecwTableLineMultiple");
+  }
+
+  if (this.onMultiSelect) {
+    this.onMultiSelect();
+  }
+}
+
+/**
+ * Selectionne un ensemble de lignes situees entre la derniere ligne selectionnee
+ * et la ligne sur laquelle on vient de cliquer
+ * @private
+ */
+ECW.Table.prototype.shiftCocherLigne = function(ligne) {
+
+  /* Sauvegarde la derniere lignes selectionnee */
+  var currentLine;
+    if (this.lastSelectedLine) {
+        currentLine = this.lastSelectedLine;
+    } else {
+        /* Si aucune ligne n'est selectionnee, on prend la premiere */
+        currentLine = getFirstChildByTagName(getFirstChildByTagName(this.divTBody, "TBODY"), "TR");
+    }
+
+  /* Deselection */
+  this.unselectLines();
+
+  /* Retablit la ligne selectionnee */
+  this.lastSelectedLine = currentLine;
+
+  if (ligne.rIndex > this.lastSelectedLine.rIndex) {
+    for (var i = this.lastSelectedLine.rIndex; i <= ligne.rIndex; i++) {
+      var ligneACocher = this.lignes[i - 1];
+      /* Au cas ou la ligne serait deja selectionnee */
+      removeClass(ligneACocher, "ecwTableLineMultiple");
+      this.cocherLigne(ligneACocher,true);
+    }
+  } else {
+    for (var i = ligne.rIndex; i <= this.lastSelectedLine.rIndex; i++) {
+      var ligneACocher = this.lignes[i - 1];
+      /* Au cas ou la ligne serait deja selectionnee */
+      removeClass(ligneACocher, "ecwTableLineMultiple");
+      this.cocherLigne(ligneACocher,true);
+    }
+  }
+}
+
+/**
+ * Genere une balise SELECT avec ses options correspondant a la cle
+ * de la/les ligne(s) selectionnee(s)
+ * @private
+ */
+ECW.Table.prototype.genererSelect = function(listeLignes) {
+
+  /* Generation des balises SELECT */
+  for (var i = 0; i < this.tabNameKey.length; i++) {
+    var wSelect = document.getElementById("listeSelect" + this.tabNameKey[i]);
+    
+    /* Suppression des anciennes balises OPTION */
+    for (var k = wSelect.childNodes.length - 1; k >= 0; k--) {
+      wSelect.removeChild(wSelect.childNodes[k]);
+    }
+
+    /* Generation des balises OPTION en mode multiSelection */
+    if (listeLignes && listeLignes.length > 1) {
+      for (var j = 0; j < listeLignes.length; j++) {
+        var wOption = document.createElement("OPTION");
+        if (listeLignes[j].getAttribute("ecwKeyVal" + i) != null) {
+          var wtext = listeLignes[j].getAttribute("ecwKeyVal" + i);
+        } else {
+          var wtext = ecwGetInnerText(listeLignes[j].getElementsByTagName("TD")[i]).trim();
+        }
+        wOption.text = wtext;
+        wOption.value = wtext;
+        wOption.selected = true;
+        wSelect.appendChild(wOption);
+      }
+    }
+    /* Generation des balises OPTION en mode monoSelection */
+    else if (listeLignes && listeLignes.length == 1) {
+      var wOption = document.createElement("OPTION");
+      if (listeLignes[0].getAttribute("ecwKeyVal" + i) != null) {
+        var wtext = listeLignes[0].getAttribute("ecwKeyVal" + i);
+      } else {
+        var wtext = ecwGetInnerText(listeLignes[0].getElementsByTagName("TD")[i]).trim();
+      }
+      wOption.text = wtext;
+      wOption.value = wtext;
+      wOption.selected = true;
+      wSelect.appendChild(wOption);
+    }
+  }
+}
+
+/**
+ * Execute une action
+ * @private
+ */
+ECW.Table.prototype.executerActionLigne = function(ligne) {
+  if (this.onExecute) {
+    this.onExecute();
+  }
+}
+
+/**
+ * Initialise la recherche du caractere saisie dans la liste
+ * @private
+ */
+ECW.Table.prototype.initFindChar = function() {
+  if (this.ligneActive) {
+    ecwRemoveSpan(this.ligneActive.getElementsByTagName("TD")[this.searchColumn],
+      "ecwTableTextSelectFiltre");
+  }
+  this.texteFiltre = "";
+}
+
+/**
+ * Recherche le caractere saisie dans la liste
+ * @private
+ */
+ECW.Table.prototype.findChar = function(touche) {
+  var texte = this.texteFiltre + touche;
+  if (texte.length != 0) {
+    var nbLines = 0;
+    if (this.lignes) {
+      nbLines = this.lignes.length;
+    }
+    texte = texte.toUpperCase();
+    for (var i = 0; i < nbLines; ++i) {
+      var cell = this.lignes[i].getElementsByTagName("TD")[this.searchColumn];
+      var cellText = (ecwGetInnerText(cell).toUpperCase()).trim();
+      if (cellText.indexOf(texte) == 0) {
+        this.selectionnerLigne(this.lignes[i], true);
+        ecwRemoveSpan(cell, "ecwTableTextSelectFiltre");
+        ecwAddSpan(cell, "ecwTableTextSelectFiltre", texte);
+        this.texteFiltre = texte;
+        break;
+      }
+    }
+  } else {
+    this.initFindChar();
+  }
+}
+
+/**
+ * Place le focus sur la table
+ */
+ECW.Table.prototype.setFocus = function() {
+  if (this.input.ecwControl && this.input.ecwControl.isVisible()) {
+    return this.input.ecwControl.setFocus();
+  }
+}
+
+/**
+ * Retourne le nombre de ligne de la table
+ */
+ECW.Table.prototype.getNbLines = function() {
+
+  /* La liste est construite */
+  if (this.lignes) {
+    return this.lignes.length;
+  }
+  /* Si la liste n'est pas encore construite */
+  /* Cas de la ComboBox */
+  else if (this.ecwComboBox && !this.ecwComboBox.listBuilded) {
+    this.constructeur();
+    this.ecwComboBox.listBuilded = true;
+    if (this.lignes) {
+      return this.lignes.length;
+    } else {
+      return 0;
+    }
+  }
+  /* Autre cas */
+  else {
+    return 0;
+  }
+}
+
+/**
+ * Retourne le nombre de lignes s&eacute;lectionn&eacute;es dans la table
+ */
+ECW.Table.prototype.getSelectedLines = function() {
+  if (this.tabLigneMulti.length == 0 && this.ligneActive) {
+    return 1;
+  } else {
+    return this.tabLigneMulti.length;
+  }
+}
+
+/**
+ * Retourne vrai si une ligne est s&eacute;lectionn&eacute;e dans la table
+ */
+ECW.Table.prototype.hasSelectedLine = function() {
+  if (this.ligneActive) {
+    return true;
+  } else {
+    return false;
+  }
+}
+
+/**
+ * Retourne le contenu de la cellule de la ligne active.
+ * @param idColonne Index de la colonne.
+ */
+ECW.Table.prototype.getColumn = function(idColonne) {
+  var result = null;
+  if(this.numerotation){
+    idColonne++;
+  }
+  var listeColumn = getChildrenByTagName(this.ligneActive, "TD");
+  if (listeColumn && (idColonne < listeColumn.length)) {
+    var objColumn = listeColumn[idColonne]; 
+    if (objColumn) {
+      var valueColumn = ecwGetInnerText(objColumn);
+      if (valueColumn) {
+        result = valueColumn.trim();
+      }
+    }
+  }
+  return result;
+}
+
+/**
+ * Retourne la valeur de la cl&eacute; de la ligne active
+ */
+ECW.Table.prototype.getKeyVal = function(keyName) {
+  for (var i = 0; i < this.tabNameKey.length; i++) {
+    if (this.tabNameKey[i] == keyName) {
+      /* Si une ligne est selectionnee */
+      if (this.ligneActive) {
+        return this.ligneActive.getAttribute("ecwKeyVal" + i);
+      }
+      else {
+        return "";
+      }
+    }
+  }
+}
+
+/**
+ * Specifie un comparateur pour une colonne donnee. Par defaut, le comparateur
+ * choisi lors d'un tri est choisi en fonction du contenu de la premiere case
+ * non vide de la colonne.
+ * @param colonne l'index de la colonne,
+ * @param comparator la fonction qui va permettre de comparer les elements :
+ * cette fonction doit accepter deux parametres (a et b) en entree et renvoyer
+ * un entier negatif, nul ou positif selon le resultat de la comparaison
+ * entre a et b.
+ */
+ECW.Table.prototype.setColumnComparator = function(colonne, comparator) {
+  this.comparators[colonne] = comparator;
+}
+
+/**
+ * Specifie un comparateur pour une colonne donnee, designee par sa cle.
+ * @param colonne la cle de la colonne,
+ * @param comparator la fonction de comparaison.
+ */
+ECW.Table.prototype.setKeyValComparator = function(keyName, comparator) {
+  for (var i = 0; i < this.tabNameKey.length; i++) {
+    if (this.tabNameKey[i] == keyName) {
+      this.comparators[i] = comparator;
+    }
+  }
+}
+
+/**
+ * Retourne l'index de la ligne active.
+ * Ajout David Meunier 18/06/2007.
+ * @return index de la ligne active.
+ */
+ECW.Table.prototype.getSelectedLineIndex = function() {
+  return this.ligneActive.rIndex - 1;
+}
+
+/**
+ * Retourne la (les) valeur(s) de la cl&eacute; de la (des) ligne(s) active(s)
+ * @return Tableau des valeurs pour la cl&eacute;
+ */
+ECW.Table.prototype.getAllKeyVal = function(keyName) {
+
+  var result = new Array();
+
+  /* Recherche de la cle */
+  for (var i = 0; i < this.tabNameKey.length; i++) {
+    /* Cle trouve */
+    if (this.tabNameKey[i] == keyName) {
+      /* Mono-selection */
+      if (this.tabLigneMulti.length == 0 && this.ligneActive) {
+        result[0] = this.ligneActive.getAttribute("ecwKeyVal" + i); 
+        return result;
+      }
+      /* Multi-selection */
+      else if (this.tabLigneMulti.length > 0) {
+        for (var j = 0; j < this.tabLigneMulti.length; j++) {
+          result[j] = this.tabLigneMulti[j].getAttribute("ecwKeyVal" + i);
+        }
+        return result;
+      }
+      /* Sinon */
+      else {
+        result[0] = "";
+        return result;
+      }
+    }
+  }
+}
+
+/**
+ * Rafra&icirc;chi les donn&eacute;es de la liste
+ */
+ECW.Table.prototype.refresh = function(htmlTable) {
+  var newDivTable = document.createElement("DIV");
+  newDivTable.innerHTML = htmlTable;
+  this.refreshDIV(newDivTable);
+}
+
+/**
+ * Rafra&icirc;chi les div d'une table
+ * @private
+ */
+ECW.Table.prototype.refreshDIV = function(table, status) {
+
+  /* Suppression de tous les noeuds enfants de <DIV class="ecwTable> */
+  for (var i = this.noeudDOM.childNodes.length - 1; i >= 0; i--) {
+    if (this.noeudDOM.childNodes[i].nodeName != "INPUT") {
+      this.noeudDOM.removeChild(this.noeudDOM.childNodes[i]);
+    }
+  }
+  this.ligneActive = null;
+  this.tabLigneMulti = new Array;
+  this.lignes = null;
+  this.divTHead = null;
+  this.divTBody = null;
+  this.divTStatus = null;
+  this.tabNameKey = new Array;
+  this.texteFiltre = "";
+  this.searchColumn = 0;
+
+  /* Contenu de la table */
+  this.noeudDOM.appendChild(table);
+
+  /* Construction de la Table */
+  this.constructeur();
+  
+  if (status) {
+    this.noeudDOM.appendChild(status);
+    this.divTStatus = status;
+  }
+}
+
+/**
+ * Copie dans le presse papier le contenu de la liste
+ * @private
+ */
+ECW.Table.prototype.copyTable = function() {
+  var monText = document.createElement("TEXTAREA");
+  monText.innerText = this.divTBody.innerHTML;
+  if (monText.createTextRange) {
+    var Copied = monText.createTextRange();
+    Copied.execCommand("Copy");
+    this.input.ecwControl.ecwUI.setMessage("I",
+      "Tableau copie au format HTML dans le presse papier Window. \nVous pouvez le coller dans une feuille Excel.");
+  }
+}
+
+/**
+ * S&eacute;lectionne toutes les lignes du tableau
+ */
+ECW.Table.prototype.selectAll = function() {
+
+  if (this.lignes && this.ligneMultiSelect) {
+
+    /* Deselection */
+    this.unselectLines();
+
+    /* Parcours des lignes */
+    for (var iLigne = 0; iLigne < this.lignes.length; iLigne++) {
+      this.cocherLigne(this.lignes[iLigne]);
+    }
+    /* Mise a jour de la balise <select> */
+    this.genererSelect(this.lignes);
+  }
+}
+
+/**
+ * S&eacute;lectionne la/les ligne(s) dont les cl&eacute;s et les valeurs de cl&eacute; sont pass&eacute;s
+ * en param&egrave;tre
+ * Structure du param&eacute;tre recu :
+ *  tabKey = [["cle0", "cle1", ...], ["val01", "val11", ...], ["val02", "val12", ...], [...], ... ]
+ */
+ECW.Table.prototype.selectKey = function(tabKey) {
+
+  /* Deselection */
+  this.unselectLines();
+
+  if (tabKey.length > 0) {
+    /* Recuperation de l'ordre des cles par rapport a celui defini dans la balise table */
+    var indexKeyName = new Array;
+    for (var i = 0; i < tabKey[0].length; i++) {
+      for (var j = 0; j < this.tabNameKey.length; j++) {
+        if (this.tabNameKey[j] == tabKey[0][i]) {
+          indexKeyName[i] = j;
+        }
+      }
+    }
+    /* Comparaison des valeurs de cle pour chaque ligne */
+    var tabLignesSelect = new Array;
+    if (this.lignes) {
+      /* Pour chaque ligne de la table */
+      for (var iLigne = 0; iLigne < this.lignes.length; iLigne++) {
+        var currentLigne = this.lignes[iLigne];
+        /* Pour chaque groupe de valeurs du parametre recu */
+        for (var iGrpVal = 1; iGrpVal < tabKey.length; iGrpVal++) {
+          var valTrue = true;
+          /* Compare avec chaque valeur du groupe */
+          for (var iVal = 0; iVal < tabKey[iGrpVal].length && valTrue; iVal++) {
+            if (currentLigne.getAttribute("ecwKeyVal" + indexKeyName[iVal]) != tabKey[iGrpVal][iVal]) {
+              valTrue = false;
+            }
+          }
+          /* Si valeurs de cles correspondent, on sauvegarde la ligne et on passe a la ligne suivante. */
+          if (valTrue) {
+            tabLignesSelect[tabLignesSelect.length] = currentLigne;
+            break;
+          }
+        }
+      }
+    }
+
+    /* Selection des lignes dans la table */
+    if (tabLignesSelect.length > 0) {
+    
+      /* Multi-selection avec plusieurs lignes selectionnees */
+      if ((this.ligneMultiSelect) && (tabLignesSelect.length > 1)) {
+        for (var i = 0; i < tabLignesSelect.length; i++) {
+          this.cocherLigne(tabLignesSelect[i]);
+        }
+        this.genererSelect(tabLignesSelect);
+      }
+      /* Selection d'un ligne */
+      else {
+        /* Si c'est une Combo */
+        /* recopie de la valeur dans le champ texte rattache */
+        if (this.ecwComboBox) {
+          this.ecwComboBox.ecwControl.noeudDOM.value = tabLignesSelect[0].chaineCar.trim();
+        }
+        this.selectionnerLigne(tabLignesSelect[0]);
+      }
+    }
+  }
+}
+
+/**
+ * Supprime la selection de toutes les lignes
+ */
+ECW.Table.prototype.unselectLines = function() {
+
+  if (this.lignes) {
+    /* Parcours des lignes */
+    for (var iLigne = 0; iLigne < this.lignes.length; iLigne++) {
+      /* Style Multi-selection */
+      removeClass(this.lignes[iLigne], "ecwTableLineMultiple");
+
+      /* Style Mono-selection */
+      removeClass(this.lignes[iLigne], "ecwTableLineActive");
+      removeClass(this.lignes[iLigne], "ecwTableLineSelect");
+
+      /* Mise en evidence de la saisie */
+      ecwRemoveSpan(this.lignes[iLigne].getElementsByTagName("TD")[this.searchColumn], "ecwTableTextSelectFiltre");
+    }
+    this.tabLigneMulti = [];
+    this.lastSelectedLine = null;
+    this.ligneActive = null;
+
+    /* Pas de maj de la balise <select> cache, en mode Double Table */
+    if ((this.ecwTable.ecwTableSrcSelect == null)
+        && (this.ecwTable.ecwTableTargetSelect == null)) {
+      /* Initialisation des balises <select> cachees */
+      for (var i = 0; i < this.tabNameKey.length; i++) {
+        var wSelect = document.getElementById("listeSelect" + this.tabNameKey[i]);
+
+        /* Suppression des anciennes balises OPTION */
+        for (var k = wSelect.childNodes.length - 1; k >= 0; k--) {
+          wSelect.removeChild(wSelect.childNodes[k]);
+        }
+      }
+    }
+  }
+}
+
+/**
+ * Tri par defaut des lignes
+ * @private
+ */
+ECW.Table.prototype.initSort = function() {
+
+  // Recuperation du mode de tri des lignes (single ou multiple)
+  var tableValeur = getFirstChildByTagName(this.divTBody, "TABLE");
+  var tableEntete = getFirstChildByTagName(this.divTHead, "TABLE");
+  var numColDefaultSort = this.noeudDOM.attributes.ecwDefaultSort.nodeValue;
+  var typeSort = "Decrease";
+
+  if (this.noeudDOM.attributes.ecwDefaultTypeSort &&
+      this.noeudDOM.attributes.ecwDefaultTypeSort.nodeValue == "Increase") {
+    typeSort = "Increase";
+  }
+
+  //Il faut tjs se baser sur la derniere ligne du thead dans le cas ou il y aurait des groupcell)
+  var nbRow = tableEntete.tHead.rows.length;
+  var lastRows = tableEntete.tHead.rows[nbRow-1];
+
+  // Controle sur le numero de colonne
+  if (numColDefaultSort >= lastRows.cells.length) {
+    //Pas de tri
+    return ;
+  }
+
+  // Controle que la colonne est triable
+  if (!isClass(lastRows.cells[numColDefaultSort], "ecwTableSortable")) {
+    //Pas de tri
+    return ;
+  }
+
+  //Modification de l'apparence
+  var defaulColSort = lastRows.cells[numColDefaultSort];
+  if (typeSort == "Increase") {
+    addClass(defaulColSort, "ecwTableSortIncrease");
+    defaulColSort.ecwTable.triActif = defaulColSort.cellIndex + 1;
+
+  } else if (typeSort == "Decrease") {
+    addClass(defaulColSort, "ecwTableSortDecrease");
+    defaulColSort.ecwTable.triActif =  - (defaulColSort.cellIndex + 1);
+  }
+
+  //Tri
+  ecw_sort(defaulColSort.ecwTable.triActif, tableValeur, this.comparators);
+
+  //Mise a jour des lignes alternees
+  this.processAlternateColor();
+
+  //Mise a jour de la numerotation
+  this.processIndex();
+}
+
+
+/**
+ * Ajoute une colonne dans la table pour la numerotation,
+ * puis place les numeros de ligne.
+ * @private
+ */
+ECW.Table.prototype.numerotate = function() {
+      
+  var theadTable = getFirstChildByTagName(this.ecwTable.noeudDOM, "THEAD");
+  /* Si l'entete existe */
+  if (theadTable) {
+    /* Entete de colonne pour numerotation */
+    // il faut recuperer tous les fils (TR) de l'entete pour ajouter une colonne a chaque fils
+    var upcTagName = "TR";
+      var firstChildArray = theadTable.childNodes;
+      for (var i = 0; i < firstChildArray.length; ++i) {
+        var node = firstChildArray[i];
+        if (node.tagName && node.tagName.toUpperCase() == upcTagName) {
+          var td = document.createElement("TD");
+          td.innerHTML = "&nbsp;";
+          node.insertBefore(td, node.firstChild);
+        } 
+      }
+  }
+
+  var tbodyTable = getFirstChildByTagName(this.noeudDOM, "TBODY");
+  /* Si le body existe */
+  if (tbodyTable) {
+
+    this.lignes = tbodyTable.rows;
+
+    /* Pour chaque ligne */
+    if (this.lignes && this.lignes.length != 0) {
+      for (var i = 0; i < this.lignes.length; i++) {
+        var ligne = this.lignes[i];
+        var td = document.createElement("TD");
+        td.className = "ecwTableNumerotation";
+        ligne.insertBefore(td, ligne.firstChild);
+      }
+    }
+    
+    /* Detection d'une table vide */
+    this.detectEmptyTable();
+  }
+
+  /* Colonne de recherche par defaut est la colonne d'indice 1*/
+  /* La colonne d'indice 0 est la colonne de numerotation */
+  this.searchColumn = 1;
+
+  /* Mise a jour de la numerotation */
+  this.processNumerotation();
+}
+
+/**
+ * Mise a jour de la numerotation des lignes.
+ * @private
+ */
+ECW.Table.prototype.processNumerotation = function() {
+
+  /* Si la numerotation est activee */
+  if (this.numerotation) {
+    var lignes = this.lignes;
+    if (lignes && lignes.length != 0) {
+      for (var i = 0; i < lignes.length; i++) {
+        var ligne = lignes[i];
+        ligne.firstChild.innerHTML = "<span>" + (i + 1) + "</span>";
+      }
+    }
+  }
+}
+
+/**
+ * Mise a jour de l'index des lignes.
+ * @private
+ */
+ECW.Table.prototype.processIndex = function() {
+  if (this.lignes) {
+    var n = this.lignes.length;
+    for (var i = 0; i < n; ++i) {
+      var ligne = this.lignes[i];
+      ligne.rIndex = i + 1;
+    }
+  }
+}
+
+/**
+ * Decale la ligne courante vers le haut.
+ * @private
+ */
+ECW.Table.prototype.lineUp = function() {
+  if (this.ligneActive) {
+    this.moveActiveLigne(-1);
+    this.genererSelect(this.lignes);
+  }
+}
+
+/**
+ * Decale la ligne courante vers le bas.
+ * @private
+ */
+ECW.Table.prototype.lineDown = function() {
+  if (this.ligneActive) {
+    this.moveActiveLigne(1);
+    this.genererSelect(this.lignes);
+  }
+}
+
+/**
+ * Place la ligne courante a la premiere position.
+ * @private
+ */
+ECW.Table.prototype.lineTop = function() {
+  if (this.ligneActive && this.ligneActive.rIndex > 1) {
+    this.moveActiveLigne((this.ligneActive.rIndex - 1) *  -1);
+    this.genererSelect(this.lignes);
+  }
+}
+
+/**
+ * Place la ligne courante a la derniere position.
+ * @private
+ */
+ECW.Table.prototype.lineBottom = function() {
+  if (this.ligneActive && this.ligneActive.rIndex < this.lignes.length) {
+    this.moveActiveLigne((this.ligneActive.rIndex - this.lignes.length) *  -1);
+    this.genererSelect(this.lignes);
+  }
+}
+
+/**
+ * Decale la ligne active. Le mouvement indique le nombre de decalage. Si le
+ * mouvement est positif, alors le decalage se fait vers le bas.
+ * @private
+ */
+ECW.Table.prototype.moveActiveLigne = function(movement) {
+  if (this.ligneActive) {
+    if (movement != -1 && movement != 1) {
+      this.decaleLigne(this.ligneActive.rIndex - 1, this.ligneActive.rIndex - 1 + movement);
+    } else {
+      this.swapLigne(this.ligneActive.rIndex - 1, this.ligneActive.rIndex - 1 + movement);
+    }
+    this.selectionnerLigne(this.ligneActive);
+  }
+}
+
+/**
+ * Echange deux lignes du tableau.
+ * @private
+ */
+ECW.Table.prototype.swapLigne = function(numLigne1, numLigne2) {
+
+  if (numLigne1 >= 0 && numLigne2 < this.lignes.length && numLigne2 >= 0) {
+    var tbody = getFirstChildByTagName(this.divTBody, "TBODY");
+    var lines = getChildrenByTagName(tbody, "TR");
+
+    var temp = lines[numLigne2].rIndex;
+    lines[numLigne2].rIndex = lines[numLigne1].rIndex;
+    lines[numLigne1].rIndex = temp;
+
+    if (numLigne1 < numLigne2) {
+      tbody.insertBefore(lines[numLigne2], lines[numLigne1]);
+    } else {
+      tbody.insertBefore(lines[numLigne1], lines[numLigne2]);
+    }
+  }
+
+  /* Mise a jour des lignes alternees */
+  this.processAlternateColor();
+
+  /* Mise a jour de la numerotation */
+  this.processNumerotation();
+}
+
+/**
+ * Decale toutes les lignes entre deux indices de ligne.
+ * @private
+ */
+ECW.Table.prototype.decaleLigne = function(numLigne1, numLigne2) {
+
+  if (numLigne1 >= 0 && numLigne2 < this.lignes.length && numLigne2 >= 0 && numLigne1 != numLigne2) {
+    var tbody = getFirstChildByTagName(this.divTBody, "TBODY");
+    var lines = getChildrenByTagName(tbody, "TR");
+
+    if (numLigne1 > numLigne2) {
+      for (var i = numLigne2; i < numLigne1; i++) {
+        lines[i].rIndex++;
+      }
+      lines[numLigne1].rIndex = numLigne2 + 1;
+      tbody.insertBefore(lines[numLigne1], lines[numLigne2]);
+
+    } else {
+      for (var i = numLigne1 + 1; i <= numLigne2; i++) {
+        lines[i].rIndex--;
+      }
+
+      lines[numLigne1].rIndex = numLigne2 + 1;
+      if (numLigne2 == lines.length - 1) {
+        tbody.appendChild(lines[numLigne1]);
+      } else {
+        tbody.insertBefore(lines[numLigne1], lines[numLigne2 + 1]);
+      }
+    }
+  }
+
+  /* Mise a jour des lignes alternees */
+  this.processAlternateColor();
+
+  /* Mise a jour de la numerotation */
+  this.processNumerotation();
+}
+
+/**
+ * Creation de la zone d'actions pour reordonner la table.
+ * @private
+ */
+ECW.Table.prototype.createDivReorder = function() {
+
+  this.divReorder = document.createElement("DIV");
+  this.divReorder.className = "ecwTableReorder";
+
+  var table = document.createElement("TABLE");
+  table.setAttribute("border", "0");
+  table.cellSpacing = "0";
+  table.cellPadding = "0";
+  this.divReorder.appendChild(table);
+
+  var tbody = document.createElement("TBODY");
+  table.appendChild(tbody);
+  
+  var span = document.createElement("SPAN");
+  addClass(span, "ecwTableImgLineTop");
+  span.title = ecw.I18N.get("moveLineTop");
+  ecwSetAttribute(span, "ecwTableSrc", this);
+  span.onclick = ecwTableSpanTop;
+  ecwCreateTrTdInTBody(tbody, span);
+
+  span = document.createElement("SPAN");
+  addClass(span, "ecwTableImgLineUp");
+  span.title = ecw.I18N.get("moveLineUp");
+  ecwSetAttribute(span, "ecwTableSrc", this);
+  span.onclick = ecwTableSpanUp;
+  ecwCreateTrTdInTBody(tbody, span);
+  
+  span = document.createElement("SPAN");
+  addClass(span, "ecwTableImgLineDown");
+  span.title = ecw.I18N.get("moveLineDown");
+  ecwSetAttribute(span, "ecwTableSrc", this);
+  span.onclick = ecwTableSpanDown;
+  ecwCreateTrTdInTBody(tbody, span);
+  
+  span = document.createElement("SPAN");
+  addClass(span, "ecwTableImgLineBottom");
+  span.title = ecw.I18N.get("moveLineBottom");
+  ecwSetAttribute(span, "ecwTableSrc", this);
+  span.onclick = ecwTableSpanBottom;
+  ecwCreateTrTdInTBody(tbody, span);
+}
+
+function ecwTableSpanTop() {
+  this.ecwTableSrc.lineTop();
+}
+
+function ecwTableSpanUp() {
+  this.ecwTableSrc.lineUp();
+}
+
+function ecwTableSpanDown() {
+  this.ecwTableSrc.lineDown();
+}
+
+function ecwTableSpanBottom() {
+  this.ecwTableSrc.lineBottom();
+}
+
+/**
+ * Creation de la zone d'actions pour la double table.
+ * @private
+ */
+ECW.Table.prototype.createDivActionsDoubleSelect = function() {
+
+  ecwSetAttribute(this, "divActionsDoubleSelect", document.createElement("DIV"));
+  this.divActionsDoubleSelect.className = "ecwTableDoubleSelect";
+
+  var table = document.createElement("TABLE");
+  table.setAttribute("border", "0");
+  table.cellSpacing = "0";
+  table.cellPadding = "0";
+
+  var tbody = document.createElement("TBODY");
+  var span = document.createElement("SPAN");
+  addClass(span, "ecwTableAddAllLine");
+  span.title = ecw.I18N.get("addAllLine");
+  span.ecwTableSrc = this;
+  span.onclick = ecwTableSpanAddAllLine;
+  ecwCreateTrTdInTBody(tbody, span);
+  
+  span = document.createElement("SPAN");
+  addClass(span, "ecwTableAddLine");
+  span.title = ecw.I18N.get("addLine");
+  span.ecwTableSrc = this;
+  span.onclick = ecwTableSpanAddLine;
+  ecwCreateTrTdInTBody(tbody, span);
+
+  span = document.createElement("SPAN");
+  addClass(span, "ecwTableRemoveLine");
+  span.title = ecw.I18N.get("removeLine");
+  span.ecwTableSrc = this;
+  span.onclick = ecwTableSpanRemoveLine;
+  ecwCreateTrTdInTBody(tbody, span);
+
+  span = document.createElement("SPAN");
+  addClass(span, "ecwTableRemoveAllLine");
+  span.title = ecw.I18N.get("removeAllLine");
+  span.ecwTableSrc = this;
+  span.onclick = ecwTableSpanRemoveAllLine;
+  ecwCreateTrTdInTBody(tbody, span);
+
+  table.appendChild(tbody);
+  this.divActionsDoubleSelect.appendChild(table);
+}
+
+function ecwTableSpanAddAllLine() {
+  this.ecwTableSrc.addAllLine();
+}
+
+function ecwTableSpanAddLine() {
+  this.ecwTableSrc.addLine();
+}
+
+function ecwTableSpanRemoveLine() {
+  this.ecwTableSrc.removeLine();
+}
+
+function ecwTableSpanRemoveAllLine() {
+  this.ecwTableSrc.removeAllLine();
+}
+
+/**
+ * Creation de la div de la table cible.
+ * @private 
+ */
+ECW.Table.prototype.createDivTableTargetSelect = function() {
+
+  var divNewTable = document.createElement("DIV");
+  divNewTable.className = "ecwTable";
+  divNewTable.id = this.noeudDOM.id + "_select";
+
+  if (this.noeudDOM.getAttribute("ecwNbLines")) {
+    divNewTable.setAttribute("ecwNbLines", this.noeudDOM.getAttribute("ecwNbLines"));
+  }
+  if (this.noeudDOM.getAttribute("ecwNumerotation")) {
+    divNewTable.setAttribute("ecwNumerotation", this.noeudDOM.getAttribute("ecwNumerotation"));
+  }
+  if (this.noeudDOM.getAttribute("ecwAlternateColor")) {
+    divNewTable.setAttribute("ecwAlternateColor", this.noeudDOM.getAttribute("ecwAlternateColor"));
+  }
+  if (this.noeudDOM.getAttribute("ecwSelection") && (this.noeudDOM.getAttribute("ecwSelection") == "doubleTable")) {
+    divNewTable.setAttribute("ecwSelection", "multiple");
+  }
+
+  var newTable = document.createElement("TABLE");
+  newTable.cellSpacing = "0";
+  newTable.cellPadding = "0";
+
+  var currentTHead = getFirstChildByTagName(this.divTBody, "THEAD");
+  if (currentTHead) {
+    var cloneTHead = currentTHead.cloneNode(true);
+    /* Suppression de la 1ere colonne de numerotation */
+    if (this.numerotation) {
+
+      var firstTr = getFirstChildByTagName(cloneTHead, "TR");
+      var firstTd = getFirstChildByTagName(cloneTHead, "TD");
+      /* thead -> tr -> td */
+      firstTr.removeChild(firstTd);
+    }
+    newTable.appendChild(cloneTHead);
+  }
+
+  var currentTBody = getFirstChildByTagName(this.divTBody, "TBODY");
+  newTBody = currentTBody.cloneNode(true);
+  
+  /* Suppression de la 1ere colonne de numerotation */
+  if (this.numerotation) {
+
+    var allTr = newTBody.getElementsByTagName("TR");
+    for (var i = 0; i < allTr.length; i++) {
+      var firstTd = getFirstChildByTagName(allTr[i], "TD");
+      /* tbody -> tr -> td */
+      allTr[i].removeChild(firstTd);
+    }
+  }
+
+  newTable.appendChild(newTBody);
+  
+  divNewTable.appendChild(newTable);
+  this.divTableTargetSelect = divNewTable;
+}
+
+/**
+ * Mise a jour des comportements des lignes des deux tables.
+ * @private 
+ */
+ECW.Table.prototype.majAllTableLinesBehaviour = function() {
+
+  this.creerComportementLignes();
+  this.ligneActive = null;
+  /* Mise a jour de la numerotation */
+  this.processNumerotation();
+  
+  this.ecwTableTargetSelect.creerComportementLignes();
+  this.ecwTableTargetSelect.ligneActive = null;
+  /* Mise a jour de la numerotation */
+  this.ecwTableTargetSelect.processNumerotation();
+}
+
+/**
+ * Suppression des styles utilises pour une ligne.
+ * @private 
+ */
+ECW.Table.prototype.removeStyleLines = function(line) {
+
+  /* Style Multi-selection */
+  removeClass(line, "ecwTableLineMultiple");
+
+  /* Style Mono-selection */
+  removeClass(line, "ecwTableLineActive");
+  removeClass(line, "ecwTableLineSelect");
+
+  /* Style alternee */    
+  removeClass(line, "ecwTableAlternateLine1");
+  removeClass(line, "ecwTableAlternateLine2");
+  
+  removeClass(line, "ecwTableLineOver");
+}
+
+/**
+ * Selection de la ligne la plus proche de celle deplacee
+ * pour la table concernee.
+ * @param rIndexActiveLine rIndex de la ligne deplacee.
+ * @param ecwTable Objet ECW.Table concerne.
+ * @private 
+ */
+ECW.Table.prototype.selectNextLineAfterMove = function(rIndexActiveLine, ecwTable) {
+
+  var newIndexSelect = -1;
+  if ((rIndexActiveLine > 0) && (rIndexActiveLine < ecwTable.lignes.length)) {
+    newIndexSelect = rIndexActiveLine - 1;
+  }
+  else if (rIndexActiveLine >= ecwTable.lignes.length) {
+    newIndexSelect = ecwTable.lignes.length - 1;
+  }
+  if (newIndexSelect != -1) {
+    ecwTable.selectionnerLigne(ecwTable.lignes[newIndexSelect]);
+  }
+}
+
+/**
+ * Deplacement de toutes les lignes d'une table a une autre.
+ * @param ecwTableSource Table source.
+ * @param ecwTableTarget Table cible.
+ * @private 
+ */
+ECW.Table.prototype.moveAllLineFromTo = function(ecwTableSource, ecwTableTarget) {
+
+  if (ecwTableSource.lignes && ecwTableSource.lignes.length != 0) {
+
+    var tbodySelect = getFirstChildByTagName(ecwTableTarget.divTBody, "TBODY");
+    /* Utilisation de nbNodes : */
+    /* car appendChild() deplace le noeud et modifie la valeur de ecwTableSource.lignes.length */
+    var nbNodes = ecwTableSource.lignes.length;
+    var currentLine = null;
+    for (var i = 0; i < nbNodes; i++) {
+      currentLine = ecwTableSource.lignes[0];
+      tbodySelect.appendChild(currentLine);
+    }
+
+    /* Maj des comportements des lignes */
+    this.majAllTableLinesBehaviour();
+
+    /* Selection sur derniere ligne ajoutee */
+    ecwTableTarget.selectionnerLigne(currentLine);
+    
+    /* Mise a jour des <select> caches */
+    this.genererSelect(this.ecwTableTargetSelect.lignes);
+    
+    /* Reinitialisation de la multi-selection */
+    ecwTableSource.tabLigneMulti = [];
+    
+    /* Mise a jour des entetes */
+    this.updateHeader(ecwTableSource);
+    this.updateHeader(ecwTableTarget);
+  }
+}
+
+/**
+ * Ajout de toutes les lignes dans la table de selection.
+ * @private 
+ */
+ECW.Table.prototype.addAllLine = function() {
+  /* Deplacement de toutes les lignes dans la table de selection */
+  this.moveAllLineFromTo(this, this.ecwTableTargetSelect);
+  this.clearUIMessage();
+  this.ecwTableTargetSelect.clearUIMessage();
+
+  if (this.onSelectionChanged) {
+    this.onSelectionChanged();
+  }
+}
+
+/**
+ * Suppression de toutes les lignes dans la table de selection.
+ * @private 
+ */
+ECW.Table.prototype.removeAllLine = function() {
+  /* Deplacement de toutes les lignes dans la table initiale */
+  this.moveAllLineFromTo(this.ecwTableTargetSelect, this);
+  this.clearUIMessage();
+  this.ecwTableTargetSelect.clearUIMessage();
+
+  if (this.onSelectionChanged) {
+    this.onSelectionChanged();
+  }
+}
+
+/**
+ * Deplacement de(s) ligne(s) selectionnee(s) d'une table a une autre.
+ * @param ecwTableSource Table source.
+ * @param ecwTableTarget Table cible.
+ * @private 
+ */
+ECW.Table.prototype.moveLineFromTo = function(ecwTableSource, ecwTableTarget) {
+
+  /* Si selection */
+  if (ecwTableSource.ligneActive) {
+       this.clearUIMessage();
+      this.ecwTableTargetSelect.clearUIMessage();
+    var tbodySelect = getFirstChildByTagName(ecwTableTarget.divTBody, "TBODY");
+    var currentLine;
+    var rIndexActiveLine;
+
+    /* Mono-selection */
+    if (ecwTableSource.tabLigneMulti.length == 0) {
+      currentLine = ecwTableSource.ligneActive;
+      rIndexActiveLine = ecwTableSource.ligneActive.rIndex;
+      tbodySelect.appendChild(ecwTableSource.ligneActive);      
+    }
+    /* Multi-selection */
+    else {
+      var listeMultiSelect = ecwTableSource.tabLigneMulti;
+      currentLine = listeMultiSelect[0];
+      rIndexActiveLine = listeMultiSelect[0].rIndex;
+
+      for (var i = 0; i < listeMultiSelect.length; i++) {
+        tbodySelect.appendChild(listeMultiSelect[i]);      
+      }
+      
+      /* Reinitialisation de la multi-selection */
+      ecwTableSource.tabLigneMulti = [];
+    }
+   
+    /* Maj des comportements des lignes */
+    this.majAllTableLinesBehaviour();
+    
+    /* Selection sur ligne ajoutee */
+    ecwTableTarget.selectionnerLigneWithOutFocus(currentLine);
+    ecwTableTarget.desactiver();
+
+    /* Selection de la ligne la plus proche dans la table */
+    this.selectNextLineAfterMove(rIndexActiveLine, ecwTableSource);
+    
+    /* Mise a jour des <select> caches */
+    this.genererSelect(this.ecwTableTargetSelect.lignes);
+    
+    /* Mise a jour des entetes */
+    this.updateHeader(ecwTableSource);
+    this.updateHeader(ecwTableTarget);
+  } else {
+      // Par defaut, ECW n'affiche aucun message
+      this.setUIMessage("W", "NoRowSelected", null, null);
+  }
+}
+
+/**
+ * Mise a jour de la table d'entete.
+ * @private
+ */
+ECW.Table.prototype.updateHeader = function(ecwTable) {
+    if (ecwTable.divTHead) {
+        var oldBody = getFirstChildByTagName(ecwTable.divTHead, "TBODY");
+        var newBody = getFirstChildByTagName(ecwTable.divTBody, "TBODY").cloneNode(true);
+        ecwTable.divTHead.firstChild.replaceChild(newBody, oldBody);
+    }
+}
+
+/**
+ * Ajout d'une ligne dans la table de selection.
+ * @private
+ */
+ECW.Table.prototype.addLine = function() {
+  /* Deplacement de(s) ligne(s) selectionnee(s) dans la table de selection */
+  this.moveLineFromTo(this, this.ecwTableTargetSelect);
+  
+  if (this.onSelectionChanged) {
+    this.onSelectionChanged();
+  }
+}
+
+/**
+ * Suppression d'une ligne dans la table de selection.
+ * @private
+ */
+ECW.Table.prototype.removeLine = function() {
+  /* Deplacement de(s) ligne(s) selectionnee(s) dans la table de selection */
+  this.moveLineFromTo(this.ecwTableTargetSelect, this);
+  
+  if (this.onSelectionChanged) {
+    this.onSelectionChanged();
+  }
+}
+
+/**
+ * Appel Ajax.
+ * @param Valeur saisie par l'utilisateur (cas de la ComboBox)
+ * @return divBody de la Table
+ * @private
+ */
+ECW.Table.prototype.callAjax = function(userValue) {
+
+  /* Generation de l'url de la requete Ajax */
+  var url = this.ajaxAction;
+
+  var data = new Array();
+  /* Si le champ est renseigne */
+  if (userValue) {
+    data["value"] = userValue;
+  }
+  data["page"] = this.currentPage;
+  data["max"] = this.pageSize;
+
+  /* Tri ??? (Attention : sortColId == 0 ne veut pas dire pas de tri !) */
+  if (this.sortColId || 0 == this.sortColId) {
+    data["sortColId"] = this.sortColId;
+    data["sortIncrease"] = this.sortIncrease;
+  }
+  
+  /* Charset */
+  var charset = ecwGetCharset();
+  if (charset) {
+    data["charset"] = charset;
+  }
+  
+  /* S'il existe des parametres supplementaires */
+  if (this.ajaxParameters) {
+    /* Ajout des parametres supplementaires */
+    for (i = 0; i < this.ajaxParameters.length; i++) {
+      var node = document.getElementById(this.ajaxParameters[i]);
+      if (node && node.name && node.value) {
+        if (data[node.name]) {
+          if (data[node.name] instanceof Array) {
+            data[node.name].push(node.value);
+          } else {
+            var array = new Array();
+            array.push(data[node.name]);
+            array.push(node.value);
+            data[node.name] = array;
+          }
+        } else {
+          data[node.name] = node.value;
+        }
+      } else if (node == null) {
+        alert("Erreur ECW\nL'identifiant id=[" + this.ajaxParameters[i] + "] reference dans ecwIdParameters\n de la table [" 
+          + this.noeudDOM.id +"] n'existe pas");
+        return;
+      }
+    }
+  }
+
+  /* Affichage de l'url */
+  if (this.modeDebug) {
+    var msgSend = "Envoi Ajax : " + url + "?" + data;
+    this.ecwUI.setMessage("W", msgSend);
+  }
+
+  /* Interrogation du serveur par une requete Ajax --> Retour par XML */
+  var xmlDoc = new ECW.Ajax().ajaxXML(url, data, this.modeDebug);
+
+  if (this.modeDebug) {
+    alert("length(xmldoc) = " + xmlDoc.childNodes.length);
+    if (xmlDoc.documentElement.textContent && xmlDoc.documentElement.textContent.trim() != "") {
+      alert("textContent = " + xmlDoc.documentElement.textContent);
+    }
+  }
+
+  /* Verification de la valide de la reponse */
+  if (xmlDoc && xmlDoc.documentElement && xmlDoc.documentElement.childNodes) {
+
+    var headerNode = null;
+    var bodyNode = null;
+
+    for (i = 0; i < xmlDoc.documentElement.childNodes.length; i++) {
+
+      var currentNode = xmlDoc.documentElement.childNodes[i];
+
+      /* Bug sous Mozilla - parfois les Element Xml de nodeType de 1 */
+      /* Sont intercalees entre des node de type text (nodeType 3) */
+      if (currentNode.nodeType == 1) {
+
+        /* <header> */
+        if (currentNode.nodeName == "header") {
+          headerNode = currentNode;
+        }
+        /* <body> */
+        else if (currentNode.nodeName == "body") {
+          bodyNode = currentNode;
+        }
+      }
+    }
+
+    if (bodyNode == null) {
+      alert("Erreur bodyNode = " + xmlDoc.documentElement.textContent);
+    }
+    this.currentPageSize = bodyNode.getAttribute("pageSize");
+    this.numberOfPage = bodyNode.getAttribute("numberOfPage");
+    this.numberOfElement = bodyNode.getAttribute("numberOfElement");
+
+    if (this.numberOfPage == 0) {
+      this.currentPage = 0;
+    }
+
+    /* Creation de la table contenant les elements */
+    var table = document.createElement("TABLE");
+
+    /* Entete de colonne */
+    if (headerNode && headerNode.childNodes) {
+
+      /* <thead> */
+      var thead = document.createElement("THEAD");
+      /* <tr> */
+      var trThead = document.createElement("TR");
+      var enteteDefined = false;
+
+      /* Parcours des noeuds <col> */
+      for (i = 0; i < headerNode.childNodes.length; i++) {
+
+        var colHeaderNode = headerNode.childNodes[i];
+
+        /* Bug sous Mozilla - parfois les Element Xml de nodeType de 1 */
+        /* Sont intercalees entre des node de type text (nodeType 3) */
+        if ((colHeaderNode.nodeType == 1) && (colHeaderNode.nodeName == "groupcell")) {
+          /* Ajout d'un group cell */
+          var trGroupCell = document.createElement("TR");
+          var cellList = colHeaderNode.childNodes;
+          for (j = 0; j < cellList.length; ++j) {
+            /* Parcours des cellules du groupcell */
+            var cell = cellList[j];
+            if ((cell.nodeType == 1) && (cell.nodeName == "cell")) {
+              var th = document.createElement("TH");
+              var nb = cell.getAttribute("nb");
+              if (nb) {
+                th.colSpan= nb;
+              }
+              var titleCell = cell.getAttribute("title");
+              if (!titleCell) {
+                titleCell = "&nbsp;";
+              }
+              th.innerHTML = titleCell;
+              trGroupCell.appendChild(th);
+            }
+          }
+          thead.appendChild(trGroupCell);
+
+        } else if ((colHeaderNode.nodeType == 1) && (colHeaderNode.nodeName == "col")) {
+
+          /* Nom de la cle */
+          var keyHeaderCol = colHeaderNode.getAttribute("key");
+          var keyorderHeaderCol = colHeaderNode.getAttribute("keyOrder");
+          var hiddenHeaderCol = colHeaderNode.getAttribute("hidden");
+          var sortableHeaderCol = colHeaderNode.getAttribute("sortable");
+
+          /* Valeur de cle specifiee */
+          if (keyHeaderCol && keyorderHeaderCol) {
+            table.setAttribute("ecwKeyName" + keyorderHeaderCol, keyHeaderCol);
+          }
+          /* Si la colonne n'est pas cachee */
+          if (!hiddenHeaderCol || (hiddenHeaderCol != "true")) {
+            /* Cellule */
+            var th = document.createElement("TH");
+            var titleColHeader = colHeaderNode.getAttribute("title");
+            if (!titleColHeader) {
+              titleColHeader = "&nbsp;";
+            } else if (titleColHeader != "&nbsp;") {
+              enteteDefined = true;
+            }
+
+            th.innerHTML = titleColHeader;
+
+            /* Colonne triable */
+            if (sortableHeaderCol && (sortableHeaderCol == "true")) {
+              addClass(th, "ecwTableSortable");
+              removeClass(th, "ecwTableSortEncours");
+
+              var sortIncreaseHeaderCol = colHeaderNode.getAttribute("sortIncrease");
+              if (sortIncreaseHeaderCol) {
+                /* Croissant */
+                if (sortIncreaseHeaderCol && (sortIncreaseHeaderCol == "true")) {
+                  addClass(th, "ecwTableSortIncrease");
+                  removeClass(th, "ecwTableSortDecrease");
+                }
+                /* Decroissant */
+                else {
+                  removeClass(th, "ecwTableSortIncrease");
+                  addClass(th, "ecwTableSortDecrease");
+                }
+              }
+            }
+
+            trThead.appendChild(th);
+          }
+        }
+      }
+      thead.appendChild(trThead);
+      if (enteteDefined) {
+        table.appendChild(thead);
+      }
+    }
+
+    /* <tbody> */
+    var tbody = document.createElement("TBODY");
+    table.appendChild(tbody);
+
+    /* Parcours des elements */
+    var lineNumber = 0;
+    for (i = 0; i < bodyNode.childNodes.length && lineNumber < this.pageSize; i++) {
+      /* Bug sous Mozilla - parfois les Element Xml de nodeType de 1 */
+      /* Sont intercalees entre des node de type text (nodeType 3) */
+      if (bodyNode.childNodes[i].nodeType == 1) {
+
+        var lineNode = bodyNode.childNodes[i];
+
+        /* Creation de la ligne */
+        var trTbody = document.createElement("TR");
+        tbody.appendChild(trTbody);
+        
+        /* Parsing XML du noeud <line> */
+        if (lineNode.childNodes.length != 0) {
+
+          for (j = 0; j < lineNode.childNodes.length; j++) {
+          
+            var colNode = lineNode.childNodes[j];
+          
+            /* Bug sous Mozilla - parfois les Element Xml de nodeType de 1 */
+            /* Sont intercalees entre des node de type text (nodeType 3) */
+            if (colNode.nodeType == 1) {
+
+              /* Pas d'enfants pour <col>, colonne classique */
+              if (colNode.childNodes.length == 0) {
+
+                var cssclassCol = colNode.getAttribute("cssclass");
+                var keyvalueCol = colNode.getAttribute("keyValue");
+                var keyorderCol = colNode.getAttribute("keyOrder");
+                var hiddenCol = colNode.getAttribute("hidden");
+                var displayCol = colNode.getAttribute("display");
+                var styleCol = colNode.getAttribute("style");
+
+                /* Valeur de cle specifiee */
+                if (keyorderCol) {
+                  trTbody.setAttribute("ecwKeyVal" + keyorderCol, keyvalueCol);
+                }
+                /* Si la colonne n'est pas cachee */
+                if (!hiddenCol || (hiddenCol != "true")) {
+              
+                  var tdTbody = document.createElement("TD");
+                  trTbody.appendChild(tdTbody);
+
+                  /* Style cssclass specifie */
+                  if (cssclassCol || styleCol) {
+                    var divTdTbody = document.createElement("DIV");
+                    
+                    if (cssclassCol) {
+                      divTdTbody.className = cssclassCol;
+                    }
+                    if (styleCol) {
+                      if (ECW_isIE) {
+                        divTdTbody.style.setAttribute("cssText", styleCol);
+                      } else {
+                        divTdTbody.setAttribute("style", styleCol);
+                      }
+                    }
+                    tdTbody.appendChild(divTdTbody);
+                    /* Balise <pre> */
+                    if (displayCol == 1) {
+                      //ancien code : ne fonctionne pas avec IE
+                      //var preDiv = document.createElement("PRE");
+                      //preDiv.innerHTML = this.traductionTexte(colNode.getAttribute("value"));
+                      //divTdTbody.appendChild(preDiv);
+					  var str = "<PRE>" + this.traductionTexte(colNode.getAttribute("value")) + "</PRE>"; 
+					  divTdTbody.innerHTML = str;
+                    } else {
+                      divTdTbody.innerHTML = this.traductionTexte(colNode.getAttribute("value"));
+                    }
+                  }
+                  /* Pas de style specifie */
+                  else {
+                    /* Balise <pre> */
+                    if (displayCol == 1) {
+                      //var preTd = document.createElement("PRE");
+                      //preTd.innerHTML = colNode.getAttribute("value");
+                      //tdTbody.appendChild(preTd);                      
+                      var str = "<PRE>" + this.traductionTexte(colNode.getAttribute("value")) + "</PRE>"; 
+                      tdTbody.innerHTML = str;
+                    } else {    
+                      tdTbody.innerHTML = this.traductionTexte(colNode.getAttribute("value"));
+                    }
+                  }
+                }
+              }
+              /* Enfant pour <col>, balise <action> */
+              else {
+
+                var tdTbody = document.createElement("TD");
+                trTbody.appendChild(tdTbody);
+                var actionTable = document.createElement("TABLE");
+                tdTbody.appendChild(actionTable);
+                addClass(actionTable, "ecwTableListeAction");
+                actionTable.setAttribute("border", "0");
+                actionTable.cellSpacing = "0";
+                actionTable.cellPadding = "0";
+
+                var actionTbody = document.createElement("TBODY");
+                var trActionTbody = document.createElement("TR");
+
+                for (k = 0; k < colNode.childNodes.length; k++) {
+
+                  var actionNode = colNode.childNodes[k];
+
+                  /* Bug sous Mozilla - parfois les Element Xml de nodeType de 1 */
+                  /* Sont intercalees entre des node de type text (nodeType 3) */
+                  if (actionNode.nodeType == 1) {
+
+                    var titleAction = actionNode.getAttribute("title");
+                    var urlAction = actionNode.getAttribute("url");
+                    var cssclassAction = actionNode.getAttribute("cssclass");
+
+                    var tdActionTbody = document.createElement("TD");
+                    var spanAction = document.createElement("SPAN");
+                    if (titleAction) {
+                      spanAction.title = titleAction;
+                    }
+                    if (urlAction) {
+                      spanAction.url = urlAction;
+                      spanAction.setAttribute("onclick", "window.ecwTableCallClickAction(this);");
+                      spanAction.onclick = ecwTableSpanOnClick;
+                      spanAction.setAttribute("ecwonclick", urlAction);
+                    }
+                    if (cssclassAction) {
+                      addClass(spanAction, cssclassAction);
+                    }
+
+                    tdActionTbody.appendChild(spanAction);
+                    trActionTbody.appendChild(tdActionTbody);
+                  }
+                }
+
+                actionTbody.appendChild(trActionTbody);
+                actionTable.appendChild(actionTbody);
+              }
+            }
+          }
+        }
+        
+        /* Ligne suivante */
+        lineNumber += 1;
+      }
+    }
+  }
+  if (this.modeDebug) {
+    alert("table :\n" + table.innerHTML);
+  }
+
+  /* Rafraichissement du contenu de la table ECW */
+  var divBody = document.createElement("DIV");
+  divBody.appendChild(table);
+  // alert("divBody :\n" + divBody.innerHTML);
+
+
+  return(divBody);
+}
+
+function ecwTableSpanOnClick() {
+  window.ecwTableCallClickAction(this);
+}
+
+/**
+ * Methode de traduction des caracteres < > & " d'un texte 
+ * @private
+ */
+ECW.Table.prototype.traductionTexte = function(texte){
+    var texteResult = texte;
+    if(texte.match("&") && !texte.match("&nbsp;")){
+        texteResult = texte.replace("&","&amp;");
+    }
+    if(texte.match("<")){
+        texteResult = texte.replace("<","&lt;");
+    }
+    if(texte.match(">")){
+        texteResult = texte.replace(">","&gt;");
+    }
+    
+    if(texte.match("\"")){
+        texteResult = texte.replace("\"","&quot;");
+    }
+    return texteResult; 
+    
+}
+
+/**
+ * Rafra&icirc;chissement de la Table Ajax.
+ * @param page Numero de la page souhaitee.
+ */
+ECW.Table.prototype.refreshAjax = function(page) {
+
+  if (this.ajaxAction) {
+
+    /* Page courante */
+    this.currentPage = 1;
+
+    /* C'est un nombre */
+    if (page && ecwIsValidNumber(page)
+        && (parseInt(page, 10) <= parseInt(this.numberOfPage, 10))
+        && (parseInt(page, 10) > 0)) {
+      this.currentPage = page;
+    }
+    /* Mise a jour de la Table en Ajax */
+    this.refreshInternalAjax();
+  }
+}
+
+/**
+ * La Table est mise a jour grace a une requete Ajax.
+ * @private
+ */
+ECW.Table.prototype.refreshInternalAjax = function() {
+
+  /* Appel Ajax pour le contenu de la table */
+  var divBody = this.callAjax();
+
+  /* N'affiche le bandeau de pagination que s'il y a plus d'une page */  
+  //if (this.numberOfPage>1) {  //BUG FIX prise en compte du parametre hiddenpage  
+  if (!this.hiddenPage || this.numberOfPage>1) {
+
+	/* Pagination */
+    var table = document.createElement("TABLE");
+    table.setAttribute("border", "0");
+    table.setAttribute("align", "center");
+    
+    /* Raffraichissement de la pagination */
+    if (this.tdPagination == null) {
+      var tbodyPagination = getFirstChildByTagName(this.tableFormat, "TBODY");
+      var trPagination = document.createElement("TR");
+      addClass(trPagination, "ecwTablePagination");
+      tbodyPagination.appendChild(trPagination);
+      ecwSetAttribute(this, "tdPagination", document.createElement("TD"));
+      trPagination.appendChild(this.tdPagination);
+    }
+    else {
+      for (var i = this.tdPagination.childNodes.length - 1; i >= 0; i--) {
+        this.tdPagination.removeChild(this.tdPagination.childNodes[i]);
+      }
+    }
+  
+    /* Ajout de la pagination */
+    this.tdPagination.appendChild(table);
+  
+    var tbody  = document.createElement("TBODY");
+    table.appendChild(tbody);
+    var tr = document.createElement("TR");
+    tbody.appendChild(tr);
+  
+    /* Page */
+    var args = new Array;
+    var indiceMin = ((this.currentPage - 1) * this.pageSize) + 1;
+    var indiceMax = parseInt(indiceMin, 10) + parseInt(this.currentPageSize, 10) - 1;
+    
+    var infoEltTd;
+    if (0 == this.numberOfElement) {
+      infoEltTd = this.createDivInTd(tr, ecw.I18N.get("noElement", args));
+    } else {
+      args[0] = indiceMin;
+      args[1] = indiceMax;
+      args[2] = this.numberOfElement;
+      infoEltTd = this.createDivInTd(tr, ecw.I18N.get("infoElement", args));
+    }
+  
+    /* Premiere page */
+    var td = document.createElement("TD");
+    var imageTableFirstPage = document.createElement("SPAN");
+    addClass(imageTableFirstPage, "ecwTableFirstPage");
+    imageTableFirstPage.title = ecw.I18N.get("firstPage");
+    ecwSetAttribute(imageTableFirstPage, "ecwTable", this);
+    imageTableFirstPage.onclick = ecwTableAjaxImgFirst;
+    td.appendChild(imageTableFirstPage);
+    tr.appendChild(td);
+  
+    /* Page precedente */
+    td = document.createElement("TD");
+    var imageTablePreviousPage = document.createElement("SPAN");
+    addClass(imageTablePreviousPage, "ecwTablePreviousPage");
+    imageTablePreviousPage.title = ecw.I18N.get("previousPage");
+    ecwSetAttribute(imageTablePreviousPage, "ecwTable", this);
+    imageTablePreviousPage.onclick = ecwTableAjaxImgPrevious;
+    td.appendChild(imageTablePreviousPage);
+    tr.appendChild(td);
+    
+    /* Numero de pages*/
+    /* Premiere */
+    var separator = "...";
+    var firstPageTd;
+    var firstSepTd;
+    if (((this.currentPage != 0)) && (this.currentPage != 1)) {
+      firstPageTd = this.createDivInTd(tr, "1");
+      firstSepTd = this.createDivInTd(tr, separator);
+    } else {
+      firstPageTd = this.createDivInTd(tr, "&nbsp;");
+      firstSepTd = this.createDivInTd(tr, "&nbsp;");
+    }
+    /* Courante */
+    var currentPageTd;
+      if (0 == this.numberOfElement) {
+          currentPageTd = this.createDivInTd(tr, "<b>0</b>");
+      } else {
+          currentPageTd = this.createDivInTd(tr, "<b>" + this.currentPage + "</b>");
+      }
+  
+    /* Derniere */
+    var secondSepTd;
+    var lastPageTd;
+    if (this.currentPage != this.numberOfPage) {
+      secondSepTd = this.createDivInTd(tr, separator);
+      lastPageTd = this.createDivInTd(tr, this.numberOfPage);
+    } else {
+      secondSepTd = this.createDivInTd(tr, "&nbsp;");
+      lastPageTd = this.createDivInTd(tr, "&nbsp;");
+    }
+  
+    /* Page suivante */
+    td = document.createElement("TD");
+    var imageTableNextPage = document.createElement("SPAN");
+    addClass(imageTableNextPage, "ecwTableNextPage");
+    imageTableNextPage.title = ecw.I18N.get("nextPage");
+    ecwSetAttribute(imageTableNextPage, "ecwTable", this);
+    imageTableNextPage.onclick = ecwTableAjaxImgNext;
+    td.appendChild(imageTableNextPage);
+    tr.appendChild(td);
+  
+    /* Derniere page */
+    td = document.createElement("TD");
+    var imageTableLastPage = document.createElement("SPAN");
+    addClass(imageTableLastPage, "ecwTableLastPage");
+    imageTableLastPage.title = ecw.I18N.get("lastPage");
+    ecwSetAttribute(imageTableLastPage, "ecwTable", this);
+    imageTableLastPage.onclick = ecwTableAjaxImgLast;
+    td.appendChild(imageTableLastPage);
+    tr.appendChild(td);
+  
+    /* Acces a une page */
+    this.createDivInTd(tr, ecw.I18N.get("goToPage", args));
+  
+    td = document.createElement("TD");
+    if (this.inputGoToPage == null) {
+      this.inputGoToPage = document.createElement("INPUT");
+      this.inputGoToPage.id = "inputGoToPage_" + this.noeudDOM.id;
+      this.inputGoToPage.size = 4;
+      /* Nom different ecwTablePaginate */
+      ecwSetAttribute(this.inputGoToPage, "ecwTableToPaginate", this);
+      this.inputGoToPage.ecwTableToPaginate = this;
+      this.inputGoToPage.onKey = ecwTableAjaxInputGotoOnKey;
+    }
+    td.appendChild(this.inputGoToPage);
+    tr.appendChild(td);
+  
+    td = document.createElement("TD");
+    var imageTableGoToPage = document.createElement("SPAN");
+    addClass(imageTableGoToPage, "ecwTableGoToPage");
+    imageTableGoToPage.ecwTable = this;
+    imageTableGoToPage.onclick = ecwTableAjaxInputGotoOnClick;
+    td.appendChild(imageTableGoToPage);
+    tr.appendChild(td);
+
+  } else if (this.tdPagination != null) {
+      for (var i = this.tdPagination.childNodes.length - 1; i >= 0; i--) {
+        this.tdPagination.removeChild(this.tdPagination.childNodes[i]);
+      }
+  }
+  
+  /* Rafraichissement de la table */
+  this.refreshDIV(divBody);
+
+  /* N'affiche le bandeau de pagination que s'il y a plus d'une page */
+  //if (this.numberOfPage>1) {//BUG FIX prise en compte du parametre hiddenpage  
+  if (!this.hiddenPage || this.numberOfPage>1) {
+	  
+    /* Calcul des tailles de cellules : pour avoir un bandeau de pagination de taille unique */
+    var tdNumberWidth = document.createElement("TD");
+    tdNumberWidth.innerHTML = this.numberOfPage;
+    tr.appendChild(tdNumberWidth);
+  
+    var tdFirstWidth = document.createElement("TD");
+    tdFirstWidth.innerHTML = "1";
+    tr.appendChild(tdFirstWidth);
+  
+    var tdSepWidth = document.createElement("TD");
+    tdSepWidth.innerHTML = separator;
+    tr.appendChild(tdSepWidth);
+  
+    var tdInfoEltWidth = document.createElement("TD");
+    args[0] = this.numberOfElement;
+    args[1] = this.numberOfElement;
+    args[2] = this.numberOfElement;
+    tdInfoEltWidth.innerHTML = ecw.I18N.get("infoElement", args);
+    tr.appendChild(tdInfoEltWidth);
+  
+    /* Initialisation des tailles de cellules */
+    infoEltTd.style.width = tdInfoEltWidth.offsetWidth;
+    currentPageTd.style.width = tdNumberWidth.offsetWidth;
+    firstSepTd.style.width = tdSepWidth.offsetWidth;
+    secondSepTd.style.width = tdSepWidth.offsetWidth;
+    firstPageTd.style.width = tdFirstWidth.offsetWidth;
+    lastPageTd.style.width = tdNumberWidth.offsetWidth;
+  
+    /* Suppression des cellules de reference */
+    tr.removeChild(tdNumberWidth);
+    tr.removeChild(tdSepWidth);
+    tr.removeChild(tdInfoEltWidth);
+    tr.removeChild(tdFirstWidth);
+  }
+  
+  /* Evenement onRefresh */
+  if (this.onRefresh) {
+    this.onRefresh();
+  }
+}
+
+function ecwTableAjaxImgFirst() {
+  this.ecwTable.firstPage();
+}
+
+function ecwTableAjaxImgNext() {
+  this.ecwTable.nextPage();
+}
+
+function ecwTableAjaxImgPrevious() {
+  this.ecwTable.previousPage(false);
+}
+
+function ecwTableAjaxImgLast() {
+  this.ecwTable.lastPage();
+}
+
+function ecwTableAjaxInputGotoOnKey(action) {
+  if (action == "enter") {        
+    var inputGoToPage = this.ecwTableToPaginate.inputGoToPage;
+    if (inputGoToPage.value != null && inputGoToPage.value.trim() != "") {
+      this.ecwTableToPaginate.goToPage(inputGoToPage.value);
+      /* Focus */
+      this.ecwControl.setFocus();
+      this.ecwControl.select();
+    }
+  }
+}
+
+function ecwTableAjaxInputGotoOnClick() {
+  var inputGoToPage = this.ecwTable.inputGoToPage;
+  if (inputGoToPage.value != null && inputGoToPage.value.trim() != "") {
+    this.ecwTable.goToPage(inputGoToPage.value);
+    /* Focus */
+    inputGoToPage.ecwControl.setFocus();
+    inputGoToPage.ecwControl.select();
+  }
+}
+
+/**
+ * Creation d'une span dans une td d'un tr
+ * @param tr Ligne
+ * @param innerDiv InnerHTML de la div dans la cellule
+ * @param balise td creee
+ * @private
+ */
+ECW.Table.prototype.createDivInTd = function(tr, innerDiv) {
+  var td = document.createElement("TD");
+  var div = document.createElement("DIV");
+  div.setAttribute("align", "center");
+  div.innerHTML = innerDiv;
+  tr.appendChild(td);
+  td.appendChild(div);
+  return td;
+}
+
+/**
+ * Navigation dans la table -> page precedente
+ * @param selectLastLine Boolean indiquant si la selection sera faite sur la premiere ou derniere ligne.
+ * @private
+ */
+ECW.Table.prototype.previousPage = function(selectLastLine) {
+  /* Si la table est ajaxisee */
+  if (this.ajaxAction && (this.currentPage != 0) && (parseInt(this.currentPage, 10) > 1)) {
+    this.currentPage--;
+    this.refreshInternalAjax();
+    if (selectLastLine) {
+      this.selectionnerLigne(this.lignes[this.lignes.length - 1]);
+    } else {
+      this.selectionnerLigne(this.lignes[0]);
+    }
+  }
+}
+
+/**
+ * Navigation dans la table -> page suivante
+ * @private
+ */
+ECW.Table.prototype.nextPage = function() {
+  /* Si la table est ajaxisee */
+  if (this.ajaxAction && (this.currentPage != 0) && (parseInt(this.currentPage, 10) < parseInt(this.numberOfPage, 10))) {
+    this.currentPage++;
+       this.refreshInternalAjax();
+    this.selectionnerLigne(this.lignes[0]);
+  }
+}
+
+/**
+ * Navigation dans la table -> premiere page
+ * @private
+ */
+ECW.Table.prototype.firstPage = function() {
+  /* Si la table est ajaxisee */
+  if (this.ajaxAction && (this.currentPage != 0) && (parseInt(this.currentPage, 10) != 1)) { 
+    this.currentPage = 1;
+    this.refreshInternalAjax();
+    this.selectionnerLigne(this.lignes[0]);
+  }
+}
+
+/**
+ * Navigation dans la table -> derniere page
+ * @private
+ */
+ECW.Table.prototype.lastPage = function() {
+  /* Si la table est ajaxisee */
+  if (this.ajaxAction && (this.currentPage != 0) && (parseInt(this.currentPage, 10) < parseInt(this.numberOfPage, 10))) {
+    this.currentPage = this.numberOfPage;
+    this.refreshInternalAjax();
+    this.selectionnerLigne(this.lignes[0]);
+  }
+}
+
+/**
+ * Navigation dans la table -> aller a la page demandee
+ * @param page Numero de page
+ * @private
+ */
+ECW.Table.prototype.goToPage = function(page) {
+  /* Si la table est ajaxisee */
+  if (this.ajaxAction) {
+    /* C'est un nombre */
+    if (ecwIsValidNumber(page)) {
+      var pageNo = parseInt(page, 10);
+      if (pageNo <= 0 || pageNo > parseInt(this.numberOfPage, 10)) {
+        // Par defaut, ECW n'affiche aucun message
+        this.inputGoToPage.ecwControl.setUIMessage("W", "IncorrectPageNumber", null, null);
+      } else {
+        this.currentPage = pageNo;
+        this.refreshInternalAjax();
+      }
+    }
+  }
+}
+
+/**
+ * R&eacute;cup&egrave;re la page courante. Renvoie le num&eacute;ro de la page
+ * courante (cas d'une table AJAX) ou 0 s'il s'agit d'une table classique. 
+ */
+ECW.Table.prototype.getCurrentPage = function() {
+  /* Si la table est ajaxisee */
+  if (this.ajaxAction) {
+    return this.currentPage;
+  } else {
+    return 0;
+  }
+}
+
+/**
+ * Renvoie le nombre d'&eacute;l&eacute;ment total
+ * pour une table gros volume. 
+ */
+ECW.Table.prototype.getNbOfElement = function() {
+  if (this.ajaxAction) {
+    return this.numberOfElement;
+  } else {
+    return this.getNbLines();
+  }
+}
+
+/**
+ * Gestion du onclick d'une action de type Icone.
+ * @param {Object} span Icone action concerne.
+ */
+function ecwTableCallClickAction(span) {
+  window.ecwTableAction = null;
+  window.ecwTableAction = span.getAttribute("ecwonclick");
+}
+
+/**
+ * Indique si une action de type Icone est d&eacute;clench&eacute;e
+ * (&agrave; utiliser dans l'&eacute;v&egrave;nement onSelect)
+ */
+ECW.Table.prototype.hasActionIconSelected = function() {
+  if (window.ecwTableAction) {
+    return true;
+  } else {
+    return false;
+  }
+}
+
+/**
+ * Methode de recalcul de la hauteur de la derniere table si elle est en mode autoHeight
+ */
+function ecwTableProcessAutoHeight(mesListeDivEcwTable) {
+  /* On parcours la liste des tables depuis la fin jusqu'a trouver la premiere table en mode autoHeight */
+  /* On ajuste sa taille en fonction de la place restante */
+  if (mesListeDivEcwTable) {
+    var nbTables = mesListeDivEcwTable.length - 1;
+    var tableTrouve = false;
+    /* Parcours des tables */
+    for (var k = nbTables; k >= 0 && !tableTrouve; k--) {
+      var maTable = mesListeDivEcwTable[k].ecwTable;
+      if (maTable.autoHeight && maTable.lignes && maTable.lignes.length != 0) {
+        var hauteurLigne = maTable.lignes[0].offsetHeight;
+        var lastInputHiddenLayout = maTable.ecwLayout.lastInputHidden;
+        var hauteurDispo = maTable.ecwLayout.noeudDOM.clientHeight 
+          - lastInputHiddenLayout.offsetTop - lastInputHiddenLayout.offsetHeight - 2;
+        var nbLigneSupp = parseInt(hauteurDispo / hauteurLigne, 10) - 1;
+        var newNbLigne = Math.max(maTable.nbligne + nbLigneSupp, 1);
+        maTable.noeudDOM.setAttribute("ecwNbLines", newNbLigne);
+        maTable.fixerDimensions();
+        tableTrouve = true;
+      }
+    }
+  }
+}
+
+/**
+ * @param evtType le type d'&eacute;v&egrave;nement qui d&eacute;clenche le message &agrave; afficher.
+ * Sert &eacute;galement de cl&eacute; i18n si le message n'est pas personnalis&eacute;.
+ * @param message le message (internationalis&eacute;) qui sera affich&eacute;. La valeur null
+ * @private
+ */
+ECW.Table.prototype.setUIMessage = function(gravity, evtType, message, i18n, show) {
+  var msg = this.getMessage(evtType);
+  if (null == msg && null != message) {
+    msg = message;
+  }
+  if (null == msg && null != i18n) {
+    msg = ecw.I18N.get(evtType);
+  }
+  this.messageErrorKey = evtType;
+  this.messageErrorGravity = gravity;
+  this.messageError = msg;
+  if (this.ecwTableTargetSelect) {
+    this.ecwTableTargetSelect.messageErrorKey = evtType;
+    this.ecwTableTargetSelect.messageErrorGravity = gravity;
+    this.ecwTableTargetSelect.messageError = msg;
+  }
+  if (false != show) {
+    // si show vaut true ou n'est pas positionne, on affiche le message.
+    this.showUIMessage();
+  }
+}
+
+
+/**
+ * Efface le message d'erreur courrant de ce control.
+ * @private
+ */
+ECW.Table.prototype.clearUIMessage = function() {
+  if (this.messageError) {
+    this.hideUIMessage();
+    // la remise a zero doit etre faite APRES la desactivation du message.
+    this.messageError = null;
+    this.messageErrorKey = null;
+    if (this.ecwTableTargetSelect) {
+      this.ecwTableTargetSelect.messageErrorKey = null;
+      this.ecwTableTargetSelect.messageError = null;
+    }
+  }
+}
+
+/**
+ * Affiche le message d'erreur 'courant' de ce control.
+ * @private
+ */
+ECW.Table.prototype.showUIMessage = function() {
+  if (this.messageError) {
+    this.ecwUI.setMessage(this.messageErrorGravity, this.messageError);
+  }
+}
+
+/**
+ * Masque le message d'erreur affiche pour ce control.
+ * @private
+ */
+ECW.Table.prototype.hideUIMessage = function() {
+  if (null != this.messageError && this.messageError == this.ecwUI.getMessage()) {
+    this.ecwUI.clearMessage();
+  }
+}
+
+/**
+ * Sp&eacute;cifie le message &agrave; afficher lorsqu'une erreur ou un warning est lev&eacute;.
+ * <br>
+ * Les messages que l'on peut modifier dans ce composant sont :
+ * <ul>
+ *   <li><code>"NoRowSelected"</code> : le message affich&eacute; dans une double table
+ *       lorsque l'utilisateur clique sur une fl&egrave;che sans s&eacute;lectionner de ligne.</li>
+ *   <li><code>"IncorrectPageNumber"</code> : le message affich&eacute; lorsqu'on essaye d'aller
+ *       sur une page inexistante (num&eacute;ro inf&egrave;rieur &agrave; 0 ou sup&eacute;rieur
+ *       au nombre de pages).</li>
+ * </ul>
+ * 
+ * @param evtType le type d'&eacute;v&egrave;nement qui d&eacute;clenche le message &agrave; afficher.
+ * @param message le message (internationalis&eacute;) qui sera affich&eacute;. La valeur null
+ * r&eacute;tablit le message d'origine d'ECW.
+ */
+ECW.Table.prototype.setMessage = function(evtType, message) {
+  switch (evtType) {
+    // mettre ici tous les 'case' concernant uniquement le controle inputGoToPage
+    case "IncorrectPageNumber" :
+      this.setMessageGoToPage(evtType, message);
+      break;
+    // mettre ici tous les 'case' concernant uniquement la table
+    case "NoRowSelected" :
+      this.setMessageTable(evtType, message);
+      break;
+    // mettre ici tous les 'case' concernant la table et le controle inputGoToPage
+    default :
+      this.setMessageGoToPage(evtType, message);
+      this.setMessageTable(evtType, message);
+  }
+}
+
+/**
+ * Sp&eacute;cifie le message &agrave; afficher lorsqu'une erreur ou un warning
+ * est lev&eacute; sur la table.
+ * @private
+ */
+ECW.Table.prototype.setMessageTable = function(evtType, message) {
+  this.messages[evtType] = message;
+  if (this.messageErrorKey == evtType) {
+    var show = this.messageError == this.ecwUI.getMessage();
+    this.setUIMessage(this.messageErrorGravity, evtType, message, null, show);
+  }
+}
+
+/**
+ * Sp&eacute;cifie le message &agrave; afficher lorsqu'une erreur ou un warning
+ * est lev&eacute; sur le champ <code>inputGoToPage</code>.
+ * @private
+ */
+ECW.Table.prototype.setMessageGoToPage = function(evtType, message) {
+  if (this.inputGoToPage && this.inputGoToPage.ecwControl) {
+    this.inputGoToPage.ecwControl.setMessage(evtType, message);
+  }
+}
+
+/**
+ * Renvoie le message affich&eacute; lorsqu'une erreur ou un warning est lev&eacute;.
+ * La valeur null signifie que la valeur par d&eacute;faut d'ECW sera utilis&eacute;e.
+ */
+ECW.Table.prototype.getMessage = function(evtType) {
+  return this.messages[evtType];
+}
+
+/**
+ * Efface le message d'erreur s'il est affich&eacute;.
+ */
+ECW.Table.prototype.clearMessage = function() {
+  this.clearUIMessage();
+}
+
+/**
+ * Retourne l'identifiant de la colonne de tri.
+ * Vaut -1 si aucune colonne n'est triee.
+ * @return Identifiant de la colonne de tri.
+ */
+ECW.Table.prototype.getSortColId = function() {
+  if (null == this.triActif || 0 == this.triActif) {
+    if (null == this.sortColId) {
+      return -1;
+    } else {
+      return this.sortColId;
+    }
+  } else {
+    return Math.abs(this.triActif) - 1;
+  }
+}
+
+/**
+ * Indique si le tri est croissant sur la colonne de tri.
+ * @return Tri croissant ou decroissant de la colonne de tri.
+ */
+ECW.Table.prototype.isSortIncrease = function() {
+  if (null == this.triActif || 0 == this.triActif) {
+    return this.sortIncrease;
+  } else {
+    return this.triActif > 0;
+  }
+}
+
+/**
+ * Permet de savoir si la table est vide ou non.
+ * @private
+ */
+ECW.Table.prototype.isEmptyTable = function() {
+  return (this.lignes == null);
+}
+
+/**
+ * Permet de savoir si la table contient une seule ligne.
+ * @private
+ */
+ECW.Table.prototype.hasOnlyOneLine = function() {
+  var result = false;
+  if (this.lignes && this.lignes.length) {
+    result = (this.lignes.length == 1); 
+  }
+  return result;
+}
+
+/**
+ * Methode permettant de forcer la synchronisation
+ * entre le header de la table et le body 
+ * Utilise dans le cas du bug (IE7 notamment)
+ * si le tableau est dans une zone avec un scroll
+ * @private
+ */
+ECW.Table.prototype.forceSynchroTableHeader = function() {
+	addClass(this.noeudDOM,"ecwTableNone");	
+	/*
+	 * Activer cetet partie pour la prise en compte de l'auto height
+	 if (ecwAutoHeightIhm) { 
+		if (this.noeudDOM && this.divTHead && this.divTBody) {
+			this.noeudDOM.style.position='relative';			
+			this.noeudDOM.style.height=(parseInt(this.divTBody.style.height) + 2) +"px";			
+			this.divTHead.style.position='absolute';			
+			this.divTHead.style.top='0px';
+			this.divTHead.style.zIndex='3';				
+			this.divTBody.style.position='relative';
+			this.divTBody.style.top= '0px';
+			this.divTBody.style.zIndex='2';					
+		}
+	} 
+	 */	
+}

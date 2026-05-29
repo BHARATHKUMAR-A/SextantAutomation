@@ -1,1 +1,0 @@
-Description EN (Feature Family) for SCL:  SIREN_INTERNAL_BATTERY_TYPE 

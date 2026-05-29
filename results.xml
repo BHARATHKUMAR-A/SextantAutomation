@@ -1,610 +1,242 @@
-<testsuites id="" name="" tests="1" failures="1" skipped="0" errors="0" time="1273.0548639999997">
-<testsuite name="generic_search\transversal_model_pack_search\createTransversalModelPackSearch.spec.ts" timestamp="2025-08-19T08:22:13.664Z" hostname="edge" tests="1" failures="1" skipped="0" time="1265.385" errors="0">
-<testcase name="Create Transversal Model Pack Search" classname="generic_search\transversal_model_pack_search\createTransversalModelPackSearch.spec.ts" time="1265.385">
-<failure message="createTransversalModelPackSearch.spec.ts:16:5 Create Transversal Model Pack Search" type="FAILURE">
-<![CDATA[  [edge] › generic_search\transversal_model_pack_search\createTransversalModelPackSearch.spec.ts:16:5 › Create Transversal Model Pack Search 
-
-    TimeoutError: locator.waitFor: Timeout 1000000ms exceeded.
-    Call log:
-      - waiting for locator('//h4[contains(text(),\'SUCCESS\')]') to be visible
-
-
-       at ..\steps\featureTransversalSearchSteps.ts:608
-
-      606 |
-      607 |         //Verify success message
-    > 608 |         await this.featureSCLPage.successMessage.waitFor({ state: 'visible', timeout: 1000000 });
-          |                                                  ^
-      609 |         await this.helper.assertElementHasText(this.featureSCLPage.successMessage, 'SUCCESS', 'SUCCESS message displayed');
-      610 |
-      611 |
-        at FeatureTransversalSearchSteps.create_transversal_SCL_feature_family (C:\Users\salokale\Downloads\GCM_2306\GCM\steps\featureTransversalSearchSteps.ts:608:50)
-        at C:\Users\salokale\Downloads\GCM_2306\GCM\tests\generic_search\transversal_model_pack_search\createTransversalModelPackSearch.spec.ts:39:25
-
-    attachment #1: navigate_to_page (image/png) ────────────────────────────────────────────────────
-    reports\artifacts\generic_search-transversal-c6280-ansversal-Model-Pack-Search-edge\attachments\navigate-to-page-5c2897859ad945c16ee7fdcc72fd0b8c8fa2766d.png
-    ────────────────────────────────────────────────────────────────────────────────────────────────
-
-    attachment #4: entered_username (image/png) ────────────────────────────────────────────────────
-    reports\artifacts\generic_search-transversal-c6280-ansversal-Model-Pack-Search-edge\attachments\entered-username-0d002051f487ae10d17385147fb783de5713d443.png
-    ────────────────────────────────────────────────────────────────────────────────────────────────
-
-    attachment #6: entered_password (image/png) ────────────────────────────────────────────────────
-    reports\artifacts\generic_search-transversal-c6280-ansversal-Model-Pack-Search-edge\attachments\entered-password-32392ea12f9bd02adee0b14a723a213f72474f4f.png
-    ────────────────────────────────────────────────────────────────────────────────────────────────
-
-    attachment #8: click_signInBtn (image/png) ─────────────────────────────────────────────────────
-    reports\artifacts\generic_search-transversal-c6280-ansversal-Model-Pack-Search-edge\attachments\click-signInBtn-6fde7abd45fbde71ca83b7cc6a0392c973233bdb.png
-    ────────────────────────────────────────────────────────────────────────────────────────────────
-
-    attachment #10: screenshotCaptured_genericDict (image/png) ─────────────────────────────────────
-    reports\artifacts\generic_search-transversal-c6280-ansversal-Model-Pack-Search-edge\attachments\screenshotCaptured-genericDict-3fdee236bf390f9c4fc9ed86321d3e871b1e81dd.png
-    ────────────────────────────────────────────────────────────────────────────────────────────────
-
-    attachment #12: click_genericDict (image/png) ──────────────────────────────────────────────────
-    reports\artifacts\generic_search-transversal-c6280-ansversal-Model-Pack-Search-edge\attachments\click-genericDict-7c8d6e44f3c5585d187d2172e6b161fa25c22249.png
-    ────────────────────────────────────────────────────────────────────────────────────────────────
-
-    attachment #14: click_createFamilyFeature (image/png) ──────────────────────────────────────────
-    reports\artifacts\generic_search-transversal-c6280-ansversal-Model-Pack-Search-edge\attachments\click-createFamilyFeature-92172d685e908b06235e2b97a19a949ecc2812d9.png
-    ────────────────────────────────────────────────────────────────────────────────────────────────
-
-    attachment #16: screenshotCaptured_createSCLFeature (image/png) ────────────────────────────────
-    reports\artifacts\generic_search-transversal-c6280-ansversal-Model-Pack-Search-edge\attachments\screenshotCaptured-createSCLFeature-17fd6f398d285e66c7e85920264d4df38efba0c6.png
-    ────────────────────────────────────────────────────────────────────────────────────────────────
-
-    attachment #18: click_createSCLFeature (image/png) ─────────────────────────────────────────────
-    reports\artifacts\generic_search-transversal-c6280-ansversal-Model-Pack-Search-edge\attachments\click-createSCLFeature-61968b5cba8ef7332f52ed92c17fb5b18610fdc6.png
-    ────────────────────────────────────────────────────────────────────────────────────────────────
-
-    attachment #20: screenshotCaptured_natureDropdown (image/png) ──────────────────────────────────
-    reports\artifacts\generic_search-transversal-c6280-ansversal-Model-Pack-Search-edge\attachments\screenshotCaptured-natureDropdown-5c043733feb4f47b61a3ad3150b5b8468b7d8c80.png
-    ────────────────────────────────────────────────────────────────────────────────────────────────
-
-    attachment #22: click_natureDropdown (image/png) ───────────────────────────────────────────────
-    reports\artifacts\generic_search-transversal-c6280-ansversal-Model-Pack-Search-edge\attachments\click-natureDropdown-f35a6cb1f9422d868a584c8ed100887cba61550b.png
-    ────────────────────────────────────────────────────────────────────────────────────────────────
-
-    attachment #24: click_transversalNatureOptions (image/png) ─────────────────────────────────────
-    reports\artifacts\generic_search-transversal-c6280-ansversal-Model-Pack-Search-edge\attachments\click-transversalNatureOptions-d5884327e298e2a1cad34b983d8e33e5447f54de.png
-    ────────────────────────────────────────────────────────────────────────────────────────────────
-
-    attachment #26: screenshotCaptured_feature_family_type (image/png) ─────────────────────────────
-    reports\artifacts\generic_search-transversal-c6280-ansversal-Model-Pack-Search-edge\attachments\screenshotCaptured-feature-family-type-8047026ec38a303ca2f68a7ed6f4202169b89757.png
-    ────────────────────────────────────────────────────────────────────────────────────────────────
-
-    attachment #28: click_feature_family_type (image/png) ──────────────────────────────────────────
-    reports\artifacts\generic_search-transversal-c6280-ansversal-Model-Pack-Search-edge\attachments\click-feature-family-type-34a3caa7c2630c38afa3e5d00d5eccadf34e7e85.png
-    ────────────────────────────────────────────────────────────────────────────────────────────────
-
-    attachment #30: click_transversalFeatureFamilyTypeOption (image/png) ───────────────────────────
-    reports\artifacts\generic_search-transversal-c6280-ansversal-Model-Pack-Search-edge\attachments\click-transversalFeatureFamilyTypeOption-cee824b4d07d80b00269f171cabf20266de255c3.png
-    ────────────────────────────────────────────────────────────────────────────────────────────────
-
-    attachment #32: captured_manualCode (image/png) ────────────────────────────────────────────────
-    reports\artifacts\generic_search-transversal-c6280-ansversal-Model-Pack-Search-edge\attachments\captured-manualCode-5cdad77c54465596a18644b26d7368af1648c014.png
-    ────────────────────────────────────────────────────────────────────────────────────────────────
-
-    attachment #34: click_manualCode (image/png) ───────────────────────────────────────────────────
-    reports\artifacts\generic_search-transversal-c6280-ansversal-Model-Pack-Search-edge\attachments\click-manualCode-2e119373ff610b86270d6f37a11e5869e13d0731.png
-    ────────────────────────────────────────────────────────────────────────────────────────────────
-
-    attachment #36: screenshotCaptured_searchCode (image/png) ──────────────────────────────────────
-    reports\artifacts\generic_search-transversal-c6280-ansversal-Model-Pack-Search-edge\attachments\screenshotCaptured-searchCode-dcd60ff0fc93b66887cc4ef1bb0c8c3c29154d53.png
-    ────────────────────────────────────────────────────────────────────────────────────────────────
-
-    attachment #38: click_searchCode (image/png) ───────────────────────────────────────────────────
-    reports\artifacts\generic_search-transversal-c6280-ansversal-Model-Pack-Search-edge\attachments\click-searchCode-0b7bc0eb223f72dde98c66910d4cd172cb1cb3ef.png
-    ────────────────────────────────────────────────────────────────────────────────────────────────
-
-    attachment #40: click_selectRandomCode (image/png) ─────────────────────────────────────────────
-    reports\artifacts\generic_search-transversal-c6280-ansversal-Model-Pack-Search-edge\attachments\click-selectRandomCode-2dd42afdc2159fde9e652c3fc7566f6827b7bab4.png
-    ────────────────────────────────────────────────────────────────────────────────────────────────
-
-    attachment #42: click_Next button (image/png) ──────────────────────────────────────────────────
-    reports\artifacts\generic_search-transversal-c6280-ansversal-Model-Pack-Search-edge\attachments\click-Next-button-4d2a904f48988e17eb8ce2f81552d0af5563d1c5.png
-    ────────────────────────────────────────────────────────────────────────────────────────────────
-
-    attachment #44: screenshotCaptured_ranking dropdown (image/png) ────────────────────────────────
-    reports\artifacts\generic_search-transversal-c6280-ansversal-Model-Pack-Search-edge\attachments\screenshotCaptured-ranking-dropdown-e2ba2d1f9183135c3fe6b0067c3631052f93ecc4.png
-    ────────────────────────────────────────────────────────────────────────────────────────────────
-
-    attachment #46: click_ranking dropdown (image/png) ─────────────────────────────────────────────
-    reports\artifacts\generic_search-transversal-c6280-ansversal-Model-Pack-Search-edge\attachments\click-ranking-dropdown-70d528c362e43f027d615a9e162410a1956c3460.png
-    ────────────────────────────────────────────────────────────────────────────────────────────────
-
-    attachment #48: click_Ranking 02 (image/png) ───────────────────────────────────────────────────
-    reports\artifacts\generic_search-transversal-c6280-ansversal-Model-Pack-Search-edge\attachments\click-Ranking-02-3751f321288ede384c347ac3d4a5bb32edf766a7.png
-    ────────────────────────────────────────────────────────────────────────────────────────────────
-
-    attachment #50: screenshotCaptured_feature_family_categories (image/png) ───────────────────────
-    reports\artifacts\generic_search-transversal-c6280-ansversal-Model-Pack-Search-edge\attachments\screenshotCaptured-feature-family-categories-75820803c05848dbbe15f444646d1bd603ae4395.png
-    ────────────────────────────────────────────────────────────────────────────────────────────────
-
-    attachment #52: click_feature_family_categories (image/png) ────────────────────────────────────
-    reports\artifacts\generic_search-transversal-c6280-ansversal-Model-Pack-Search-edge\attachments\click-feature-family-categories-0efd406fbdcc893ba6abb007153d6d3c34a754b4.png
-    ────────────────────────────────────────────────────────────────────────────────────────────────
-
-    attachment #54: click_feature_family_categories_option (image/png) ─────────────────────────────
-    reports\artifacts\generic_search-transversal-c6280-ansversal-Model-Pack-Search-edge\attachments\click-feature-family-categories-option-27e046817de366aceeda103b91a3dbd7a4313e36.png
-    ────────────────────────────────────────────────────────────────────────────────────────────────
-
-    attachment #56: screenshotCaptured_Confidential Radio Button (image/png) ───────────────────────
-    reports\artifacts\generic_search-transversal-c6280-ansversal-Model-Pack-Search-edge\attachments\screenshotCaptured-Confidential-Radio-Button-1da5d984defe5e1c3e01ea25178e4c7431c17cb7.png
-    ────────────────────────────────────────────────────────────────────────────────────────────────
-
-    attachment #58: click_ConfidentialRadioBtn (image/png) ─────────────────────────────────────────
-    reports\artifacts\generic_search-transversal-c6280-ansversal-Model-Pack-Search-edge\attachments\click-ConfidentialRadioBtn-ab52a4bbdb08fd0a26ecbc5e58e67de3a07101ac.png
-    ────────────────────────────────────────────────────────────────────────────────────────────────
-
-    attachment #60: screenshotCaptured_prohibitedDate (image/png) ──────────────────────────────────
-    reports\artifacts\generic_search-transversal-c6280-ansversal-Model-Pack-Search-edge\attachments\screenshotCaptured-prohibitedDate-7ee794933a974dcd0119170b6b167cbc62446dae.png
-    ────────────────────────────────────────────────────────────────────────────────────────────────
-
-    attachment #62: entered_prohibitedDate (image/png) ─────────────────────────────────────────────
-    reports\artifacts\generic_search-transversal-c6280-ansversal-Model-Pack-Search-edge\attachments\entered-prohibitedDate-95994c5422334d719b159a1c532f3a7c6b22d488.png
-    ────────────────────────────────────────────────────────────────────────────────────────────────
-
-    attachment #64: screenshotCaptured_localizedDescriptionEn (image/png) ──────────────────────────
-    reports\artifacts\generic_search-transversal-c6280-ansversal-Model-Pack-Search-edge\attachments\screenshotCaptured-localizedDescriptionEn-c2f13ad246304e536cf2b7efa4e0d3c3cd32fdd5.png
-    ────────────────────────────────────────────────────────────────────────────────────────────────
-
-    attachment #66: entered_localizedDescriptionEn (image/png) ─────────────────────────────────────
-    reports\artifacts\generic_search-transversal-c6280-ansversal-Model-Pack-Search-edge\attachments\entered-localizedDescriptionEn-38a25289b52ac916c865bceb05bfeae537183f0b.png
-    ────────────────────────────────────────────────────────────────────────────────────────────────
-
-    attachment #68: screenshotCaptured_explicativeNotes (image/png) ────────────────────────────────
-    reports\artifacts\generic_search-transversal-c6280-ansversal-Model-Pack-Search-edge\attachments\screenshotCaptured-explicativeNotes-fb8ab4771b44cd9a11df2816d4f962b387bd73ca.png
-    ────────────────────────────────────────────────────────────────────────────────────────────────
-
-    attachment #70: entered_explicativeNotes (image/png) ───────────────────────────────────────────
-    reports\artifacts\generic_search-transversal-c6280-ansversal-Model-Pack-Search-edge\attachments\entered-explicativeNotes-5cef402995e25875aab3f47f987dac543ef3a672.png
-    ────────────────────────────────────────────────────────────────────────────────────────────────
-
-    attachment #72: click_System dropdown (image/png) ──────────────────────────────────────────────
-    reports\artifacts\generic_search-transversal-c6280-ansversal-Model-Pack-Search-edge\attachments\click-System-dropdown-b2a3a81a5f05f0763d0e9a3cfa812f4c6b3c9acc.png
-    ────────────────────────────────────────────────────────────────────────────────────────────────
-
-    attachment #74: click_SystemOption (image/png) ─────────────────────────────────────────────────
-    reports\artifacts\generic_search-transversal-c6280-ansversal-Model-Pack-Search-edge\attachments\click-SystemOption-2062ac80a4e7d878cc3067fcc3a69c072b0fffb8.png
-    ────────────────────────────────────────────────────────────────────────────────────────────────
-
-    attachment #76: click_savingWithoutMapping button (image/png) ──────────────────────────────────
-    reports\artifacts\generic_search-transversal-c6280-ansversal-Model-Pack-Search-edge\attachments\click-savingWithoutMapping-button-463f4154f130afda33d9cdf6588659c77c36d920.png
-    ────────────────────────────────────────────────────────────────────────────────────────────────
-
-    attachment #78: click_confirmation (image/png) ─────────────────────────────────────────────────
-    reports\artifacts\generic_search-transversal-c6280-ansversal-Model-Pack-Search-edge\attachments\click-confirmation-c82bee6e345e94318ced6f014142e33886ce6ffe.png
-    ────────────────────────────────────────────────────────────────────────────────────────────────
-
-    attachment #80: screenshotCaptured_transversalDescription (image/png) ──────────────────────────
-    reports\artifacts\generic_search-transversal-c6280-ansversal-Model-Pack-Search-edge\attachments\screenshotCaptured-transversalDescription-ffa83ebcb51cf815b36ead6fe8d1352f59873ce6.png
-    ────────────────────────────────────────────────────────────────────────────────────────────────
-
-    attachment #82: click_transversalDescription (image/png) ───────────────────────────────────────
-    reports\artifacts\generic_search-transversal-c6280-ansversal-Model-Pack-Search-edge\attachments\click-transversalDescription-0ce6dfb7f5c0458e313e178a823f86815371fbc1.png
-    ────────────────────────────────────────────────────────────────────────────────────────────────
-
-    attachment #84: click_savingWithoutMapping button (image/png) ──────────────────────────────────
-    reports\artifacts\generic_search-transversal-c6280-ansversal-Model-Pack-Search-edge\attachments\click-savingWithoutMapping-button-150e6e3ecf87b4529f89fc62ef0e0f94cd2f34d7.png
-    ────────────────────────────────────────────────────────────────────────────────────────────────
-
-    attachment #86: click_confirmation (image/png) ─────────────────────────────────────────────────
-    reports\artifacts\generic_search-transversal-c6280-ansversal-Model-Pack-Search-edge\attachments\click-confirmation-edf820a6afa78cd3ff0b939a505d6005b51ff1cf.png
-    ────────────────────────────────────────────────────────────────────────────────────────────────
-
-    attachment #88: screenshotCaptured_SUCCESS message displayed (image/png) ───────────────────────
-    reports\artifacts\generic_search-transversal-c6280-ansversal-Model-Pack-Search-edge\attachments\screenshotCaptured-SUCCESS-message-displayed-189404f3caabff4c5ba3fbe5f8d5d4bf9c3a7949.png
-    ────────────────────────────────────────────────────────────────────────────────────────────────
-
-    attachment #90: screenshotCaptured_featureValuesTab (image/png) ────────────────────────────────
-    reports\artifacts\generic_search-transversal-c6280-ansversal-Model-Pack-Search-edge\attachments\screenshotCaptured-featureValuesTab-292c730f351a090a38b82ce634c4b90a227be7d9.png
-    ────────────────────────────────────────────────────────────────────────────────────────────────
-
-    attachment #92: click_featureValuesTab (image/png) ─────────────────────────────────────────────
-    reports\artifacts\generic_search-transversal-c6280-ansversal-Model-Pack-Search-edge\attachments\click-featureValuesTab-9ccda6cf0ebda5750a0adf71275d28fddef00e9b.png
-    ────────────────────────────────────────────────────────────────────────────────────────────────
-
-    attachment #94: screenshotCaptured_featureValuesBtn (image/png) ────────────────────────────────
-    reports\artifacts\generic_search-transversal-c6280-ansversal-Model-Pack-Search-edge\attachments\screenshotCaptured-featureValuesBtn-7c41302d86e0a517b271d8cbb8702a4902640173.png
-    ────────────────────────────────────────────────────────────────────────────────────────────────
-
-    attachment #96: click_featureValuesBtn (image/png) ─────────────────────────────────────────────
-    reports\artifacts\generic_search-transversal-c6280-ansversal-Model-Pack-Search-edge\attachments\click-featureValuesBtn-4183de7abf6f36f93482850cb7bc52ae9c6df350.png
-    ────────────────────────────────────────────────────────────────────────────────────────────────
-
-    attachment #98: click_selectFeatureFamily (image/png) ──────────────────────────────────────────
-    reports\artifacts\generic_search-transversal-c6280-ansversal-Model-Pack-Search-edge\attachments\click-selectFeatureFamily-448df9379923d5894d6f0abb3df2aa51c25c70dd.png
-    ────────────────────────────────────────────────────────────────────────────────────────────────
-
-    attachment #100: captured_manualCode (image/png) ───────────────────────────────────────────────
-    reports\artifacts\generic_search-transversal-c6280-ansversal-Model-Pack-Search-edge\attachments\captured-manualCode-5a8f91ec89997a0ea43c4d3bb7b2080645ad688d.png
-    ────────────────────────────────────────────────────────────────────────────────────────────────
-
-    attachment #102: click_manualCode (image/png) ──────────────────────────────────────────────────
-    reports\artifacts\generic_search-transversal-c6280-ansversal-Model-Pack-Search-edge\attachments\click-manualCode-5fc357132490571f677a55dd18c421ff552f4692.png
-    ────────────────────────────────────────────────────────────────────────────────────────────────
-
-    attachment #104: screenshotCaptured_searchCode (image/png) ─────────────────────────────────────
-    reports\artifacts\generic_search-transversal-c6280-ansversal-Model-Pack-Search-edge\attachments\screenshotCaptured-searchCode-fe624260faedad573dca1b32ec7065d6a2d7ec9a.png
-    ────────────────────────────────────────────────────────────────────────────────────────────────
-
-    attachment #106: click_searchCode (image/png) ──────────────────────────────────────────────────
-    reports\artifacts\generic_search-transversal-c6280-ansversal-Model-Pack-Search-edge\attachments\click-searchCode-ea0430503bee2e67118b7f18fd2b2ef94069e7b9.png
-    ────────────────────────────────────────────────────────────────────────────────────────────────
-
-    attachment #108: click_selectRandomCode (image/png) ────────────────────────────────────────────
-    reports\artifacts\generic_search-transversal-c6280-ansversal-Model-Pack-Search-edge\attachments\click-selectRandomCode-1d101f89fcb3747e1332b174cfebc22a062c8d43.png
-    ────────────────────────────────────────────────────────────────────────────────────────────────
-
-    attachment #110: screenshotCaptured_Next button (image/png) ────────────────────────────────────
-    reports\artifacts\generic_search-transversal-c6280-ansversal-Model-Pack-Search-edge\attachments\screenshotCaptured-Next-button-a3b0a02f74aebf9edefb7fdf2b755cdd143df03c.png
-    ────────────────────────────────────────────────────────────────────────────────────────────────
-
-    attachment #112: click_Next button (image/png) ─────────────────────────────────────────────────
-    reports\artifacts\generic_search-transversal-c6280-ansversal-Model-Pack-Search-edge\attachments\click-Next-button-2d56a8eda229bea84149ebebb1501bbbbfcb14ae.png
-    ────────────────────────────────────────────────────────────────────────────────────────────────
-
-    attachment #114: screenshotCaptured_inputFamilydescEN (image/png) ──────────────────────────────
-    reports\artifacts\generic_search-transversal-c6280-ansversal-Model-Pack-Search-edge\attachments\screenshotCaptured-inputFamilydescEN-2c158161877acb9604ab5c0933eaa0b33932c118.png
-    ────────────────────────────────────────────────────────────────────────────────────────────────
-
-    attachment #116: screenshotCaptured_radioButtonOptions (image/png) ─────────────────────────────
-    reports\artifacts\generic_search-transversal-c6280-ansversal-Model-Pack-Search-edge\attachments\screenshotCaptured-radioButtonOptions-623b634c7d0df7f557ef2d3e29ace99277875d75.png
-    ────────────────────────────────────────────────────────────────────────────────────────────────
-
-    attachment #118: click_confidentialRadioButton (image/png) ─────────────────────────────────────
-    reports\artifacts\generic_search-transversal-c6280-ansversal-Model-Pack-Search-edge\attachments\click-confidentialRadioButton-b8e4233df73755a86ddfe0ce74d4aa210ecba770.png
-    ────────────────────────────────────────────────────────────────────────────────────────────────
-
-    attachment #120: click_featureFamily (image/png) ───────────────────────────────────────────────
-    reports\artifacts\generic_search-transversal-c6280-ansversal-Model-Pack-Search-edge\attachments\click-featureFamily-826affd321e2a2f32cad0d4875180786c6229519.png
-    ────────────────────────────────────────────────────────────────────────────────────────────────
-
-    attachment #122: click_Feature value (image/png) ───────────────────────────────────────────────
-    reports\artifacts\generic_search-transversal-c6280-ansversal-Model-Pack-Search-edge\attachments\click-Feature-value-5db21903fdda67aa7545301e3de3e7e47ed6d2c1.png
-    ────────────────────────────────────────────────────────────────────────────────────────────────
-
-    attachment #124: click_featureFamily (image/png) ───────────────────────────────────────────────
-    reports\artifacts\generic_search-transversal-c6280-ansversal-Model-Pack-Search-edge\attachments\click-featureFamily-455b817243fa95179f1930df3408bb5104f823fc.png
-    ────────────────────────────────────────────────────────────────────────────────────────────────
-
-    attachment #126: click_Feature value (image/png) ───────────────────────────────────────────────
-    reports\artifacts\generic_search-transversal-c6280-ansversal-Model-Pack-Search-edge\attachments\click-Feature-value-602193aad65f258143ea3cbf70b31b86fdc7bfea.png
-    ────────────────────────────────────────────────────────────────────────────────────────────────
-
-    attachment #128: click_featureFamily (image/png) ───────────────────────────────────────────────
-    reports\artifacts\generic_search-transversal-c6280-ansversal-Model-Pack-Search-edge\attachments\click-featureFamily-b52f22757a0f0a7af056a262682d53fee5d3473e.png
-    ────────────────────────────────────────────────────────────────────────────────────────────────
-
-    attachment #130: click_Feature value (image/png) ───────────────────────────────────────────────
-    reports\artifacts\generic_search-transversal-c6280-ansversal-Model-Pack-Search-edge\attachments\click-Feature-value-af36acad3542088f380f3402534a297f847e3089.png
-    ────────────────────────────────────────────────────────────────────────────────────────────────
-
-    attachment #132: entered_singleFeatureValueDescription (image/png) ─────────────────────────────
-    reports\artifacts\generic_search-transversal-c6280-ansversal-Model-Pack-Search-edge\attachments\entered-singleFeatureValueDescription-c68eb9f5483364036ab8d11ae3ccceb1e7139a3f.png
-    ────────────────────────────────────────────────────────────────────────────────────────────────
-
-    attachment #134: click_Copy single feature value  (image/png) ──────────────────────────────────
-    reports\artifacts\generic_search-transversal-c6280-ansversal-Model-Pack-Search-edge\attachments\click-Copy-single-feature-value--148363162863d2d15648f505db06d6c25c9ade41.png
-    ────────────────────────────────────────────────────────────────────────────────────────────────
-
-    attachment #136: entered_otherShortDescText (image/png) ────────────────────────────────────────
-    reports\artifacts\generic_search-transversal-c6280-ansversal-Model-Pack-Search-edge\attachments\entered-otherShortDescText-e22a4d38231a5928a885ecfa7062b2d0e0fbdf3c.png
-    ────────────────────────────────────────────────────────────────────────────────────────────────
-
-    attachment #138: entered_otherWPCShortDesc (image/png) ─────────────────────────────────────────
-    reports\artifacts\generic_search-transversal-c6280-ansversal-Model-Pack-Search-edge\attachments\entered-otherWPCShortDesc-f4422c210c937aa51ad2d317f5d04589f1a0cf4a.png
-    ────────────────────────────────────────────────────────────────────────────────────────────────
-
-    attachment #140: screenshotCaptured_explicativeNote (image/png) ────────────────────────────────
-    reports\artifacts\generic_search-transversal-c6280-ansversal-Model-Pack-Search-edge\attachments\screenshotCaptured-explicativeNote-b76c609dd964f13f69d0dec509d3cd1f6bd02889.png
-    ────────────────────────────────────────────────────────────────────────────────────────────────
-
-    attachment #142: entered_explicativeNote (image/png) ───────────────────────────────────────────
-    reports\artifacts\generic_search-transversal-c6280-ansversal-Model-Pack-Search-edge\attachments\entered-explicativeNote-35c3234a42141d0202f7d682f07bddaa23b954c7.png
-    ────────────────────────────────────────────────────────────────────────────────────────────────
-
-    attachment #144: screenshotCaptured_SaveButton (image/png) ─────────────────────────────────────
-    reports\artifacts\generic_search-transversal-c6280-ansversal-Model-Pack-Search-edge\attachments\screenshotCaptured-SaveButton-da255e764ae7814d2365b251a344fa50572e0d45.png
-    ────────────────────────────────────────────────────────────────────────────────────────────────
-
-    attachment #146: click_SaveButton (image/png) ──────────────────────────────────────────────────
-    reports\artifacts\generic_search-transversal-c6280-ansversal-Model-Pack-Search-edge\attachments\click-SaveButton-3dc0b512451bb54ecd56b16efd765da35856c61a.png
-    ────────────────────────────────────────────────────────────────────────────────────────────────
-
-    attachment #148: screenshotCaptured_ConfirmationButton (image/png) ─────────────────────────────
-    reports\artifacts\generic_search-transversal-c6280-ansversal-Model-Pack-Search-edge\attachments\screenshotCaptured-ConfirmationButton-12247fa16d0ec003a369e472433908a073b59a19.png
-    ────────────────────────────────────────────────────────────────────────────────────────────────
-
-    attachment #150: click_ConfirmationButton (image/png) ──────────────────────────────────────────
-    reports\artifacts\generic_search-transversal-c6280-ansversal-Model-Pack-Search-edge\attachments\click-ConfirmationButton-4d99adcd9fc084228faf10e325a66f989822aa5f.png
-    ────────────────────────────────────────────────────────────────────────────────────────────────
-
-    attachment #151: screenshot (image/png) ────────────────────────────────────────────────────────
-    reports\artifacts\generic_search-transversal-c6280-ansversal-Model-Pack-Search-edge\test-failed-1.png
-    ────────────────────────────────────────────────────────────────────────────────────────────────
-
-    attachment #152: video (video/webm) ────────────────────────────────────────────────────────────
-    reports\artifacts\generic_search-transversal-c6280-ansversal-Model-Pack-Search-edge\video.webm
-    ────────────────────────────────────────────────────────────────────────────────────────────────
-
-    Error Context: ..\reports\artifacts\generic_search-transversal-c6280-ansversal-Model-Pack-Search-edge\error-context.md
-]]>
-</failure>
-<system-out>
-<![CDATA[📁 Created screenshot folder: reports\artifacts\screenshots\Create_Transversal_Model_Pack_Search
-📸 Screenshot attached: reports\artifacts\screenshots\Create_Transversal_Model_Pack_Search\step1_navigate_to_page.png
-📸 Screenshot attached: reports\artifacts\screenshots\Create_Transversal_Model_Pack_Search\step2_entered_username.png
-📸 Screenshot attached: reports\artifacts\screenshots\Create_Transversal_Model_Pack_Search\step3_entered_password.png
-📸 Screenshot attached: reports\artifacts\screenshots\Create_Transversal_Model_Pack_Search\step4_click_signInBtn.png
-✅ [ASSERTION PASSED] genericDict is visible.
-📸 Screenshot attached: reports\artifacts\screenshots\Create_Transversal_Model_Pack_Search\step5_screenshotCaptured_genericDict.png
-📸 Screenshot attached: reports\artifacts\screenshots\Create_Transversal_Model_Pack_Search\step6_click_genericDict.png
-📸 Screenshot attached: reports\artifacts\screenshots\Create_Transversal_Model_Pack_Search\step7_click_createFamilyFeature.png
-✅ [ASSERTION PASSED] createSCLFeature is visible.
-📸 Screenshot attached: reports\artifacts\screenshots\Create_Transversal_Model_Pack_Search\step8_screenshotCaptured_createSCLFeature.png
-📸 Screenshot attached: reports\artifacts\screenshots\Create_Transversal_Model_Pack_Search\step9_click_createSCLFeature.png
-Next button is disabled
-✅ [ASSERTION PASSED] natureDropdown is visible.
-📸 Screenshot attached: reports\artifacts\screenshots\Create_Transversal_Model_Pack_Search\step10_screenshotCaptured_natureDropdown.png
-📸 Screenshot attached: reports\artifacts\screenshots\Create_Transversal_Model_Pack_Search\step11_click_natureDropdown.png
-📸 Screenshot attached: reports\artifacts\screenshots\Create_Transversal_Model_Pack_Search\step12_click_transversalNatureOptions.png
-✅ [ASSERTION PASSED] feature_family_type is visible.
-📸 Screenshot attached: reports\artifacts\screenshots\Create_Transversal_Model_Pack_Search\step13_screenshotCaptured_feature_family_type.png
-📸 Screenshot attached: reports\artifacts\screenshots\Create_Transversal_Model_Pack_Search\step14_click_feature_family_type.png
-📸 Screenshot attached: reports\artifacts\screenshots\Create_Transversal_Model_Pack_Search\step15_click_transversalFeatureFamilyTypeOption.png
-Specific sales range is already selected. 
-✅ [ASSERTION PASSED] manualCode is enabled.
-📸 Screenshot attached: reports\artifacts\screenshots\Create_Transversal_Model_Pack_Search\step16_captured_manualCode.png
-📸 Screenshot attached: reports\artifacts\screenshots\Create_Transversal_Model_Pack_Search\step17_click_manualCode.png
-✅ [ASSERTION PASSED] searchCode is visible.
-📸 Screenshot attached: reports\artifacts\screenshots\Create_Transversal_Model_Pack_Search\step18_screenshotCaptured_searchCode.png
-📸 Screenshot attached: reports\artifacts\screenshots\Create_Transversal_Model_Pack_Search\step19_click_searchCode.png
-SCL Class code  GL9  is Selected
-📸 Screenshot attached: reports\artifacts\screenshots\Create_Transversal_Model_Pack_Search\step20_click_selectRandomCode.png
-Next button is enabled
-📸 Screenshot attached: reports\artifacts\screenshots\Create_Transversal_Model_Pack_Search\step21_click_Next_button.png
-Next button is disabled
-✅ [ASSERTION PASSED] ranking dropdown is visible.
-📸 Screenshot attached: reports\artifacts\screenshots\Create_Transversal_Model_Pack_Search\step22_screenshotCaptured_ranking_dropdown.png
-📸 Screenshot attached: reports\artifacts\screenshots\Create_Transversal_Model_Pack_Search\step23_click_ranking_dropdown.png
-📸 Screenshot attached: reports\artifacts\screenshots\Create_Transversal_Model_Pack_Search\step24_click_Ranking_02.png
-Ranking 02 is selected
-✅ [ASSERTION PASSED] feature_family_categories is visible.
-📸 Screenshot attached: reports\artifacts\screenshots\Create_Transversal_Model_Pack_Search\step25_screenshotCaptured_feature_family_categories.png
-📸 Screenshot attached: reports\artifacts\screenshots\Create_Transversal_Model_Pack_Search\step26_click_feature_family_categories.png
-📸 Screenshot attached: reports\artifacts\screenshots\Create_Transversal_Model_Pack_Search\step27_click_feature_family_categories_option.png
-✅ [ASSERTION PASSED] Confidential Radio Button is visible.
-📸 Screenshot attached: reports\artifacts\screenshots\Create_Transversal_Model_Pack_Search\step28_screenshotCaptured_Confidential_Radio_Button.png
-📸 Screenshot attached: reports\artifacts\screenshots\Create_Transversal_Model_Pack_Search\step29_click_ConfidentialRadioBtn.png
-Prohibited date is: 19/08/2025
-✅ [ASSERTION PASSED] prohibitedDate is visible.
-📸 Screenshot attached: reports\artifacts\screenshots\Create_Transversal_Model_Pack_Search\step30_screenshotCaptured_prohibitedDate.png
-📸 Screenshot attached: reports\artifacts\screenshots\Create_Transversal_Model_Pack_Search\step31_entered_prohibitedDate.png
-✅ [ASSERTION PASSED] localizedDescriptionEn is visible.
-📸 Screenshot attached: reports\artifacts\screenshots\Create_Transversal_Model_Pack_Search\step32_screenshotCaptured_localizedDescriptionEn.png
-📸 Screenshot attached: reports\artifacts\screenshots\Create_Transversal_Model_Pack_Search\step33_entered_localizedDescriptionEn.png
-✅ [ASSERTION PASSED] explicativeNotes is visible.
-📸 Screenshot attached: reports\artifacts\screenshots\Create_Transversal_Model_Pack_Search\step34_screenshotCaptured_explicativeNotes.png
-📸 Screenshot attached: reports\artifacts\screenshots\Create_Transversal_Model_Pack_Search\step35_entered_explicativeNotes.png
-📸 Screenshot attached: reports\artifacts\screenshots\Create_Transversal_Model_Pack_Search\step36_click_System_dropdown.png
-📸 Screenshot attached: reports\artifacts\screenshots\Create_Transversal_Model_Pack_Search\step37_click_SystemOption.png
-Next button is enabled
-📸 Screenshot attached: reports\artifacts\screenshots\Create_Transversal_Model_Pack_Search\step38_click_savingWithoutMapping_button.png
-📸 Screenshot attached: reports\artifacts\screenshots\Create_Transversal_Model_Pack_Search\step39_click_confirmation.png
-✅ [ASSERTION PASSED] transversalDescription is visible.
-📸 Screenshot attached: reports\artifacts\screenshots\Create_Transversal_Model_Pack_Search\step40_screenshotCaptured_transversalDescription.png
-📸 Screenshot attached: reports\artifacts\screenshots\Create_Transversal_Model_Pack_Search\step41_click_transversalDescription.png
-📸 Screenshot attached: reports\artifacts\screenshots\Create_Transversal_Model_Pack_Search\step42_click_savingWithoutMapping_button.png
-📸 Screenshot attached: reports\artifacts\screenshots\Create_Transversal_Model_Pack_Search\step43_click_confirmation.png
-✅ [ASSERT] SUCCESS message displayed: Element has expected text "SUCCESS"
-📸 Screenshot attached: reports\artifacts\screenshots\Create_Transversal_Model_Pack_Search\step44_screenshotCaptured_SUCCESS_message_displayed.png
-✅ [ASSERTION PASSED] featureValuesTab is visible.
-📸 Screenshot attached: reports\artifacts\screenshots\Create_Transversal_Model_Pack_Search\step45_screenshotCaptured_featureValuesTab.png
-📸 Screenshot attached: reports\artifacts\screenshots\Create_Transversal_Model_Pack_Search\step46_click_featureValuesTab.png
-✅ [ASSERTION PASSED] featureValuesBtn is visible.
-📸 Screenshot attached: reports\artifacts\screenshots\Create_Transversal_Model_Pack_Search\step47_screenshotCaptured_featureValuesBtn.png
-📸 Screenshot attached: reports\artifacts\screenshots\Create_Transversal_Model_Pack_Search\step48_click_featureValuesBtn.png
-📸 Screenshot attached: reports\artifacts\screenshots\Create_Transversal_Model_Pack_Search\step49_click_selectFeatureFamily.png
-✅ [ASSERTION PASSED] manualCode is enabled.
-📸 Screenshot attached: reports\artifacts\screenshots\Create_Transversal_Model_Pack_Search\step50_captured_manualCode.png
-📸 Screenshot attached: reports\artifacts\screenshots\Create_Transversal_Model_Pack_Search\step51_click_manualCode.png
-✅ [ASSERTION PASSED] searchCode is visible.
-📸 Screenshot attached: reports\artifacts\screenshots\Create_Transversal_Model_Pack_Search\step52_screenshotCaptured_searchCode.png
-📸 Screenshot attached: reports\artifacts\screenshots\Create_Transversal_Model_Pack_Search\step53_click_searchCode.png
-SCL sales code   14   is Selected
-📸 Screenshot attached: reports\artifacts\screenshots\Create_Transversal_Model_Pack_Search\step54_click_selectRandomCode.png
-✅ [ASSERTION PASSED] Next button is visible.
-📸 Screenshot attached: reports\artifacts\screenshots\Create_Transversal_Model_Pack_Search\step55_screenshotCaptured_Next_button.png
-📸 Screenshot attached: reports\artifacts\screenshots\Create_Transversal_Model_Pack_Search\step56_click_Next_button.png
-✅ [ASSERTION PASSED] inputFamilydescEN is visible.
-📸 Screenshot attached: reports\artifacts\screenshots\Create_Transversal_Model_Pack_Search\step57_screenshotCaptured_inputFamilydescEN.png
-atsss
-✅ [ASSERTION PASSED] radioButtonOptions is visible.
-📸 Screenshot attached: reports\artifacts\screenshots\Create_Transversal_Model_Pack_Search\step58_screenshotCaptured_radioButtonOptions.png
-📸 Screenshot attached: reports\artifacts\screenshots\Create_Transversal_Model_Pack_Search\step59_click_confidentialRadioButton.png
-Confidential is selected as No
-📸 Screenshot attached: reports\artifacts\screenshots\Create_Transversal_Model_Pack_Search\step60_click_featureFamily.png
-📸 Screenshot attached: reports\artifacts\screenshots\Create_Transversal_Model_Pack_Search\step61_click_Feature_value.png
-📸 Screenshot attached: reports\artifacts\screenshots\Create_Transversal_Model_Pack_Search\step62_click_featureFamily.png
-📸 Screenshot attached: reports\artifacts\screenshots\Create_Transversal_Model_Pack_Search\step63_click_Feature_value.png
-📸 Screenshot attached: reports\artifacts\screenshots\Create_Transversal_Model_Pack_Search\step64_click_featureFamily.png
-📸 Screenshot attached: reports\artifacts\screenshots\Create_Transversal_Model_Pack_Search\step65_click_Feature_value.png
-Other Short Description: D0801+D1001+D0402
-Single Feature Value Description: D0801+D1001+D0402
-Descriptions match: D0801+D1001+D0402
-📸 Screenshot attached: reports\artifacts\screenshots\Create_Transversal_Model_Pack_Search\step66_entered_singleFeatureValueDescription.png
-📸 Screenshot attached: reports\artifacts\screenshots\Create_Transversal_Model_Pack_Search\step67_click_Copy_single_feature_value_.png
-📸 Screenshot attached: reports\artifacts\screenshots\Create_Transversal_Model_Pack_Search\step68_entered_otherShortDescText.png
-📸 Screenshot attached: reports\artifacts\screenshots\Create_Transversal_Model_Pack_Search\step69_entered_otherWPCShortDesc.png
-✅ [ASSERTION PASSED] explicativeNote is visible.
-📸 Screenshot attached: reports\artifacts\screenshots\Create_Transversal_Model_Pack_Search\step70_screenshotCaptured_explicativeNote.png
-📸 Screenshot attached: reports\artifacts\screenshots\Create_Transversal_Model_Pack_Search\step71_entered_explicativeNote.png
-✅ [ASSERTION PASSED] SaveButton is visible.
-📸 Screenshot attached: reports\artifacts\screenshots\Create_Transversal_Model_Pack_Search\step72_screenshotCaptured_SaveButton.png
-📸 Screenshot attached: reports\artifacts\screenshots\Create_Transversal_Model_Pack_Search\step73_click_SaveButton.png
-✅ [ASSERTION PASSED] ConfirmationButton is visible.
-📸 Screenshot attached: reports\artifacts\screenshots\Create_Transversal_Model_Pack_Search\step74_screenshotCaptured_ConfirmationButton.png
-📸 Screenshot attached: reports\artifacts\screenshots\Create_Transversal_Model_Pack_Search\step75_click_ConfirmationButton.png
-
-[[ATTACHMENT|reports\artifacts\generic_search-transversal-c6280-ansversal-Model-Pack-Search-edge\attachments\navigate-to-page-5c2897859ad945c16ee7fdcc72fd0b8c8fa2766d.png]]
-
-[[ATTACHMENT|reports\artifacts\generic_search-transversal-c6280-ansversal-Model-Pack-Search-edge\attachments\entered-username-0d002051f487ae10d17385147fb783de5713d443.png]]
-
-[[ATTACHMENT|reports\artifacts\generic_search-transversal-c6280-ansversal-Model-Pack-Search-edge\attachments\entered-password-32392ea12f9bd02adee0b14a723a213f72474f4f.png]]
-
-[[ATTACHMENT|reports\artifacts\generic_search-transversal-c6280-ansversal-Model-Pack-Search-edge\attachments\click-signInBtn-6fde7abd45fbde71ca83b7cc6a0392c973233bdb.png]]
-
-[[ATTACHMENT|reports\artifacts\generic_search-transversal-c6280-ansversal-Model-Pack-Search-edge\attachments\screenshotCaptured-genericDict-3fdee236bf390f9c4fc9ed86321d3e871b1e81dd.png]]
-
-[[ATTACHMENT|reports\artifacts\generic_search-transversal-c6280-ansversal-Model-Pack-Search-edge\attachments\click-genericDict-7c8d6e44f3c5585d187d2172e6b161fa25c22249.png]]
-
-[[ATTACHMENT|reports\artifacts\generic_search-transversal-c6280-ansversal-Model-Pack-Search-edge\attachments\click-createFamilyFeature-92172d685e908b06235e2b97a19a949ecc2812d9.png]]
-
-[[ATTACHMENT|reports\artifacts\generic_search-transversal-c6280-ansversal-Model-Pack-Search-edge\attachments\screenshotCaptured-createSCLFeature-17fd6f398d285e66c7e85920264d4df38efba0c6.png]]
-
-[[ATTACHMENT|reports\artifacts\generic_search-transversal-c6280-ansversal-Model-Pack-Search-edge\attachments\click-createSCLFeature-61968b5cba8ef7332f52ed92c17fb5b18610fdc6.png]]
-
-[[ATTACHMENT|reports\artifacts\generic_search-transversal-c6280-ansversal-Model-Pack-Search-edge\attachments\screenshotCaptured-natureDropdown-5c043733feb4f47b61a3ad3150b5b8468b7d8c80.png]]
-
-[[ATTACHMENT|reports\artifacts\generic_search-transversal-c6280-ansversal-Model-Pack-Search-edge\attachments\click-natureDropdown-f35a6cb1f9422d868a584c8ed100887cba61550b.png]]
-
-[[ATTACHMENT|reports\artifacts\generic_search-transversal-c6280-ansversal-Model-Pack-Search-edge\attachments\click-transversalNatureOptions-d5884327e298e2a1cad34b983d8e33e5447f54de.png]]
-
-[[ATTACHMENT|reports\artifacts\generic_search-transversal-c6280-ansversal-Model-Pack-Search-edge\attachments\screenshotCaptured-feature-family-type-8047026ec38a303ca2f68a7ed6f4202169b89757.png]]
-
-[[ATTACHMENT|reports\artifacts\generic_search-transversal-c6280-ansversal-Model-Pack-Search-edge\attachments\click-feature-family-type-34a3caa7c2630c38afa3e5d00d5eccadf34e7e85.png]]
-
-[[ATTACHMENT|reports\artifacts\generic_search-transversal-c6280-ansversal-Model-Pack-Search-edge\attachments\click-transversalFeatureFamilyTypeOption-cee824b4d07d80b00269f171cabf20266de255c3.png]]
-
-[[ATTACHMENT|reports\artifacts\generic_search-transversal-c6280-ansversal-Model-Pack-Search-edge\attachments\captured-manualCode-5cdad77c54465596a18644b26d7368af1648c014.png]]
-
-[[ATTACHMENT|reports\artifacts\generic_search-transversal-c6280-ansversal-Model-Pack-Search-edge\attachments\click-manualCode-2e119373ff610b86270d6f37a11e5869e13d0731.png]]
-
-[[ATTACHMENT|reports\artifacts\generic_search-transversal-c6280-ansversal-Model-Pack-Search-edge\attachments\screenshotCaptured-searchCode-dcd60ff0fc93b66887cc4ef1bb0c8c3c29154d53.png]]
-
-[[ATTACHMENT|reports\artifacts\generic_search-transversal-c6280-ansversal-Model-Pack-Search-edge\attachments\click-searchCode-0b7bc0eb223f72dde98c66910d4cd172cb1cb3ef.png]]
-
-[[ATTACHMENT|reports\artifacts\generic_search-transversal-c6280-ansversal-Model-Pack-Search-edge\attachments\click-selectRandomCode-2dd42afdc2159fde9e652c3fc7566f6827b7bab4.png]]
-
-[[ATTACHMENT|reports\artifacts\generic_search-transversal-c6280-ansversal-Model-Pack-Search-edge\attachments\click-Next-button-4d2a904f48988e17eb8ce2f81552d0af5563d1c5.png]]
-
-[[ATTACHMENT|reports\artifacts\generic_search-transversal-c6280-ansversal-Model-Pack-Search-edge\attachments\screenshotCaptured-ranking-dropdown-e2ba2d1f9183135c3fe6b0067c3631052f93ecc4.png]]
-
-[[ATTACHMENT|reports\artifacts\generic_search-transversal-c6280-ansversal-Model-Pack-Search-edge\attachments\click-ranking-dropdown-70d528c362e43f027d615a9e162410a1956c3460.png]]
-
-[[ATTACHMENT|reports\artifacts\generic_search-transversal-c6280-ansversal-Model-Pack-Search-edge\attachments\click-Ranking-02-3751f321288ede384c347ac3d4a5bb32edf766a7.png]]
-
-[[ATTACHMENT|reports\artifacts\generic_search-transversal-c6280-ansversal-Model-Pack-Search-edge\attachments\screenshotCaptured-feature-family-categories-75820803c05848dbbe15f444646d1bd603ae4395.png]]
-
-[[ATTACHMENT|reports\artifacts\generic_search-transversal-c6280-ansversal-Model-Pack-Search-edge\attachments\click-feature-family-categories-0efd406fbdcc893ba6abb007153d6d3c34a754b4.png]]
-
-[[ATTACHMENT|reports\artifacts\generic_search-transversal-c6280-ansversal-Model-Pack-Search-edge\attachments\click-feature-family-categories-option-27e046817de366aceeda103b91a3dbd7a4313e36.png]]
-
-[[ATTACHMENT|reports\artifacts\generic_search-transversal-c6280-ansversal-Model-Pack-Search-edge\attachments\screenshotCaptured-Confidential-Radio-Button-1da5d984defe5e1c3e01ea25178e4c7431c17cb7.png]]
-
-[[ATTACHMENT|reports\artifacts\generic_search-transversal-c6280-ansversal-Model-Pack-Search-edge\attachments\click-ConfidentialRadioBtn-ab52a4bbdb08fd0a26ecbc5e58e67de3a07101ac.png]]
-
-[[ATTACHMENT|reports\artifacts\generic_search-transversal-c6280-ansversal-Model-Pack-Search-edge\attachments\screenshotCaptured-prohibitedDate-7ee794933a974dcd0119170b6b167cbc62446dae.png]]
-
-[[ATTACHMENT|reports\artifacts\generic_search-transversal-c6280-ansversal-Model-Pack-Search-edge\attachments\entered-prohibitedDate-95994c5422334d719b159a1c532f3a7c6b22d488.png]]
-
-[[ATTACHMENT|reports\artifacts\generic_search-transversal-c6280-ansversal-Model-Pack-Search-edge\attachments\screenshotCaptured-localizedDescriptionEn-c2f13ad246304e536cf2b7efa4e0d3c3cd32fdd5.png]]
-
-[[ATTACHMENT|reports\artifacts\generic_search-transversal-c6280-ansversal-Model-Pack-Search-edge\attachments\entered-localizedDescriptionEn-38a25289b52ac916c865bceb05bfeae537183f0b.png]]
-
-[[ATTACHMENT|reports\artifacts\generic_search-transversal-c6280-ansversal-Model-Pack-Search-edge\attachments\screenshotCaptured-explicativeNotes-fb8ab4771b44cd9a11df2816d4f962b387bd73ca.png]]
-
-[[ATTACHMENT|reports\artifacts\generic_search-transversal-c6280-ansversal-Model-Pack-Search-edge\attachments\entered-explicativeNotes-5cef402995e25875aab3f47f987dac543ef3a672.png]]
-
-[[ATTACHMENT|reports\artifacts\generic_search-transversal-c6280-ansversal-Model-Pack-Search-edge\attachments\click-System-dropdown-b2a3a81a5f05f0763d0e9a3cfa812f4c6b3c9acc.png]]
-
-[[ATTACHMENT|reports\artifacts\generic_search-transversal-c6280-ansversal-Model-Pack-Search-edge\attachments\click-SystemOption-2062ac80a4e7d878cc3067fcc3a69c072b0fffb8.png]]
-
-[[ATTACHMENT|reports\artifacts\generic_search-transversal-c6280-ansversal-Model-Pack-Search-edge\attachments\click-savingWithoutMapping-button-463f4154f130afda33d9cdf6588659c77c36d920.png]]
-
-[[ATTACHMENT|reports\artifacts\generic_search-transversal-c6280-ansversal-Model-Pack-Search-edge\attachments\click-confirmation-c82bee6e345e94318ced6f014142e33886ce6ffe.png]]
-
-[[ATTACHMENT|reports\artifacts\generic_search-transversal-c6280-ansversal-Model-Pack-Search-edge\attachments\screenshotCaptured-transversalDescription-ffa83ebcb51cf815b36ead6fe8d1352f59873ce6.png]]
-
-[[ATTACHMENT|reports\artifacts\generic_search-transversal-c6280-ansversal-Model-Pack-Search-edge\attachments\click-transversalDescription-0ce6dfb7f5c0458e313e178a823f86815371fbc1.png]]
-
-[[ATTACHMENT|reports\artifacts\generic_search-transversal-c6280-ansversal-Model-Pack-Search-edge\attachments\click-savingWithoutMapping-button-150e6e3ecf87b4529f89fc62ef0e0f94cd2f34d7.png]]
-
-[[ATTACHMENT|reports\artifacts\generic_search-transversal-c6280-ansversal-Model-Pack-Search-edge\attachments\click-confirmation-edf820a6afa78cd3ff0b939a505d6005b51ff1cf.png]]
-
-[[ATTACHMENT|reports\artifacts\generic_search-transversal-c6280-ansversal-Model-Pack-Search-edge\attachments\screenshotCaptured-SUCCESS-message-displayed-189404f3caabff4c5ba3fbe5f8d5d4bf9c3a7949.png]]
-
-[[ATTACHMENT|reports\artifacts\generic_search-transversal-c6280-ansversal-Model-Pack-Search-edge\attachments\screenshotCaptured-featureValuesTab-292c730f351a090a38b82ce634c4b90a227be7d9.png]]
-
-[[ATTACHMENT|reports\artifacts\generic_search-transversal-c6280-ansversal-Model-Pack-Search-edge\attachments\click-featureValuesTab-9ccda6cf0ebda5750a0adf71275d28fddef00e9b.png]]
-
-[[ATTACHMENT|reports\artifacts\generic_search-transversal-c6280-ansversal-Model-Pack-Search-edge\attachments\screenshotCaptured-featureValuesBtn-7c41302d86e0a517b271d8cbb8702a4902640173.png]]
-
-[[ATTACHMENT|reports\artifacts\generic_search-transversal-c6280-ansversal-Model-Pack-Search-edge\attachments\click-featureValuesBtn-4183de7abf6f36f93482850cb7bc52ae9c6df350.png]]
-
-[[ATTACHMENT|reports\artifacts\generic_search-transversal-c6280-ansversal-Model-Pack-Search-edge\attachments\click-selectFeatureFamily-448df9379923d5894d6f0abb3df2aa51c25c70dd.png]]
-
-[[ATTACHMENT|reports\artifacts\generic_search-transversal-c6280-ansversal-Model-Pack-Search-edge\attachments\captured-manualCode-5a8f91ec89997a0ea43c4d3bb7b2080645ad688d.png]]
-
-[[ATTACHMENT|reports\artifacts\generic_search-transversal-c6280-ansversal-Model-Pack-Search-edge\attachments\click-manualCode-5fc357132490571f677a55dd18c421ff552f4692.png]]
-
-[[ATTACHMENT|reports\artifacts\generic_search-transversal-c6280-ansversal-Model-Pack-Search-edge\attachments\screenshotCaptured-searchCode-fe624260faedad573dca1b32ec7065d6a2d7ec9a.png]]
-
-[[ATTACHMENT|reports\artifacts\generic_search-transversal-c6280-ansversal-Model-Pack-Search-edge\attachments\click-searchCode-ea0430503bee2e67118b7f18fd2b2ef94069e7b9.png]]
-
-[[ATTACHMENT|reports\artifacts\generic_search-transversal-c6280-ansversal-Model-Pack-Search-edge\attachments\click-selectRandomCode-1d101f89fcb3747e1332b174cfebc22a062c8d43.png]]
-
-[[ATTACHMENT|reports\artifacts\generic_search-transversal-c6280-ansversal-Model-Pack-Search-edge\attachments\screenshotCaptured-Next-button-a3b0a02f74aebf9edefb7fdf2b755cdd143df03c.png]]
-
-[[ATTACHMENT|reports\artifacts\generic_search-transversal-c6280-ansversal-Model-Pack-Search-edge\attachments\click-Next-button-2d56a8eda229bea84149ebebb1501bbbbfcb14ae.png]]
-
-[[ATTACHMENT|reports\artifacts\generic_search-transversal-c6280-ansversal-Model-Pack-Search-edge\attachments\screenshotCaptured-inputFamilydescEN-2c158161877acb9604ab5c0933eaa0b33932c118.png]]
-
-[[ATTACHMENT|reports\artifacts\generic_search-transversal-c6280-ansversal-Model-Pack-Search-edge\attachments\screenshotCaptured-radioButtonOptions-623b634c7d0df7f557ef2d3e29ace99277875d75.png]]
-
-[[ATTACHMENT|reports\artifacts\generic_search-transversal-c6280-ansversal-Model-Pack-Search-edge\attachments\click-confidentialRadioButton-b8e4233df73755a86ddfe0ce74d4aa210ecba770.png]]
-
-[[ATTACHMENT|reports\artifacts\generic_search-transversal-c6280-ansversal-Model-Pack-Search-edge\attachments\click-featureFamily-826affd321e2a2f32cad0d4875180786c6229519.png]]
-
-[[ATTACHMENT|reports\artifacts\generic_search-transversal-c6280-ansversal-Model-Pack-Search-edge\attachments\click-Feature-value-5db21903fdda67aa7545301e3de3e7e47ed6d2c1.png]]
-
-[[ATTACHMENT|reports\artifacts\generic_search-transversal-c6280-ansversal-Model-Pack-Search-edge\attachments\click-featureFamily-455b817243fa95179f1930df3408bb5104f823fc.png]]
-
-[[ATTACHMENT|reports\artifacts\generic_search-transversal-c6280-ansversal-Model-Pack-Search-edge\attachments\click-Feature-value-602193aad65f258143ea3cbf70b31b86fdc7bfea.png]]
-
-[[ATTACHMENT|reports\artifacts\generic_search-transversal-c6280-ansversal-Model-Pack-Search-edge\attachments\click-featureFamily-b52f22757a0f0a7af056a262682d53fee5d3473e.png]]
-
-[[ATTACHMENT|reports\artifacts\generic_search-transversal-c6280-ansversal-Model-Pack-Search-edge\attachments\click-Feature-value-af36acad3542088f380f3402534a297f847e3089.png]]
-
-[[ATTACHMENT|reports\artifacts\generic_search-transversal-c6280-ansversal-Model-Pack-Search-edge\attachments\entered-singleFeatureValueDescription-c68eb9f5483364036ab8d11ae3ccceb1e7139a3f.png]]
-
-[[ATTACHMENT|reports\artifacts\generic_search-transversal-c6280-ansversal-Model-Pack-Search-edge\attachments\click-Copy-single-feature-value--148363162863d2d15648f505db06d6c25c9ade41.png]]
-
-[[ATTACHMENT|reports\artifacts\generic_search-transversal-c6280-ansversal-Model-Pack-Search-edge\attachments\entered-otherShortDescText-e22a4d38231a5928a885ecfa7062b2d0e0fbdf3c.png]]
-
-[[ATTACHMENT|reports\artifacts\generic_search-transversal-c6280-ansversal-Model-Pack-Search-edge\attachments\entered-otherWPCShortDesc-f4422c210c937aa51ad2d317f5d04589f1a0cf4a.png]]
-
-[[ATTACHMENT|reports\artifacts\generic_search-transversal-c6280-ansversal-Model-Pack-Search-edge\attachments\screenshotCaptured-explicativeNote-b76c609dd964f13f69d0dec509d3cd1f6bd02889.png]]
-
-[[ATTACHMENT|reports\artifacts\generic_search-transversal-c6280-ansversal-Model-Pack-Search-edge\attachments\entered-explicativeNote-35c3234a42141d0202f7d682f07bddaa23b954c7.png]]
-
-[[ATTACHMENT|reports\artifacts\generic_search-transversal-c6280-ansversal-Model-Pack-Search-edge\attachments\screenshotCaptured-SaveButton-da255e764ae7814d2365b251a344fa50572e0d45.png]]
-
-[[ATTACHMENT|reports\artifacts\generic_search-transversal-c6280-ansversal-Model-Pack-Search-edge\attachments\click-SaveButton-3dc0b512451bb54ecd56b16efd765da35856c61a.png]]
-
-[[ATTACHMENT|reports\artifacts\generic_search-transversal-c6280-ansversal-Model-Pack-Search-edge\attachments\screenshotCaptured-ConfirmationButton-12247fa16d0ec003a369e472433908a073b59a19.png]]
-
-[[ATTACHMENT|reports\artifacts\generic_search-transversal-c6280-ansversal-Model-Pack-Search-edge\attachments\click-ConfirmationButton-4d99adcd9fc084228faf10e325a66f989822aa5f.png]]
-
-[[ATTACHMENT|reports\artifacts\generic_search-transversal-c6280-ansversal-Model-Pack-Search-edge\test-failed-1.png]]
-
-[[ATTACHMENT|reports\artifacts\generic_search-transversal-c6280-ansversal-Model-Pack-Search-edge\video.webm]]
-
-[[ATTACHMENT|reports\artifacts\generic_search-transversal-c6280-ansversal-Model-Pack-Search-edge\error-context.md]]
-]]>
-</system-out>
+<testsuites id="" name="" tests="55" failures="0" skipped="55" errors="0" time="3.6960300000000004">
+<testsuite name="production_goals\CPT0101.spec.ts" timestamp="2026-05-08T12:02:01.757Z" hostname="firefox" tests="6" failures="0" skipped="6" time="0" errors="0">
+<testcase name="Log verification after UI actions › Validation of success abandoned error message on  UI for CPT0101" classname="production_goals\CPT0101.spec.ts" time="0">
+<skipped>
+</skipped>
+</testcase>
+<testcase name="Log verification after UI actions › Validation of success message on both Putty and UI for CPT0101" classname="production_goals\CPT0101.spec.ts" time="0">
+<skipped>
+</skipped>
+</testcase>
+<testcase name="Log verification after UI actions › Validation of view button UI for CPT0101" classname="production_goals\CPT0101.spec.ts" time="0">
+<skipped>
+</skipped>
+</testcase>
+<testcase name="Log verification after UI actions › Validation of modify button UI for CPT0101" classname="production_goals\CPT0101.spec.ts" time="0">
+<skipped>
+</skipped>
+</testcase>
+<testcase name="Log verification after UI actions › Validation of duplicate button UI for CPT0101" classname="production_goals\CPT0101.spec.ts" time="0">
+<skipped>
+</skipped>
+</testcase>
+<testcase name="Log verification after UI actions › Validation of delete success message UI for CPT0101" classname="production_goals\CPT0101.spec.ts" time="0">
+<skipped>
+</skipped>
+</testcase>
+</testsuite>
+<testsuite name="production_goals\CPT0102Screen.spec.ts" timestamp="2026-05-08T12:02:01.757Z" hostname="firefox" tests="10" failures="0" skipped="10" time="0" errors="0">
+<testcase name="Log verification after UI actions › Validation of creation abandoned error message on  UI for CPT0102" classname="production_goals\CPT0102Screen.spec.ts" time="0">
+<skipped>
+</skipped>
+</testcase>
+<testcase name="Log verification after UI actions › Validation of error messages while creation on  UI for CPT0102" classname="production_goals\CPT0102Screen.spec.ts" time="0">
+<skipped>
+</skipped>
+</testcase>
+<testcase name="Log verification after UI actions › Validation of create success message on  UI for CPT0102" classname="production_goals\CPT0102Screen.spec.ts" time="0">
+<skipped>
+</skipped>
+</testcase>
+<testcase name="Log verification after UI actions › Validation of view button on  UI for CPT0102" classname="production_goals\CPT0102Screen.spec.ts" time="0">
+<skipped>
+</skipped>
+</testcase>
+<testcase name="Log verification after UI actions › Validation of Modify abandoned error message on  UI for CPT0102" classname="production_goals\CPT0102Screen.spec.ts" time="0">
+<skipped>
+</skipped>
+</testcase>
+<testcase name="Log verification after UI actions › Validation of Modify button on  UI for CPT0102" classname="production_goals\CPT0102Screen.spec.ts" time="0">
+<skipped>
+</skipped>
+</testcase>
+<testcase name="Log verification after UI actions › Validation of Duplicate error message on  UI for CPT0102" classname="production_goals\CPT0102Screen.spec.ts" time="0">
+<skipped>
+</skipped>
+</testcase>
+<testcase name="Log verification after UI actions › Validation of Duplicate success message on  UI for CPT0102" classname="production_goals\CPT0102Screen.spec.ts" time="0">
+<skipped>
+</skipped>
+</testcase>
+<testcase name="Log verification after UI actions › Validation of Delete abandoned error message on  UI for CPT0102" classname="production_goals\CPT0102Screen.spec.ts" time="0">
+<skipped>
+</skipped>
+</testcase>
+<testcase name="Log verification after UI actions › Validation of Delete success message on  UI for CPT0102" classname="production_goals\CPT0102Screen.spec.ts" time="0">
+<skipped>
+</skipped>
+</testcase>
+</testsuite>
+<testsuite name="production_goals\CPT0104.spec.ts" timestamp="2026-05-08T12:02:01.757Z" hostname="firefox" tests="3" failures="0" skipped="3" time="0" errors="0">
+<testcase name="Log verification after UI actions › Validation of success abandoned error message on  UI for CPT0101" classname="production_goals\CPT0104.spec.ts" time="0">
+<skipped>
+</skipped>
+</testcase>
+<testcase name="Log verification after UI actions › Validation of success done success message on  UI for CPT0101" classname="production_goals\CPT0104.spec.ts" time="0">
+<skipped>
+</skipped>
+</testcase>
+<testcase name="Log verification after UI actions › Validation of view on  UI for CPT0101" classname="production_goals\CPT0104.spec.ts" time="0">
+<skipped>
+</skipped>
+</testcase>
+</testsuite>
+<testsuite name="topology\dataDependant.spec.ts" timestamp="2026-05-08T12:02:01.757Z" hostname="firefox" tests="1" failures="0" skipped="1" time="0" errors="0">
+<testcase name="Verify touchScreen" classname="topology\dataDependant.spec.ts" time="0">
+<skipped>
+</skipped>
+</testcase>
+</testsuite>
+<testsuite name="topology\sample.spec.ts" timestamp="2026-05-08T12:02:01.757Z" hostname="firefox" tests="1" failures="0" skipped="1" time="0" errors="0">
+<testcase name="Log verification after UI actions › Login flow should produce an auth log entry" classname="topology\sample.spec.ts" time="0">
+<skipped>
+</skipped>
+</testcase>
+</testsuite>
+<testsuite name="topology\TOP0301Creation.spec.ts" timestamp="2026-05-08T12:02:01.757Z" hostname="firefox" tests="1" failures="0" skipped="1" time="0" errors="0">
+<testcase name="Log verification after UI actions › Login flow should produce an auth log entry" classname="topology\TOP0301Creation.spec.ts" time="0">
+<skipped>
+</skipped>
+</testcase>
+</testsuite>
+<testsuite name="topology\TOP0401Screen.spec.ts" timestamp="2026-05-08T12:02:01.757Z" hostname="firefox" tests="8" failures="0" skipped="8" time="0" errors="0">
+<testcase name="Log verification after UI actions › Validation of field error messages on UI for TOP0401" classname="topology\TOP0401Screen.spec.ts" time="0">
+<skipped>
+</skipped>
+</testcase>
+<testcase name="Log verification after UI actions › Validation of creation abondened error message on  UI for TOP0401" classname="topology\TOP0401Screen.spec.ts" time="0">
+<skipped>
+</skipped>
+</testcase>
+<testcase name="Log verification after UI actions › Validation of creation success message on both UI and PuTTy" classname="topology\TOP0401Screen.spec.ts" time="0">
+<skipped>
+</skipped>
+</testcase>
+<testcase name="Log verification after UI actions › Validation of view in UI" classname="topology\TOP0401Screen.spec.ts" time="0">
+<skipped>
+</skipped>
+</testcase>
+<testcase name="Log verification after UI actions › Validation of modification abondened error message on  UI for TOP0601" classname="topology\TOP0401Screen.spec.ts" time="0">
+<skipped>
+</skipped>
+</testcase>
+<testcase name="Log verification after UI actions › Validation of modify  success message on both UI and PuTTy" classname="topology\TOP0401Screen.spec.ts" time="0">
+<skipped>
+</skipped>
+</testcase>
+<testcase name="Log verification after UI actions › Validation of deletion abondened error message on  UI for TOP0601" classname="topology\TOP0401Screen.spec.ts" time="0">
+<skipped>
+</skipped>
+</testcase>
+<testcase name="Log verification after UI actions › Validation of delete  success message on both UI and PuTTy" classname="topology\TOP0401Screen.spec.ts" time="0">
+<skipped>
+</skipped>
+</testcase>
+</testsuite>
+<testsuite name="topology\TOP0501Screen.spec.ts" timestamp="2026-05-08T12:02:01.757Z" hostname="firefox" tests="8" failures="0" skipped="8" time="0" errors="0">
+<testcase name="Log verification after UI actions › Validation of field error messages on UI for TOP0501" classname="topology\TOP0501Screen.spec.ts" time="0">
+<skipped>
+</skipped>
+</testcase>
+<testcase name="Log verification after UI actions › Validation of creation abondened error message on  UI for TOP0601" classname="topology\TOP0501Screen.spec.ts" time="0">
+<skipped>
+</skipped>
+</testcase>
+<testcase name="Log verification after UI actions › Validation of creation success message on both UI and PuTTy for TOP0501" classname="topology\TOP0501Screen.spec.ts" time="0">
+<skipped>
+</skipped>
+</testcase>
+<testcase name="Log verification after UI actions › Validation of view in UI for TOP0501" classname="topology\TOP0501Screen.spec.ts" time="0">
+<skipped>
+</skipped>
+</testcase>
+<testcase name="Log verification after UI actions › Validation of modification abondened error message on  UI for TOP0502" classname="topology\TOP0501Screen.spec.ts" time="0">
+<skipped>
+</skipped>
+</testcase>
+<testcase name="Log verification after UI actions › Validation of modify  success message on both UI and PuTTy for TOP0501" classname="topology\TOP0501Screen.spec.ts" time="0">
+<skipped>
+</skipped>
+</testcase>
+<testcase name="Log verification after UI actions › Validation of deletion abondened error message on  UI for TOP0502" classname="topology\TOP0501Screen.spec.ts" time="0">
+<skipped>
+</skipped>
+</testcase>
+<testcase name="Log verification after UI actions › Validation of delete  success message on both UI and PuTTy for TOP0501" classname="topology\TOP0501Screen.spec.ts" time="0">
+<skipped>
+</skipped>
+</testcase>
+</testsuite>
+<testsuite name="topology\TOP0502Screen.spec.ts" timestamp="2026-05-08T12:02:01.757Z" hostname="firefox" tests="9" failures="0" skipped="9" time="0" errors="0">
+<testcase name="Log verification after UI actions › Validation of field error messages on UI for TOP0502" classname="topology\TOP0502Screen.spec.ts" time="0">
+<skipped>
+</skipped>
+</testcase>
+<testcase name="Log verification after UI actions › Validation of creation abondened error message on  UI for TOP0502" classname="topology\TOP0502Screen.spec.ts" time="0">
+<skipped>
+</skipped>
+</testcase>
+<testcase name="Log verification after UI actions › Validation of creation success message on both UI and PuTTy for TOP0502" classname="topology\TOP0502Screen.spec.ts" time="0">
+<skipped>
+</skipped>
+</testcase>
+<testcase name="Log verification after UI actions › Validation of Rights functionality add and remove all lines on  UI  for TOP0502" classname="topology\TOP0502Screen.spec.ts" time="0">
+<skipped>
+</skipped>
+</testcase>
+<testcase name="Log verification after UI actions › Validation of view in UI for TOP0502" classname="topology\TOP0502Screen.spec.ts" time="0">
+<skipped>
+</skipped>
+</testcase>
+<testcase name="Log verification after UI actions › Validation of modification abondened error message on  UI for TOP0502" classname="topology\TOP0502Screen.spec.ts" time="0">
+<skipped>
+</skipped>
+</testcase>
+<testcase name="Log verification after UI actions › Validation of modify  success message on both UI and PuTTy for TOP0502" classname="topology\TOP0502Screen.spec.ts" time="0">
+<skipped>
+</skipped>
+</testcase>
+<testcase name="Log verification after UI actions › Validation of Deletion abondened error message on  UI for TOP0502" classname="topology\TOP0502Screen.spec.ts" time="0">
+<skipped>
+</skipped>
+</testcase>
+<testcase name="Log verification after UI actions › Validation of delete  success message on both UI and PuTTy for TOP0502" classname="topology\TOP0502Screen.spec.ts" time="0">
+<skipped>
+</skipped>
+</testcase>
+</testsuite>
+<testsuite name="topology\TOP0601Screen.spec.ts" timestamp="2026-05-08T12:02:01.757Z" hostname="firefox" tests="8" failures="0" skipped="8" time="0" errors="0">
+<testcase name="Log verification after UI actions For TOP0601 › Validation of field error messages on UI for TOP0601" classname="topology\TOP0601Screen.spec.ts" time="0">
+<skipped>
+</skipped>
+</testcase>
+<testcase name="Log verification after UI actions For TOP0601 › Validation of creation abondened error message on  UI for TOP0601" classname="topology\TOP0601Screen.spec.ts" time="0">
+<skipped>
+</skipped>
+</testcase>
+<testcase name="Log verification after UI actions For TOP0601 › Validation of creation success message on both UI and PuTTy for TOP0601" classname="topology\TOP0601Screen.spec.ts" time="0">
+<skipped>
+</skipped>
+</testcase>
+<testcase name="Log verification after UI actions For TOP0601 › Validation of view in UI for TOP0601" classname="topology\TOP0601Screen.spec.ts" time="0">
+<skipped>
+</skipped>
+</testcase>
+<testcase name="Log verification after UI actions For TOP0601 › Validation of modification abondened error message on  UI for TOP0601" classname="topology\TOP0601Screen.spec.ts" time="0">
+<skipped>
+</skipped>
+</testcase>
+<testcase name="Log verification after UI actions For TOP0601 › Validation of modify  success message on both UI and PuTTy for TOP0601" classname="topology\TOP0601Screen.spec.ts" time="0">
+<skipped>
+</skipped>
+</testcase>
+<testcase name="Log verification after UI actions For TOP0601 › Validation of deletion abondened error message on  UI for TOP0601" classname="topology\TOP0601Screen.spec.ts" time="0">
+<skipped>
+</skipped>
+</testcase>
+<testcase name="Log verification after UI actions For TOP0601 › Validation of delete  success message on both UI and PuTTy for TOP0601" classname="topology\TOP0601Screen.spec.ts" time="0">
+<skipped>
+</skipped>
 </testcase>
 </testsuite>
 </testsuites>

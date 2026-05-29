@@ -1,0 +1,631 @@
+/**
+ * @fileoverview D&eacute;fini l'objet <b>ECW.TreeViewOld</b>
+ * @author Franck Menguy (franck.menguy@ext.mpsa.com)
+ * @version $Revision: 1.5 $
+ */
+
+/**
+ * D&eacute;fini l'objet <b>ECW.TreeViewOld</b>
+ * @private
+ */
+ECW.TreeViewOld = function(noeud, ui) {
+
+  ecwStartTimer("ECW.TreeViewOld");
+
+  ecwSetAttribute(this, "noeudDOM", noeud);
+  ecwSetAttribute(this, "ecwUI", ui);
+  ecwSetAttribute(this, "input", null);
+  ecwSetAttribute(this, "ecwTreeList", new Array());
+  ecwSetAttribute(this, "ecwDivScroll", null);
+  ecwSetAttribute(this, "ecwTreeDisplay", null);
+
+  /* Ajout du champ invisible de selection de la liste */
+  var inputGestion = document.createElement("INPUT");
+  inputGestion.className = "ecwInvisible";
+  inputGestion.id = "inputEcwTreeViewOld_" + this.noeudDOM.id;
+  ecwSetAttribute(inputGestion, "ecwTreeList", this);
+  /* Desactivation de l'autocompletion du navigateur sur le champ */
+  inputGestion.setAttribute("autocomplete", "off");
+
+  this.noeudDOM.insertBefore(inputGestion, this.noeudDOM.firstChild);
+  ecwSetAttribute(this, "input", inputGestion);
+  ecwSetAttribute(this.noeudDOM, "input", inputGestion);
+
+  /* Copie le title sur l'input de la liste */
+  inputGestion.title = this.noeudDOM.title;
+  
+  /* Constructeur */
+  this.constructeur();
+  
+  ecwStopTimer("ECW.TreeViewOld");
+}
+
+/**
+ * Noeud du DOM comportant la combo : <div class="ecwTreeView">
+ * @private
+ */
+ECW.TreeViewOld.prototype.noeudDOM = null;
+
+/**
+ * Objet ECW.UI d'appartenance
+ * @private
+ */
+ECW.TreeViewOld.prototype.ecwUI = null;
+
+/**
+ * Objet ECW.TreeViewOld
+ * @private
+ */
+ECW.TreeViewOld.prototype.ecwTreeView = null;
+
+/**
+ * Champ input invisible
+ * @private
+ */
+ECW.TreeViewOld.prototype.input = null;
+
+/**
+ * Champ pointant sur la ligne active
+ * @private
+ */
+ECW.TreeViewOld.prototype.elementActif = null;
+
+/**
+ * Champ pointant sur la liste des elements organisee en branche
+ * @private
+ */
+ECW.TreeViewOld.prototype.ecwTreeList = null;
+
+/**
+ * Champ pointant sur la liste des elements organisee en branche
+ * @private
+ */
+ECW.TreeViewOld.prototype.ecwDivScroll = null;
+
+/**
+ * Champ pointant sur la balide ul principale
+ * @private
+ */
+ECW.TreeViewOld.prototype.ecwTreeDisplay = null;
+
+/**
+ * Ev&egrave;nement d&eacute;clench&eacute; sur la touche [Entr&eacute;e]
+ * @type Function
+ */
+ECW.TreeViewOld.prototype.onExecute = null;
+
+/**
+ * Constructeur de ECW.TreeViewOld
+ * @private
+ */
+ECW.TreeViewOld.prototype.constructeur = function() {
+  ecwSetAttribute(this, "ecwTreeDisplay", this.noeudDOM.getElementsByTagName("UL")[0]);
+
+  /* Creation du div interne : ce div permet de gerer le scroll */
+  /* Ce div est obligatoire car l'input de controle prend toujours le focus */
+  /* a la selection d'un element */
+  var divInterne = document.createElement("DIV");
+  divInterne.style.height = this.noeudDOM.style.height;
+  divInterne.style.width = this.noeudDOM.style.width;
+  addClass(divInterne, "ecwTreeViewScrollOld");
+  this.noeudDOM.insertBefore(divInterne, this.noeudDOM.firstChild);
+  
+  /* Deplacement de la liste dans ce div permettant le scroll */
+  if (this.noeudDOM.hasChildNodes()) {
+    divInterne.appendChild(this.ecwTreeDisplay);
+  }
+
+  /* Retaille du div principal pour ne pas avoir de scroll horizontal */
+  this.noeudDOM.style.height = divInterne.offsetHeight;
+  this.noeudDOM.style.width = divInterne.offsetWidth;
+
+  ecwSetAttribute(this, "ecwDivScroll", divInterne);
+  /* Positionnement du Tabindex, */
+  /* car sous Firefox 1.5, une div de style overflow:auto devient focusable */
+  if (ECW_isGecko) {
+    this.ecwDivScroll.tabIndex = -1;
+  }
+
+  /* Affectation de la class de la balise <UL> principale */
+  if (this.ecwTreeDisplay) {
+    addClass(this.ecwTreeDisplay, "ecwTreeViewList");
+  }
+
+  /* Ajout des styles sur les regroupements */
+  var regroupement = this.ecwTreeDisplay.getElementsByTagName("ul");
+  if (regroupement.length > 0) {
+    for (var indice = regroupement.length - 1; indice >= 0; indice--) {
+      if (regroupement[indice].parentNode.tagName.toLowerCase() == "li") {
+        addClass(regroupement[indice].parentNode, "ecwTreeviewOld_parent");
+      }
+    }
+  }
+
+  var lignesLi = this.ecwTreeDisplay.getElementsByTagName("li");
+  if (lignesLi.length > 0) {
+    /* Ajout des styles sur les lignes simples */
+    for (var indice = lignesLi.length - 1; indice >= 0; indice--) {
+      if (!isClass(lignesLi[indice], "ecwTreeviewOld_parent")) {
+        addClass(lignesLi[indice], "ecwTreeviewOld_child");
+      }
+    }
+  }
+
+  /* Creation du modele objet */
+  this.creerTreeViewBrancheDom(this.ecwTreeDisplay, this.ecwTreeList, this);
+
+  /* Non propagation du menu contextuel sur click gauche */
+  this.noeudDOM.oncontextmenu = ecwFalseFunction;
+}
+
+/**
+ * Place le focus sur l'arbre
+ */
+ECW.TreeViewOld.prototype.setFocus = function() {
+  if (this.input.ecwControl && this.input.ecwControl.isVisible()) {
+    return this.input.ecwControl.setFocus();
+  }
+}
+
+/**
+ * Passer la ligne de l'etat selectionne non-actif a l'etat selectionne actif
+ * @private
+ */
+ECW.TreeViewOld.prototype.activerElement = function() {
+  if (this.elementActif) {
+    addClass(this.elementActif, "ecwTreeViewLineActive");
+    removeClass(this.elementActif, "ecwTreeViewLineSelect");
+    this.setFocus();
+  } else {
+    if (this.ecwTreeList && this.ecwTreeList.length > 0) {
+      this.selectionnerElement(this.ecwTreeList[0]);
+    }
+  }
+}
+
+/**
+ * Passer la ligne de l'etat selectionne actif a l'etat selectionne non-actif
+ * @private
+ */
+ECW.TreeViewOld.prototype.desactiverElement = function() {
+  if (this.elementActif) {
+    removeClass(this.elementActif, "ecwTreeViewLineActive");
+    addClass(this.elementActif, "ecwTreeViewLineSelect");
+  }
+}
+
+/**
+ * Positionne l'element selectionne en element actif
+ * @private
+ */
+ECW.TreeViewOld.prototype.selectionnerElement = function(elementSelect) {
+
+  /* Deselectionner l'element actif */
+  if (this.elementActif) {
+    removeClass(this.elementActif, "ecwTreeViewLineActive");
+    removeClass(this.elementActif, "ecwTreeViewLineSelect");
+  }
+
+  /* Selectionne le nouvel element actif */
+  this.elementActif = elementSelect;
+  addClass(elementSelect, "ecwTreeViewLineActive");
+
+  /* Gestion du scroll */
+  if (eval(this.elementActif.offsetTop - this.ecwDivScroll.offsetTop) < eval(this.ecwDivScroll.scrollTop)) {
+    this.ecwDivScroll.scrollTop = eval(this.elementActif.offsetTop - this.ecwDivScroll.offsetTop -
+      this.ecwDivScroll.offsetHeight / 2);
+  }
+
+  if (eval(this.elementActif.offsetTop - this.ecwDivScroll.offsetTop +
+      this.elementActif.offsetHeight) > eval(this.ecwDivScroll.offsetHeight + this.ecwDivScroll.scrollTop)) {
+    this.ecwDivScroll.scrollTop = eval(this.elementActif.offsetTop - this.ecwDivScroll.offsetTop +
+      this.elementActif.offsetHeight + this.ecwDivScroll.offsetHeight / 2);
+  }
+
+  /* Si l'input invisible n'est pas disable, focus */
+  if (!this.input.disabled) {
+    this.setFocus();
+  }
+}
+
+/**
+ * Actions des touches du clavier
+ * @private
+ */
+ECW.TreeViewOld.prototype.onKey = function(action) {
+
+  if (this.ecwTreeList && this.ecwTreeList.length > 0) {
+
+    if (action == "esc" && this.ecwUI.onEscape) {
+      this.ecwUI.onEscape();
+    }
+    if (action == "enter") {
+      /* Branche */
+      if (this.elementActif.ecwTreeType == "TreeView_list") {
+        this.activeBranche(this.elementActif);
+      }
+          /* Noeud */
+      else if (this.elementActif.ecwTreeType == "TreeView_elm") {
+        this.lancerAction(this.elementActif);
+      }
+    }
+    if (action == "home") {
+      this.selectionnerElement(this.ecwTreeList[0]);
+    }
+    if (action == "end") {
+      this.selectionnerElement(this.getLastElementVisible(this.ecwTreeList[this.ecwTreeList.length - 1]));
+    }
+    if (action == "down") {
+      this.getNextElementVisible(this.elementActif);
+    }
+    if (action == "up") {
+      this.getPreviousElementVisible(this.elementActif);
+    }
+    if (action == "ctrl-down") {
+      this.getNextBrancheVisible(this.elementActif);
+    }
+    if (action == "ctrl-up") {
+      this.getPreviousBrancheVisible(this.elementActif);
+    }
+    if ((action == "left") || (action == "ctrl-left")) {
+      if (isClass(this.elementActif, "ecwTreeviewOld_parent_actif")) {
+        this.fermerBranche(this.elementActif);
+      }
+    }
+    if ((action == "right") || (action == "ctrl-right")) {
+      if (isClass(this.elementActif, "ecwTreeviewOld_parent")) {
+        this.ouvrirBranche(this.elementActif);
+      }
+    }
+  }
+}
+
+/**
+ * Actions d'ouvrir ou de fermer une branche suivant son etat
+ * @private
+ */
+ECW.TreeViewOld.prototype.activeBranche = function(branche) {
+  /* Etat replie */
+  if (branche.ecwTreeDisplay.style.display == "none") {
+    this.ouvrirBranche(branche);
+  }
+  /* Etat deplie */
+  else {
+    this.fermerBranche(branche);
+  }
+  /* onExecute */
+  this.lancerAction(branche);
+}
+
+/**
+ * Actions d'ouvrir une branche
+ * @private
+ */
+ECW.TreeViewOld.prototype.ouvrirBranche = function(branche) {
+  branche.ecwTreeDisplay.style.display = "block";
+  removeClass(branche, "ecwTreeviewOld_parent");
+  addClass(branche, "ecwTreeviewOld_parent_actif");
+}
+
+/**
+ * Actions de fermer une branche
+ * @private
+ */
+ECW.TreeViewOld.prototype.fermerBranche = function(branche) {
+  branche.ecwTreeDisplay.style.display = "none";
+  removeClass(branche, "ecwTreeviewOld_parent_actif");
+  addClass(branche, "ecwTreeviewOld_parent");
+}
+
+/**
+ * Actions de creation de la liste des elements en structure de branche
+ * @private
+ */
+ECW.TreeViewOld.prototype.creerTreeViewBrancheDom = function(ulElement, listTreeView, parentNode) {
+
+  var currentElementDisplay;
+  var rowIndex = 1;
+
+  /* Parcours de tous les noeuds li */
+  for (var indice = 0; indice < ulElement.childNodes.length; indice++) {
+    if ((ulElement.childNodes[indice].nodeType == 1) &&
+        (ulElement.childNodes[indice].tagName.toLowerCase() == "li")) {
+            
+      /* Creation de l'element de gestion du display */
+      currentElementDisplay = this.creerElementDisplay(ulElement.childNodes[indice]);
+      /* Proprietes globales a tous les elements */
+      ecwSetAttribute(currentElementDisplay, "ecwTreeView", this);
+      ecwSetAttribute(currentElementDisplay, "ecwParentElm", parentNode);
+      currentElementDisplay.rIndex = rowIndex; // cf ecwTable pour explication
+      currentElementDisplay.ecwValue = ulElement.childNodes[indice].getAttribute("ecwValue");
+      currentElementDisplay.ecwOpen = ulElement.childNodes[indice].getAttribute("ecwOpen");
+      currentElementDisplay.ecwSelected = ulElement.childNodes[indice].getAttribute("ecwSelected");
+
+      /* Noeud enfant */
+      if (isClass(ulElement.childNodes[indice], "ecwTreeviewOld_child")) {
+          
+        /* Affectation du style */
+        removeClass(ulElement.childNodes[indice], "ecwTreeviewOld_child");
+        addClass(currentElementDisplay, "ecwTreeviewOld_child");
+        
+        /* Ajout des proprietes */
+        currentElementDisplay.ecwTreeType = "TreeView_elm";
+        
+        /* Noeud selectionne */
+        if (currentElementDisplay.ecwSelected == "true") {
+          this.selectionnerElement(currentElementDisplay);
+        }
+        
+      }
+      /* Noeud parent */
+      else if (isClass(ulElement.childNodes[indice], "ecwTreeviewOld_parent")) {
+          
+        /* Affectation du style */
+        removeClass(ulElement.childNodes[indice], "ecwTreeviewOld_parent");
+        
+        /* Ajout des proprietes */
+        currentElementDisplay.ecwTreeType = "TreeView_list";
+        ecwSetAttribute(currentElementDisplay, "ecwTreeList", new Array());
+        ecwSetAttribute(currentElementDisplay, "ecwTreeDisplay", ulElement.childNodes[indice].getElementsByTagName("ul")[0]);
+
+        /* Ajout du comportement de la branche */
+        if (currentElementDisplay.ecwOpen == "true") {
+          this.ouvrirBranche(currentElementDisplay);
+        } else {
+          this.fermerBranche(currentElementDisplay);
+        }
+        
+        /* Noeud selectionne */
+        if (currentElementDisplay.ecwSelected == "true") {
+          this.ouvrirBranche(currentElementDisplay);
+          this.selectionnerElement(currentElementDisplay);
+          // Si l'utilisateur veut declencher l'action lors de l'init,
+          // il doit appeler TreeView#executeSelectedNode().
+          //this.lancerAction(currentElementDisplay);
+        }
+
+        /* Parcours recursif des branches */
+        this.creerTreeViewBrancheDom(currentElementDisplay.ecwTreeDisplay,
+          currentElementDisplay.ecwTreeList, currentElementDisplay);
+      }
+
+      /* Ajout du comportement sur le onclick de tous les elements */
+      currentElementDisplay.onclick = ecwTreeViewElementOnClick;
+
+      /* Ajout de l'element courant a la branche courante */
+      listTreeView[listTreeView.length] = currentElementDisplay;
+      rowIndex++;
+    }
+  }
+}
+
+function ecwTreeViewElementOnClick(event) {
+  /* Selection de l'element */
+  this.ecwTreeView.selectionnerElement(this);
+  /* Branche */
+  if (this.ecwTreeType == "TreeView_list") {
+    this.ecwTreeView.activeBranche(this);
+  }
+  /* Feuille */
+  else if (this.ecwTreeType == "TreeView_elm") {
+    this.ecwTreeView.lancerAction(this);
+  }
+  /* Propagation du click sur les fils */
+  return (true);
+}
+
+/**
+ * Actions de creation de l'objet permettant la gestion de l'affichage
+ * @private
+ */
+ECW.TreeViewOld.prototype.creerElementDisplay = function(liElement) {
+  var elementDisplay = document.createElement("span");
+  liElement.insertBefore(elementDisplay, liElement.firstChild);
+  for (var indice = 1; indice < liElement.childNodes.length; indice++) {
+    if (liElement.childNodes[indice].nodeName.toLowerCase == "ul") {
+      break;
+    }
+    elementDisplay.appendChild(liElement.childNodes[indice]);
+  }
+  return (elementDisplay);
+}
+
+/**
+ * Actions de recherche du dernier element visible
+ * @private
+ */
+ECW.TreeViewOld.prototype.getLastElementVisible = function(viewElement) {
+  var dernierElmVisible = viewElement;
+
+  if ((viewElement.ecwTreeType == "TreeView_list") && (viewElement.ecwTreeDisplay.style.display == "block")
+      && (viewElement.ecwTreeList.length > 0)) {
+    dernierElmVisible = this.getLastElementVisible(viewElement.ecwTreeList[viewElement.ecwTreeList.length - 1]);
+  }
+  return (dernierElmVisible);
+}
+
+/**
+ * Recherche de l'element visible suivant
+ * @private
+ */
+ECW.TreeViewOld.prototype.getNextElementVisible = function(viewElement) {
+
+  var rIndexElement = viewElement.rIndex;
+  var rListElement = viewElement.ecwParentElm.ecwTreeList;
+
+  if ((this.elementActif == viewElement) && (viewElement.ecwTreeType == "TreeView_list") &&
+      (viewElement.ecwTreeDisplay.style.display == "block") && (viewElement.ecwTreeList.length > 0)) {
+    this.selectionnerElement(viewElement.ecwTreeList[0]);
+  } else if (rListElement.length > rIndexElement) {
+    this.selectionnerElement(rListElement[rIndexElement]);
+  } else if (viewElement.ecwParentElm == this) {
+    this.onKey("home");
+  } else {
+    this.getNextElementVisible(viewElement.ecwParentElm);
+  }
+}
+
+/**
+ * Recherche de l'element visible precedent
+ * @private
+ */
+ECW.TreeViewOld.prototype.getPreviousElementVisible = function(viewElement) {
+
+  var rIndexElement = viewElement.rIndex;
+  var rListElement = viewElement.ecwParentElm.ecwTreeList;
+
+  if (rIndexElement > 1) {
+    var previousListElement = rListElement[rIndexElement - 2];
+    if ((previousListElement.ecwTreeType == "TreeView_list") &&
+        (previousListElement.ecwTreeDisplay.style.display == "block") &&
+        (previousListElement.ecwTreeList.length > 0)) {
+      this.selectionnerElement(this.getLastElementVisible(previousListElement));
+    } else {
+      this.selectionnerElement(previousListElement);
+    }
+  } else if (viewElement.ecwParentElm != this) {
+    this.selectionnerElement(viewElement.ecwParentElm);
+  } else if (viewElement.ecwParentElm == this) {
+    this.onKey("end");
+  }
+}
+
+/**
+ * Recherche de la branche visible suivante
+ * @private
+ */
+ECW.TreeViewOld.prototype.getNextBrancheVisible = function(viewElement) {
+
+  var rIndexElement = viewElement.rIndex;
+  var rListElement = viewElement.ecwParentElm.ecwTreeList;
+
+  if (rListElement.length > rIndexElement) {
+    var findBranche = false;
+    for (var indice = rIndexElement; (indice < rListElement.length) && (!findBranche); indice++) {
+      if (rListElement[indice].ecwTreeType == "TreeView_list") {
+        this.selectionnerElement(rListElement[indice]);
+        findBranche = true;
+      }
+    }
+    if (!findBranche) {
+      if (viewElement.ecwParentElm != this) {
+        this.getNextBrancheVisible(viewElement.ecwParentElm);
+      } else if (this.ecwTreeList[0].ecwTreeType == "TreeView_list") {
+        this.onKey("home");
+      } else {
+        this.getNextBrancheVisible(this.ecwTreeList[0]);
+      }
+    }
+  } else if (viewElement.ecwParentElm == this) {
+    if (this.ecwTreeList[0].ecwTreeType == "TreeView_list") {
+      this.onKey("home");
+    } else {
+      this.getNextBrancheVisible(this.ecwTreeList[0]);
+    }
+  } else {
+    this.getNextBrancheVisible(viewElement.ecwParentElm);
+  }
+
+}
+
+/**
+ * Recherche de la branche visible precedente
+ * @private
+ */
+ECW.TreeViewOld.prototype.getPreviousBrancheVisible = function(viewElement) {
+
+  var rIndexElement = viewElement.rIndex;
+  var rListElement = viewElement.ecwParentElm.ecwTreeList;
+
+  if (rIndexElement > 1) {
+    var findBranche = false;
+    for (var indice = rIndexElement - 2; (indice > 0) && (!findBranche); indice--) {
+      if (rListElement[indice].ecwTreeType == "TreeView_list") {
+        this.selectionnerElement(rListElement[indice]);
+        findBranche = true;
+      }
+    }
+    if (!findBranche) {
+      if (viewElement.ecwParentElm != this) {
+        this.selectionnerElement(viewElement.ecwParentElm);
+      } else if (this.ecwTreeList[this.ecwTreeList.length - 1].ecwTreeType == "TreeView_list") {
+        this.onKey("end");
+      } else {
+        this.getPreviousBrancheVisible(this.ecwTreeList[this.ecwTreeList.length - 1]);
+      }
+    }
+  } else if (viewElement.ecwParentElm == this) {
+    if (this.ecwTreeList[this.ecwTreeList.length - 1].ecwTreeType == "TreeView_list") {
+      this.onKey("end");
+    } else {
+      this.getPreviousBrancheVisible(this.ecwTreeList[this.ecwTreeList.length - 1]);
+    }
+  } else {
+    this.selectionnerElement(viewElement.ecwParentElm);
+  }
+}
+
+/**
+ * Actions permettant de lancer l'action de l'element
+ * @private
+ */
+ECW.TreeViewOld.prototype.lancerAction = function(viewElement) {
+  /* Evenement onExecute */
+  if (this.onExecute) {
+      this.onExecute(viewElement.ecwValue);
+  }
+}
+
+/**
+ * Ex&eacute;cution de l'action du noeud s&eacute;lectionn&eacute;
+ * @param deploy (optionnel) specifie si l'execution entraine l'ouverture /
+ * la fermeture du noeud ou pas. Vaut <code>true</code> par defaut.
+ */
+ECW.TreeViewOld.prototype.executeSelectedNode = function(deploy) {
+  // true est la valeur par defaut
+  if (null == deploy) {
+    deploy = true;
+  }
+  if (deploy) {
+    // Creation du modele objet
+    this.executeSelectedInTreeView(this.ecwTreeDisplay, this.ecwTreeList, this);
+  } else {
+    this.lancerAction(this.elementActif);
+  }
+}
+
+/**
+ * Parcours de l'arbre et execution de l'action du noeud selectionne
+ * @private
+ */
+ECW.TreeViewOld.prototype.executeSelectedInTreeView = function(ulElement, listTreeView, parentNode) {
+
+  /* Parcours des elements */
+  for (var indice = 0; indice < listTreeView.length; indice++) {
+    
+    var currentElementDisplay = listTreeView[indice];
+    
+    /* Noeud enfant */
+    if (isClass(currentElementDisplay, "ecwTreeviewOld_child")) {
+          
+      /* Noeud selectionne */
+      if (currentElementDisplay.ecwSelected == "true") {
+        this.selectionnerElement(currentElementDisplay);
+        this.lancerAction(currentElementDisplay);
+      }
+    }
+    /* Noeud parent */
+    else if (isClass(currentElementDisplay, "ecwTreeviewOld_parent")) {
+          
+      /* Noeud selectionne */
+      if (currentElementDisplay.ecwSelected == "true") {
+        this.selectionnerElement(currentElementDisplay);
+        this.activeBranche(currentElementDisplay);
+      }
+
+      /* Parcours recursif des branches */
+      this.executeSelectedInTreeView(currentElementDisplay.ecwTreeDisplay,
+        currentElementDisplay.ecwTreeList, currentElementDisplay);
+    }
+  }
+}

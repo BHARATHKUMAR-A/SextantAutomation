@@ -1,1 +1,0 @@
-✅ Data matched for column 'Full Short Description EN': Expected Application Data: 'OPTION_CAN_LASss-en111', Found from Excel: 'OPTION_CAN_LASss-en111'

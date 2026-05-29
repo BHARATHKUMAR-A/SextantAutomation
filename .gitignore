@@ -5,3 +5,22 @@ node_modules/
 /playwright-report/
 /blob-report/
 /playwright/.cache/
+
+# Reports & artifacts (generated — do not commit)
+/reports/
+/allure-results/
+/allure-report/
+/screenshots/
+/logs/
+
+# Secrets — never commit credentials or env files
+.env
+# Note: credentials.json is kept in repo as a fallback for local dev.
+# In CI, override via TEST_USERNAME / TEST_PASSWORD environment variables.
+
+# OS / editor
+.DS_Store
+Thumbs.db
+*.suo
+.vscode/settings.json
+

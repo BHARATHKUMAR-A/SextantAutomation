@@ -1,0 +1,1134 @@
+/**
+ * @fileoverview D&eacute;fini l'objet <b>ECW.ComboBox</b> (aide a la saisie)
+ * @author Pascal Le Mens (pascal.lemens@mpsa.com)
+ * @version $Revision: 1.92.4.1 $
+ */
+
+/**
+ * D&eacute;fini l'objet <b>ECW.ComboBox</b>
+ * @private
+ */
+ECW.ComboBox = function(noeud, ui, layout, champ, table) {
+  ecwStartTimer("ECW.ComboBox");
+  ecwSetAttribute(this, "noeudDOM", noeud);
+  ecwSetAttribute(this, "ecwUI", ui);
+  ecwSetAttribute(this, "ecwLayout", layout);
+  ecwSetAttribute(this, "ecwControl", champ);
+  ecwSetAttribute(this.ecwControl, "ecwComboBox", this);
+  ecwSetAttribute(this, "ecwTable", table);
+  ecwSetAttribute(this.ecwTable, "ecwComboBox", this);
+  this.ecwTable.noeudDOM.style.display = "none";
+
+  /* Mode debug */
+  this.modeDebug = false;
+  this.listBuilded = false;
+  this.checkValue = false;
+  this.comboActivated = false;
+
+  /* Constructeur */
+  this.hiddenPage=false;
+  this.constructeur();
+  ecwStopTimer("ECW.ComboBox");
+}
+
+/**
+ * Noeud du DOM comportant la combo : <div class="ecwComboBox">
+ * @private
+ */
+ECW.ComboBox.prototype.noeudDOM = null;
+
+/**
+ * Objet ECW.UI d'appartenance
+ * @private
+ */
+ECW.ComboBox.prototype.ecwUI = null;
+
+/**
+ * Objet ECW.Layout d'appartenance
+ * @private
+ */
+ECW.ComboBox.prototype.ecwLayout = null;
+
+/**
+ * Champ de saisie (ECW.Control) de la ComboBox
+ * @private
+ */
+ECW.ComboBox.prototype.ecwControl = null;
+
+/**
+ * ECW.Table de la ComboBox
+ * @private
+ */
+ECW.ComboBox.prototype.ecwTable = null;
+
+/**
+ * Ev&egrave;nement d&eacute;clench&eacute; lors de la s&eacute;lection
+ * d'un &eacute;l&eacute;ment de la ComboBox
+ * @type Function
+ */
+ECW.ComboBox.prototype.onSelect = null;
+
+/**
+ * Image de la ComboBox
+ * @private
+ */
+ECW.ComboBox.prototype.image = null;
+
+/**
+ * IFrame utilise pour parer un bug IE :
+ * probleme d'affichage des balises &lt;select&gt; sur une div
+ * @private
+ */
+ECW.ComboBox.prototype.iframe = null;
+
+/**
+ * URL de l'action Struts permettant la mise a jour de la combo par Ajax
+ * @private
+ */
+ECW.ComboBox.prototype.ajaxAction = null;
+
+/**
+ * Parametres supplementaires a integrer lors de l'appel Ajax
+ * @private
+ */
+ECW.ComboBox.prototype.ajaxParameters = null;
+
+/**
+ * Taille maximale de la combo (en nombre de ligne).
+ * Uniquement utilisee avec Ajax
+ * @private
+ */
+ECW.ComboBox.prototype.pageSize = 100;
+
+/**
+ * Timer permettant de retarde la requete Ajax. Cela permet de changer la 
+ * couleur de l'image de la combo
+ * Uniquement utilisee avec Ajax
+ * @private
+ */
+ECW.ComboBox.prototype.timer = null;
+
+/**
+ * Liste contruite ou non
+ * @private
+ */
+ECW.ComboBox.prototype.listBuilded = false;
+
+/**
+ * Controle de la valeur saisie par rapport a la liste des valeurs dispos
+ * @private
+ */
+ECW.ComboBox.prototype.checkValue = false;
+
+/**
+ * Indique si la combobox est en cours d'utilisation :
+ * L'utilisateur est :
+ *  - soit sur le champ de saisie
+ *  - soit sur la liste 
+ * @private
+ */
+ECW.ComboBox.prototype.comboActivated = false;
+
+/**
+ * Selectionne automatiquement la valeur lorsque la liste ne contient qu'une valeur
+ * @private
+ */
+ECW.ComboBox.prototype.autoSelect = false;
+
+/**
+ * Booleen qui indique si la liste doit etre affichee automatiquement
+ * si la combo est vide, en lecture seule est vient a recevoir le focus.
+ * @private
+ */
+ECW.ComboBox.prototype.autoDisplayList = false;
+
+/**
+ * Ajustement automatique de la hauteur de la combo en fonction de la taille de la page
+ * @private
+ */
+ECW.ComboBox.prototype.autoHeight = false;
+
+/**
+ * Designe le rang de la colonne utilisee pour valoriser l'input
+ * @private
+ */
+ECW.ComboBox.prototype.columnIndex = 0;
+
+/**
+ * Constructeur de ECW.ComboBox
+ * @private
+ */
+ECW.ComboBox.prototype.constructeur = function() {
+
+  /* Supprimer l'invisibilite de la div de liste */
+  removeClass(this.ecwTable.noeudDOM, "ecwInvisible");
+
+  /* Desactivation de l'autocompletion du navigateur sur le champ */
+  this.ecwControl.noeudDOM.setAttribute("autocomplete", "off");
+
+  /* Controle de la saisie dans le champ texte */
+  /* par rapport aux valeurs disponibles */
+  if ((this.noeudDOM.getAttribute("ecwCheckValue") != null)
+      && (this.noeudDOM.getAttribute("ecwCheckValue").toLowerCase() == "true")) {
+    this.checkValue = true;
+  } else {
+    this.checkValue = false;
+  }
+  
+  if (this.noeudDOM.getAttribute("ecwHiddenPage")
+  		&& this.noeudDOM.getAttribute("ecwHiddenPage") == "true") {
+  	this.hiddenPage = true;  	
+  }
+  
+  /* Selectionne automatiquement la valeur dans une liste ne comprenant qu'une ligne */
+  if ((this.noeudDOM.getAttribute("ecwAutoSelect") != null)
+      && (this.noeudDOM.getAttribute("ecwAutoSelect").toLowerCase() == "true")) {
+    this.autoSelect = true;
+  } else {
+    this.autoSelect = false;
+  }
+  
+  /* Deploie automatiquement la liste des valeurs quand la combo vide en lecture seule est selectionnee. */
+  if ((this.noeudDOM.getAttribute("ecwAutoDisplayList") != null)
+      && (this.noeudDOM.getAttribute("ecwAutoDisplayList").toLowerCase() == "true")) {
+    this.autoDisplayList = true;
+  } else {
+    this.autoDisplayList = false;
+  }
+  
+  /* Ajustement automatiquement de la hauteur de la combo en fonction de la taille de la page */
+  if ((this.noeudDOM.getAttribute("ecwAutoHeight") != null)
+      && (this.noeudDOM.getAttribute("ecwAutoHeight").toLowerCase() == "true")) {
+    this.autoHeight = true;
+  } else {
+    this.autoHeight = false;
+  }
+  
+  /* Evenement onchange : changement de la valeur du champ de saisie */
+  ecwSetAttribute(this.ecwControl.noeudDOM, "onchangeComboBox", ecwComboBoxOnChange);
+
+  /* Creation de l'image (aide a la saisie) a cote du champ de saisie */
+  var image = document.createElement("SPAN");
+  addClass(image, "ecwImageComboBox");
+  ecwSetAttribute(image, "ecwComboBox", this);
+  ecwSetAttribute(this, "image", image);
+  
+  /* Ajout de l'image */
+  this.ecwControl.noeudDOM.parentNode.insertBefore(image, this.ecwControl.noeudDOM.nextSibling);
+  
+  /* Activation onclick sur l'image */
+  this.activateImageOnClick();
+  
+  /* Ajout de la div liste avant le champ */
+  this.ecwControl.noeudDOM.parentNode.insertBefore(this.ecwTable.noeudDOM, this.ecwControl.noeudDOM);
+
+  /* Ajaxisation de la comboBox */
+  if (this.noeudDOM.getAttribute("ecwAction") != null) {
+    this.ajaxAction = this.noeudDOM.getAttribute("ecwAction");
+    this.ecwTable.ajaxAction = this.ajaxAction;
+    if (this.noeudDOM.getAttribute("ecwPageSize") != null) {
+      this.pageSize = this.noeudDOM.getAttribute("ecwPageSize");
+      this.ecwTable.pageSize = this.pageSize;
+    }
+    if (this.noeudDOM.getAttribute("ecwIdParameters") != null) {
+      this.ajaxParameters = this.noeudDOM.getAttribute("ecwIdParameters").split(",");
+      this.ecwTable.ajaxParameters = this.ajaxParameters;
+    }
+  }
+
+  /* Ajout d'un iframe pour parer au bug IE laissant apparaitre */
+  /* une liste deroulante (<select>) par dessus une DIV */
+  if (ECW_isIE) {
+    var iframe = document.createElement("IFRAME");
+    /* iframe invisible */
+    iframe.style.display = "none";
+    ecwSetAttribute(this, "iframe", iframe);
+    /* Ajout de l'iframe avant la div liste */
+    this.ecwControl.noeudDOM.parentNode.insertBefore(this.iframe, this.ecwTable.noeudDOM);
+  }
+
+  /* Si la valeur est renseignee, selection dans la liste */
+  if (this.ecwControl.noeudDOM.value.trim() != "") {
+    /* Initialise la valeur de la ComboBox */
+    this.setValue(this.ecwControl.noeudDOM.value);
+  }
+  /* Designe le rang de la colonne utilisee pour valoriser l'input */
+  if (this.noeudDOM.getAttribute("ecwColumnIndex") != null) {
+    this.columnIndex = parseInt(this.noeudDOM.getAttribute("ecwColumnIndex"));
+  }
+}
+
+/**
+ * Verification de la coherence ligne selectionnee - valeur affichee
+ * @private
+ */
+ECW.ComboBox.prototype.checkConsistency = function() {
+  var currentValue = this.ecwControl.noeudDOM.value;
+  if (!this.ecwTable.hasSelectedLine()
+      || this.ecwTable.getColumn(this.columnIndex) != currentValue) {
+    /* Selection de l'element correspondant */
+    this.setValue(currentValue);
+    if (this.ecwTable.hasSelectedLine()) {
+      if (this.ecwTable.getColumn(this.columnIndex) != currentValue) {
+        /* Deselection de la ligne si la valeur n'est pas dans la table */
+        this.ecwTable.unselectLines();
+      } else if (this.onSelect) {
+        this.onSelect();
+      }
+    }
+  }
+}
+
+/**
+ * Callback appele sur le changement de la valeur du champ INPUT.
+ * @private
+ */
+function ecwComboBoxOnChange() {
+  var comboBox = this.ecwControl.ecwComboBox;
+  comboBox.checkConsistency();
+}
+
+/**
+ * Methode de selection automatique d'une valeur lorsque la liste ne contient qu'une seule ligne.
+ * @private
+ */
+ECW.ComboBox.prototype.autoSelectValue = function() {
+  /* Si la liste contient une seule valeur */
+  /* on affecte la valeur au champ */
+  if (this.autoSelect) {  	
+    /* Si la liste n'est pas construite */
+    if (!this.listBuilded) {
+      this.ecwTable.constructeur();
+      this.listBuilded = true;
+    }
+    /* Il faut activer la table et selectionner la premiere ligne */      
+    this.ecwTable.activer();         
+    if (this.ecwTable.getNbLines()) { //ajout CMA
+    	/* Il faut affecter la premiere valeur au champ */      	
+      	this.executerActionLigne(this.ecwTable.ligneActive);
+    }
+  }
+}
+
+/**
+ * Mode debug
+ * @private
+ */
+ECW.ComboBox.prototype.setModeDebug = function() {
+  this.modeDebug = true;
+  this.ecwTable.setModeDebug();
+}
+
+/**
+ * Positionne la valeur de la ComboBox
+ */
+ECW.ComboBox.prototype.setValue = function(value) {
+
+  /* Mise a jour de la valeur du champ */
+  this.ecwControl.noeudDOM.value = value;
+
+  /* Si la liste n'est pas construite */
+  if (!this.listBuilded) {
+    this.ecwTable.constructeur();
+    this.listBuilded = true;
+  }
+
+  /* Si la combo est ajaxisee */
+  if (this.ajaxAction) {
+    this.refreshInternalAjax();
+  }
+
+  if (this.ecwTable.numberOfElement != 0) {
+    /* Selection de l'element */
+    this.selectElementCombo(value);
+  }
+}
+
+/**
+ * S&eacute;lectionne la/les ligne(s) dont les cl&eacute;s et les valeurs de cl&eacute; sont pass&eacute;s
+ * en param&egrave;tre
+ * Structure du param&eacute;tre recu :
+ *  tabKey = [["cle0", "cle1", ...], ["val01", "val11", ...], ["val02", "val12", ...], [...], ... ]
+ */
+ECW.ComboBox.prototype.selectKey = function(tabKey) {
+
+  /* Si la liste n'est pas encore construite */
+  if (!this.listBuilded) {
+    this.ecwTable.constructeur();
+    this.listBuilded = true;
+  }
+
+  /* Si la combo est ajaxisee */
+  if (this.ajaxAction) {
+    this.refreshInternalAjax();
+  }
+
+  /* Positionnement dans la table associee */
+  if (this.ecwTable) {
+    this.ecwTable.selectKey(tabKey);
+  }
+  /* Evenement onSelect */
+  if (this.onSelect) {
+    this.onSelect();
+  }
+}
+
+/**
+ * Selection de l'element dans la ComboBox
+ * @private
+ */
+ECW.ComboBox.prototype.selectElementCombo = function(value) {
+  /* Selection de l'element de la liste se rapprochant de la saisie */
+  this.ecwTable.initFindChar();
+  this.ecwTable.findChar(value);
+}
+
+/**
+ * Selection de l'element dans la ComboBox de maniere asynchrone (utilisation de setTimeout).
+ * @private
+ */
+ECW.ComboBox.prototype.selectElementASync = function(value) {
+  ecwAffectId(this.ecwControl.noeudDOM);
+  var strThis = "document.getElementById('" + this.ecwControl.noeudDOM.id + "').ecwControl.ecwComboBox";
+  var cmd = strThis + ".selectElementCombo('" + ecwEncodeJSParameterValue(value) + "');";
+  setTimeout(cmd, 0);
+}
+
+/**
+ * Active l'evenement onclick sur l'image de la ComboBox
+ * @private
+ */
+ECW.ComboBox.prototype.activateImageOnClick = function() {
+  /* onclick */
+  this.image.onclick = ecwComboBoxImageOnClick;
+}
+
+function ecwComboBoxImageOnClick() {
+  this.ecwComboBox.imageOnClick();
+}
+
+/**
+ * Desactive l'evenement onclick sur l'image de la ComboBox
+ * @private
+ */
+ECW.ComboBox.prototype.desactivateImageOnClick = function() {
+  /* onclick */
+  this.image.onclick = ecwEmptyFunction;
+}
+
+/**
+ * Affiche ou cache une liste d'aide a la saisie
+ * @private
+ */
+ECW.ComboBox.prototype.afficherListe = function(visible) {
+
+/* Affiche la liste */
+  if (visible) {
+    /* [MANTIS-0003412] On copie le message d'erreur eventuel du controle sur la table. */
+    this.ecwTable.messageError = this.ecwControl.messageError;
+    this.ecwTable.messageErrorKey = this.ecwControl.messageErrorKey;
+    this.ecwTable.messageErrorGravity = this.ecwControl.messageErrorGravity;
+    this.ecwTable.texteFiltre = this.ecwControl.noeudDOM.value;
+    /* Bug sous Mozilla 1.7.5 */
+    /* La position absolute est positionne a l'aide */
+    /* du style .ecwComboBox .ecwTable */
+    /* NE PAS DECOMMENTER */
+    /* this.ecwTable.noeudDOM.style.position = "absolute"; */
+    this.ecwTable.noeudDOM.style.zIndex = 99;
+    this.ecwTable.noeudDOM.style.display = "block";
+
+    this.ecwTable.noeudDOM.style.top = "0px";
+    this.ecwTable.noeudDOM.style.left = "-2000px";
+    this.ecwTable.fixerDimensions();
+    
+    /* Redimensionnement de la table si la taille est inferieur a celle du bandeau de pagination */
+    if (this.ecwTable && this.ecwTable.divTStatus) {
+      var ecwTableForCombo = this.ecwTable;
+      var owTableBody = ecwTableForCombo.divTBody.offsetWidth;
+      var owStatus = ecwTableForCombo.divTStatus.offsetWidth;
+      if (owTableBody < owStatus) {
+        var owComponentStatus = owStatus;
+        var owEcwTable = owStatus + 3;
+        ecwTableForCombo.noeudDOM.style.width = owEcwTable;
+        if (ecwTableForCombo.divTHead) {
+          ecwTableForCombo.divTHead.style.width = owComponentStatus;
+        }
+        if (ecwTableForCombo.divTBody) {
+          ecwTableForCombo.divTBody.style.width = owComponentStatus;
+        }
+      }
+    }
+
+    /* Positionne la liste juste sous le champ */
+    this.ecwTable.noeudDOM.style.marginTop = this.ecwControl.noeudDOM.offsetHeight;
+    removeClass(this.ecwControl.noeudDOM, this.ecwControl.classe + "_Actif");
+    
+    this.ecwComboAjusterAutoHeight(true);
+    
+    var largeurPage = this.ecwLayout.noeudDOM.clientWidth;
+    var hauteurPage = this.ecwLayout.noeudDOM.clientHeight;
+    var largeurTable = this.ecwTable.ecwWidthTable + 2;
+    var hauteurTable = this.ecwTable.ecwHeightTable + 2 ;
+    var xTab = getAbsolutePos(this.ecwControl.noeudDOM).x;
+    var yTab = getAbsolutePos(this.ecwControl.noeudDOM).y + this.ecwControl.noeudDOM.offsetHeight;
+    var largeurChamp = this.ecwControl.noeudDOM.offsetWidth;
+    var largeurImage = this.image.offsetWidth;
+    
+    // on controle si la table entre dans le cadre a droite du champ si elle
+    // n'entre pas, on va la positionner a gauche a condition qu'elle
+    // rentre dans le cadre a gauche
+    if (((xTab + largeurTable) >= largeurPage) && (xTab - largeurTable > 0)) {
+      this.ecwTable.noeudDOM.style.marginLeft = - largeurTable + largeurChamp + largeurImage;    
+    }
+    // on controle si la table entre dans le cadre en dessous du champ
+    // si elle n'entre pas on va la positionner en haut du champ a condition qu'elle rentre dans le cadre
+    if (((yTab + hauteurTable) >= hauteurPage) && (yTab - hauteurTable > 0)) {
+      // il faut recalculer la taille de la liste si elle n'est pas contenue en dessous en mode autoWidth
+      this.ecwComboAjusterAutoHeight(false);
+      hauteurTable = this.ecwTable.ecwHeightTable + 2;
+      if (this.ajaxAction) {
+        // les 29 pixel correspondent a la hauteur de la barre status de la combo ajax
+        this.ecwTable.noeudDOM.style.marginTop = - hauteurTable - 29;
+      } else {
+        this.ecwTable.noeudDOM.style.marginTop = - hauteurTable;
+      }
+    }
+  
+    // on annule le positionnement hors-ecran
+    this.ecwTable.noeudDOM.style.top = "";
+    this.ecwTable.noeudDOM.style.left = "";
+
+    // on verifie que la table ne sort pas a droite / au dessus du layout
+    var posTab = getAbsolutePos(this.ecwTable.noeudDOM);
+    var posRoot = getAbsolutePos(this.ecwLayout.noeudDOM);
+    if (posTab.y < posRoot.y) {
+      this.ecwTable.noeudDOM.style.marginTop = this.ecwControl.noeudDOM.offsetHeight;
+    }
+    if (posTab.x < posRoot.x) {
+      this.ecwTable.noeudDOM.style.marginLeft = "";
+    }
+
+    /* Active la table */
+    this.ecwTable.activer();
+    
+    /* Si l'iframe existe (pour IE) */
+    if (this.iframe) {
+      this.iframe.style.height = this.ecwTable.noeudDOM.offsetHeight;
+      this.iframe.style.width = this.ecwTable.noeudDOM.offsetWidth;
+      this.iframe.style.marginLeft = this.ecwTable.noeudDOM.style.marginLeft;
+      this.iframe.style.marginTop = this.ecwTable.noeudDOM.style.marginTop;
+      this.iframe.style.border = "0";
+      this.iframe.style.position = "absolute";
+      this.iframe.style.display = "block";
+    }
+  }
+  /* Cache la liste */
+  else {
+    this.ecwTable.desactiver();
+    
+    /* Cache la div */
+    this.ecwTable.noeudDOM.style.display = "none";
+    /* Si l'iframe existe (pour IE) */
+    if (this.iframe) {
+      /* Cache l'iframe */    
+      this.iframe.style.display = "none";
+    }
+    
+    if (this.ecwTable.lignes) {
+      /* Desactive le style de survol a la souris */
+      for (var i = 0; i < this.ecwTable.lignes.length; i++) {
+        removeClass(this.ecwTable.lignes[i], "ecwControlOver");
+      }
+    }
+    /* Verification de la coherence ligne selectionnee - valeur affichee */
+    this.checkConsistency();
+  }
+}
+
+/**
+ * Calcul automatique de la hauteur de la table dans le cas du mode ecwAutoWidth
+ * @param ordreAffichageHautBas : true si on veut calculer la hauteur disponible sous le champ
+ * @private
+ */
+ECW.ComboBox.prototype.ecwComboAjusterAutoHeight = function (ordreAffichageHautBas){
+  /* Si le mode est autoWidth */
+  /* la hauteur de la combo va s'adapter a la taille de la page */  
+  if (this.ecwTable.ecwComboBox.autoHeight && this.ecwTable.lignes.length != 0) {
+    var hauteurEntete = this.ecwTable.ecwHeightHeadTable;
+    var hauteurCellule = this.ecwTable.lignes[0].offsetHeight;
+    var hauteurTable = this.ecwTable.ecwHeightTable ;
+    var hauteurBody = hauteurTable - hauteurEntete;
+    var yTab = getAbsolutePos(this.ecwTable.noeudDOM).y;    
+    
+    var hauteurDispo = 0;
+    
+    if (ordreAffichageHautBas) {
+      var hauteurPage = this.ecwLayout.noeudDOM.clientHeight;
+      var hauteurRestante = hauteurPage - (yTab + hauteurTable);
+      // pour la hauteur il faut enlever la hauteur du status dans le cas d'une combo ajax
+      if (this.ajaxAction) {
+        hauteurRestante = hauteurRestante - 29;
+      }
+      hauteurDispo = hauteurRestante + hauteurBody;
+    } else {
+      // les 32 pixel correspondent a la zone du profil au dessus de la page
+      hauteurDispo = yTab - 32;
+    }
+    
+    var nbLignesTables = this.ecwTable.lignes.length;
+    // si toutes les lignes du tableau tiennent dans la page
+    // alors la taille de la table correspond au nb de ligne * hauteur de celulle
+    var calculLignesCellule = nbLignesTables*hauteurCellule;
+    
+    if (this.ecwTable.lignes.length != this.ecwTable.nbLignes) {
+      // si toutes les lignes ne sont pas affichees alors on va recalculer la hauteur de la table
+      if (hauteurBody != calculLignesCellule) {
+        // s'il reste plus de place que de ligne a afficher avec l'entete
+        if(hauteurDispo  > (calculLignesCellule + hauteurEntete + 2)){
+          // il faut changer la hauteur de la table
+          // la hauteur de la table va correspondre aux nombres de lignes de la table + l'entete
+          this.ecwTable.divTBody.style.height = calculLignesCellule  + hauteurEntete+2;
+          this.ecwTable.ecwHeightTable = calculLignesCellule + hauteurEntete +2;
+          // il faut modifier la largeur de la combo pour supprimer l'ascenseur a droite
+          if (this.divTHead) {
+            this.ecwTable.divTHead.style.width = this.ecwTable.ecwWidthTable - ecwScrollBarWidth;
+          }
+          this.ecwTable.divTBody.style.width = this.ecwTable.ecwWidthTable - ecwScrollBarWidth;
+          this.ecwTable.ecwWidthTable = this.ecwTable.ecwWidthTable - ecwScrollBarWidth
+        } else {
+          // si le parametre ecwNbLines est renseigne
+          // on controle que la place disponible permet d'afficher au moins le nb de lignes parametres
+          if(this.ecwTable.nbligne && (this.ecwTable.nbligne * hauteurCellule + hauteurEntete + 2)>hauteurDispo){
+            // on force la hauteur au nb de lignes a afficher (ecwNbLines)
+            // (2*hauteurCellule) permet d'ameliorer le confort visuel en laissant de la place sous la combo depliee par rapport au bas de la page
+            this.ecwTable.divTBody.style.height = this.ecwTable.nbligne * hauteurCellule +hauteurEntete+ 2 - (2*hauteurCellule);
+            this.ecwTable.ecwHeightTable = this.ecwTable.nbligne * hauteurCellule + hauteurEntete + 2 - (2*hauteurCellule);
+          }else{
+            // la hauteur de la combo va s'ajuter au contenu disponible sous ou au dessus du champ
+            // (2*hauteurCellule) permet d'ameliorer le confort visuel en laissant de la place sous la combo depliee par rapport au bas de la page
+            this.ecwTable.divTBody.style.height = parseInt(hauteurDispo/hauteurCellule, 10)*hauteurCellule +hauteurEntete+ 2 - (2*hauteurCellule);
+            this.ecwTable.ecwHeightTable = parseInt(hauteurDispo/hauteurCellule, 10)*hauteurCellule + hauteurEntete + 2 - (2*hauteurCellule);
+          }
+        }
+      }
+    }
+  }
+}
+
+/**
+ * Chargement du contenu de la liste
+ * @private
+ */
+ECW.ComboBox.prototype.loadList = function() {
+
+  /* Si le champ n'est pas disabled */
+  if (!this.ecwControl.noeudDOM.disabled) {
+
+    //[SIFAECW-584] Customisation de l'action combobox
+    /* Si existe une customisation de l'action*/
+    var ecwScriptAction = this.noeudDOM.getAttribute("ecwScriptAction");
+	if(ecwScriptAction) {
+		eval(ecwScriptAction);
+		return false;
+	}
+    
+    /* Si la liste n'est pas construite */
+    if (!this.listBuilded) {
+      this.ecwTable.constructeur();
+      this.listBuilded = true;
+    }
+
+    /* Si la combo est ajaxisee */
+    if (this.ajaxAction) {
+      this.ecwTable.currentPage = 1;
+      this.charger(false);
+    }
+    else {
+      /* Affichage et redimensionnement de la liste */
+      this.processViewTable();
+    }
+  }
+}
+
+/**
+ * Affichage et redimensionnement de la liste
+ * @private
+ */
+ECW.ComboBox.prototype.processViewTable = function() {
+
+  /* Table non vide */
+  if (this.ecwTable.noeudDOM.innerHTML != this.tableVide) {
+    /* Affiche la liste et la redimensionne */
+    this.afficherListe(true);
+
+    /* Selection de l'element de la liste se rapprochant de la saisie */
+    this.selectElementASync(this.ecwControl.noeudDOM.value);
+  }
+}
+
+/**
+ * Traitement a effectuer sur l'image de la ComboBox
+ * @private
+ */
+ECW.ComboBox.prototype.imageOnClick = function() {
+
+  this.comboActivated = true;
+
+  /* Liste cachee */
+  if (this.ecwTable.noeudDOM.style.display == "none") {
+
+    /* Cache les autres listes */
+    for (var i = 0; i < this.ecwLayout.listeDivEcwComboBox.length; i++) {
+      this.ecwLayout.listeDivEcwComboBox[i].ecwTable.noeudDOM.style.display = "none";
+    }
+    /* Chargement du contenu de la liste */
+    this.loadList();
+
+  }
+  /* Liste affichee */
+  else {
+    /* Cache la liste */
+    this.afficherListe(false);
+
+    /* Focus sur le champ de saisie */
+    this.ecwControl.setFocus();
+  }
+}
+
+/**
+ * Actions des touches du clavier pour une comboBox
+ * @private
+ */
+ECW.ComboBox.prototype.onKey = function(action, event) {
+
+  if (action == "esc") { /* Esc */
+
+    /* Focus sur le champ de saisie */
+    this.ecwControl.setFocusAndSelect();
+    
+  } else if (action == "pageDown" && this.ecwTable.noeudDOM.style.display == "none") { /* PageDown sur liste cachee */
+    // Traitement ECW dans le onchange (AVANT la methode originale).
+    // onchange pour le upperCase()
+    if (this.ecwControl.noeudDOM.onchangeUpperCase) {
+      this.ecwControl.noeudDOM.onchangeUpperCase();
+    }
+    // onchange pour le lowerCase()
+    if (this.ecwControl.noeudDOM.onchangeLowerCase) {
+      this.ecwControl.noeudDOM.onchangeLowerCase();
+    }
+    /* Chargement du contenu de la liste */
+    this.loadList();
+    return false;
+  }
+      
+  /* Evenements uniquements valable pour un tableau NON vide */
+  /* Si la liste est affichee */
+  if (this.ecwTable.lignes && this.ecwTable.lignes.length > 0
+      && this.ecwTable.noeudDOM.style.display != "none") {
+      
+    /* Actions des touches de navigation du clavier (up, down, pageUp, pageDown, home, end) */
+    if (action == "home" || action == "end" || action == "pageDown" || action == "pageUp" || action == "down" || action == "up"){
+      this.ecwTable.onKeyNavigation(action);
+      return false;
+    }
+ 
+    /* Touche entree */
+    if (action == "enter") {
+      this.executerActionLigne(this.ecwTable.ligneActive);
+    }
+    /* Page suivante lors d'une pagination */
+    if (action == "ctrl-pageDown") {
+      this.nextPage();
+    }
+    /* Page precedente lors d'une pagination */
+    if (action == "ctrl-home") {
+      this.firstPage();
+    }
+    /* Page suivante lors d'une pagination */
+    if (action == "ctrl-end") {
+      this.lastPage();
+    }
+    /* Page precedente lors d'une pagination */
+    if (action == "ctrl-pageUp") {
+      this.previousPage(false);
+    }
+    /* Touche suppression d'un caractere */
+    if (action == "backSpace") {
+      /* Modification de la selection dans la liste */
+      this.ecwTable.texteFiltre = this.ecwTable.texteFiltre.substr(0, this.ecwTable.texteFiltre.length - 1);
+      this.ecwTable.findChar("");
+    }
+  }
+
+  if (action == "tab" && this.onTab && event && !event.shiftKey) {
+    this.ecwControl.manageCase();
+    if (this.ajaxAction) {
+      this.refreshInternalAjax();
+    }
+    this.checkConsistency();
+    var result = this.onTab();
+    if (ECW_isIE) {
+      result = false;
+    }
+    return result;
+  }
+  
+  //[SIFAECW-660] Ajout d'un moyen permettant de mettre à blanc une combobox
+  if (action == "suppr") {
+    this.reset();
+    this.ecwTable.unselectLines();
+  }
+}
+
+/**
+ * Remise à zero
+ */
+ECW.ComboBox.prototype.reset = function() {
+  this.ecwControl.noeudDOM.value = "";
+}
+/**
+ * Remplit la zone de saisie avec la valeur de la ligne selectionnee
+ * puis cache la liste
+ * @private
+ */
+ECW.ComboBox.prototype.executerActionLigne = function(ligne) {
+  var value = ligne.chaineCar.trim();
+  /* IE ne respecte pas la longueur max lors de l'affectation de la valeur par un script */
+  if (ECW_isIE && this.ecwControl.noeudDOM.maxLength) {
+    value = value.substr(0, parseInt(this.ecwControl.noeudDOM.maxLength));
+  }
+  
+  this.ecwControl.noeudDOM.value = value;
+  this.ecwControl.manageCase();
+  
+  /* Cache la liste */
+  this.afficherListe(false);
+
+  /* Focus sur le champ de saisie */
+  if (ecwIsVisible(this.ecwControl.noeudDOM, false)) {
+    this.ecwControl.setFocus();
+  }
+  
+  /* Appel traitement sur selection s'il existe */
+  if (this.onSelect) {
+    this.onSelect();
+  }
+}
+
+/**
+ * D&eacute;sactive la ComboBox et rend le champ disabled
+ */
+ECW.ComboBox.prototype.setDisable = function() {
+  /* Ajoute style disable */
+  addClass(this.image, "ecwImageDisable");
+  
+  /* Positionne le champ disable */
+  this.ecwControl.setDisable();
+  
+  /* Desactivation onclick sur l'image */
+  this.desactivateImageOnClick();
+}
+
+/**
+ * Active la ComboBox et rend le champ saisissable
+ */
+ECW.ComboBox.prototype.setEnable = function() {
+  /* Enleve style disable */
+  removeClass(this.image, "ecwImageDisable");
+  
+  /* Positionne le champ enable */
+  this.ecwControl.setEnable();
+
+  /* Activation onclick sur l'image */
+  this.activateImageOnClick();
+}
+
+/**
+ * Place le focus dans le champ input invisible
+ * @private
+ */
+ECW.ComboBox.prototype.setFocus = function() {
+  if (this.ecwControl.isVisible()) {
+    this.ecwControl.setFocus();
+  } else {
+    this.ecwUI.ecwControlToFocus = this.ecwControl;
+  }
+}
+
+/**
+ * Mise a jour d'une combo pour rafraichissement ajax
+ */
+ECW.ComboBox.prototype.refresh = function(htmlTable) {
+  this.ecwTable.refresh(htmlTable);
+  this.autoSelectValue();
+}
+
+/**
+ * Charge l'affichage d'attente de la requete Ajax
+ * et declenche le timer de mise a jour de la liste
+ * @param selectLastLine Boolean indiquant si la selection sera faite sur la premiere ou derniere ligne.
+ * @private
+ */
+ECW.ComboBox.prototype.charger = function(selectLastLine) {
+
+  /* On change l'image de la combo */
+  removeClass(this.image, "ecwImageComboBox");
+  addClass(this.image, "ecwImageComboBoxLoad");
+  
+  /* On masque l'eventuelle liste affichee */
+  //addClass(this.ecwTable.noeudDOM, "ecwInvisible");
+  
+  /* Si l'iframe existe (pour IE) */
+  if (this.iframe) {
+    //addClass(this.iframe, "ecwInvisible");
+    /* Affiche l'iframe avec les memes caracteristiques que la div */
+    this.iframe.style.marginTop = this.ecwTable.noeudDOM.style.marginTop;
+    this.iframe.style.height = this.ecwTable.noeudDOM.offsetHeight;
+    this.iframe.style.width = this.ecwTable.noeudDOM.offsetWidth;
+    this.iframe.style.border = "0";
+    this.iframe.style.position = "absolute";
+    this.iframe.style.display = "block";
+  }
+  /* Declenche le timer */
+  //BUG FIX 08-12-2009
+  //sur IE il ne faut pas utiliser le timer car cela genere des problemes d'affichage
+  //le timer sur le chargement de la combo est utilise uniquement pour avoir une tempo sur
+  //l'affichage de l'image avec un fond rouge : remplace par un timer sur l'icone uniquement
+  ecwReloadCombo(this.ecwControl.noeudDOM.id,selectLastLine);
+  this.timer = setTimeout("waitColor('" + this.ecwControl.noeudDOM.id  + "',false)",200); 
+}
+
+ /**
+ * Modification de l'icone de la combo 
+ * @param active boolean permettant d'indiquer si il faut mettre le mode load ou non
+ * @private
+ */
+waitColor = function(comboId,active) {
+	var combo = document.getElementById(comboId).ecwControl.ecwComboBox;	 
+	if (active) {		
+		removeClass(combo.image, "ecwImageComboBox");
+  		addClass(combo.image, "ecwImageComboBoxLoad");
+	} else {		
+		removeClass(combo.image, "ecwImageComboBoxLoad");		
+  		addClass(combo.image, "ecwImageComboBox");
+	}
+}
+
+/**
+ * Rechargement d'une combo.
+ * Appelee par le timer.
+ * @param selectLastLine Boolean indiquant si la selection sera faite sur la premiere ou derniere ligne.
+ * @private
+ */
+function ecwReloadCombo(comboId, selectLastLine) {
+  var combo = document.getElementById(comboId).ecwControl.ecwComboBox;
+  combo.refreshInternalAjax();
+  combo.showAfterAjax();
+  combo.autoSelectValue();
+  if (selectLastLine) {
+	var nbLine = combo.ecwTable.lignes.length;
+	if(nbLine > 0){
+		combo.ecwTable.selectionnerLigne(combo.ecwTable.lignes[nbLine - 1]);
+	}
+  }
+}
+
+/**
+ * La ComboBox est mise a jour grace a une requete Ajax.
+ * @private
+ */
+ECW.ComboBox.prototype.refreshInternalAjax = function() {
+
+ /* Changement de l'image de la combo */
+  //ne doit pas etre fait ici
+  //removeClass(this.image, "ecwImageComboBoxLoad");
+  //addClass(this.image, "ecwImageComboBox");
+
+  /* Appel Ajax pour le contenu de la table */
+  /* Table V1 : balise <table> */
+  /* Table V2 : balises <divTHead> et <divTBody> */
+  var resultAjax = this.ecwTable.callAjax(this.ecwControl.noeudDOM.value);
+
+  /* Aucun element retourne */
+  if (this.ecwTable.numberOfElement == 0) {
+    var msgError = "";
+    /* Label du champ associe s'il existe */
+    var labelChamp = "";
+    if (this.ecwControl.label) {
+      labelChamp = this.ecwControl.label.innerHTML;
+    }
+    if (labelChamp != "") {
+      msgError += labelChamp + " > ";
+    }
+    msgError += ecw.I18N.get("NoResult");
+    this.ecwControl.setUIMessage("W", "NoResult", msgError, "NoResult");
+    this.setFocus();
+  } else {
+    this.ecwControl.clearUIMessage();
+  }
+
+  var divStatus = null;
+  
+  /* N'affiche le bandeau de pagination que s'il y a plus d'une page */  
+  //if (this.ecwTable.numberOfPage>1) { //BUG FIX prise en compte du parametre hiddenpage  
+  if (!this.hiddenPage || this.ecwTable.numberOfPage>1) {
+	    
+    /* Barre d'etat */
+    divStatus = document.createElement("DIV");
+    divStatus.className = "ecwTableStatus";
+  
+    var table = document.createElement("TABLE");
+    var tbody  = document.createElement("TBODY");
+    table.appendChild(tbody);
+    var tr = document.createElement("TR");
+    tbody.appendChild(tr);
+  
+    /* Total */
+    var td = document.createElement("TD");
+    td.innerHTML = ecw.I18N.get("total") + " : " + this.ecwTable.numberOfElement;
+    tr.appendChild(td);
+  
+    /* Pagination */
+    td = document.createElement("TD");
+  
+    /* Page precedente */
+    var imageComboPreviousPage = document.createElement("SPAN");
+    addClass(imageComboPreviousPage, "ecwImageComboPreviousPage");
+    imageComboPreviousPage.title = ecw.I18N.get("previousPage");
+    imageComboPreviousPage.ecwComboBox = this;
+    imageComboPreviousPage.onclick = ecwComboBoxImagePreviousPage;
+    td.appendChild(imageComboPreviousPage);
+    tr.appendChild(td);
+    
+     /* Page */
+    td = document.createElement("TD");
+    td.innerHTML = ecw.I18N.get("page") + " : " + this.ecwTable.currentPage + "/" + this.ecwTable.numberOfPage;
+    tr.appendChild(td);
+    
+    /* Page suivante */
+    var imageComboNextPage = document.createElement("SPAN");
+    addClass(imageComboNextPage, "ecwImageComboNextPage");
+    imageComboNextPage.title = ecw.I18N.get("nextPage");
+    imageComboNextPage.ecwComboBox = this;
+    imageComboNextPage.onclick = ecwComboBoxImageNextPage;
+    td.appendChild(imageComboNextPage);
+    tr.appendChild(td);
+    divStatus.appendChild(table);
+  }
+  
+  /* Raffraichissement de la table */
+  this.ecwTable.refreshDIV(resultAjax, divStatus);
+}
+
+function ecwComboBoxImagePreviousPage() {
+  this.ecwComboBox.previousPage(false);
+}
+
+function ecwComboBoxImageNextPage() {
+  this.ecwComboBox.nextPage();
+}
+
+/**
+ * Affichage de la liste de la comboBox Ajax.
+ * @private
+ */
+ECW.ComboBox.prototype.showAfterAjax = function() {
+
+  /* Si la nouvelle liste n'est pas vide */
+  if (!this.ecwTable.isEmptyTable()) {
+    /* Affichage */
+    removeClass(this.ecwTable.noeudDOM, "ecwInvisible");
+    
+    /* Affichage et redimensionnement de la liste */
+    this.processViewTable();
+    
+  } else {
+    /* Cache la liste */
+    this.afficherListe(false);
+    
+    /* Focus sur le champ de saisie */
+    this.ecwControl.setFocus();
+  }
+}
+
+/**
+ * Navigation dans la combo -> premiere page
+ * @private
+ */
+ECW.ComboBox.prototype.firstPage = function() {
+  /* Si la combo est ajaxisee */
+  if (this.ecwTable.currentPage > 1 && this.ajaxAction) {
+    this.ecwTable.currentPage = 1;
+    this.charger(false);
+  }
+}
+
+/**
+ * Navigation dans la combo -> page precedente
+ * @param selectLastLine Boolean indiquant si la selection sera faite sur la premiere ou derniere ligne.
+ * @private
+ */
+ECW.ComboBox.prototype.previousPage = function(selectLastLine) {
+  /* Si la combo est ajaxisee */
+  if (this.ecwTable.currentPage > 1 && this.ajaxAction) {
+    this.ecwTable.currentPage--;
+    this.charger(selectLastLine);
+  }
+}
+
+/**
+ * Navigation dans la combo -> page suivante
+ * @private
+ */
+ECW.ComboBox.prototype.nextPage = function() {
+  /* Si la combo est ajaxisee */
+  if (this.ajaxAction && (this.ecwTable.currentPage < this.ecwTable.numberOfPage)) {
+    this.ecwTable.currentPage++;
+    this.charger(false);
+  }
+}
+
+/**
+ * Navigation dans la combo -> derniere page
+ * @private
+ */
+ECW.ComboBox.prototype.lastPage = function() {
+  /* Si la combo est ajaxisee */
+  if (this.ajaxAction && (this.ecwTable.currentPage < this.ecwTable.numberOfPage)) {
+    this.ecwTable.currentPage = this.ecwTable.numberOfPage;
+    this.charger(false);
+  }
+}
+
+/**
+ * Sp&eacute;cifie le message &agrave; afficher lorsqu'une erreur ou un warning est lev&eacute;.
+ * <br>
+ * Les messages que l'on peut modifier dans ce composant sont :
+ * <ul>
+ *   <li><code>"NoResult"</code> : le message affich&eacute; lorsque la requete Ajax ne
+ *       remonte aucune donn&eacute;e.</li>
+ * </ul>
+ * @param evtType le type d'&eacute;v&egrave;nement qui d&eacute;clenche le message &agrave; afficher.
+ * @param message le message (internationalis&eacute;) qui sera affich&eacute;. La valeur null
+ * r&eacute;tablit le message d'origine d'ECW.
+ */
+ECW.ComboBox.prototype.setMessage = function(evtType, message) {
+  this.ecwControl.setMessage(evtType, message);
+  this.ecwTable.setMessage(evtType, message);
+}
+
+/**
+ * Renvoie le message affich&eacute; lorsqu'une erreur ou un warning est lev&eacute;.
+ * La valeur null signifie que la valeur par d&eacute;faut d'ECW sera utilis&eacute;e.
+ */
+ECW.ComboBox.prototype.getMessage = function(evtType) {
+  return this.ecwControl.getMessage(evtType);
+}
+
+/**
+ * Efface le message d'erreur s'il est affich&eacute.
+ */
+ECW.ComboBox.prototype.clearMessage = function() {
+  this.ecwControl.clearMessage();
+  this.ecwTable.clearMessage();
+}

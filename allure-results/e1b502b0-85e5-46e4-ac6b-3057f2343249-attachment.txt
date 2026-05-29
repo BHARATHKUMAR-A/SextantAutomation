@@ -1,1 +1,0 @@
-✅ Data matched for column 'Medium Description EN (Family Code)': Expected Application Data: 'OPTION_CAN13243', Found from Excel: 'OPTION_CAN13243'

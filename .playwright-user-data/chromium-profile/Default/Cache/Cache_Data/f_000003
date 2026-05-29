@@ -1,0 +1,1180 @@
+/**
+ * @fileoverview D&eacute;fini l'objet <b>ECW.UI</b> (&eacute;cran, ihm)
+ * @author Pascal Le Mens (pascal.lemens@mpsa.com)
+ * @version $Revision: 1.135.2.4 $
+ */
+
+/**
+ * D&eacute;fini l'objet <b>ECW.UI</b>
+ */
+ECW.UI = function() {
+
+  ecwStartTimer("ECW.UI");
+
+  /* Recuperation de la zone vue par ECW, selon l'argument passe au constructeur */
+  var divContainer = null;
+  if (arguments.length > 0) {
+    divContainer = document.getElementById(arguments[0]);
+  }
+  this.init(divContainer);
+  
+  //Premier redimensionnement
+  if (ecwAutoHeightIhm) this.processEcwBodyIhmAutoHeight();  
+ 
+  /* Mode debug */
+  this.modeDebug = false;
+  
+  ecwStopTimer("ECW.UI");
+}
+
+/**
+ * Prise en compte de nouveaux composants dans ECW.UI.
+ */
+ECW.UI.prototype.update = function() {
+  if(this.listeEcwLayout && this.listeEcwLayout.length != 0){
+    this.listeEcwLayout[0].update();
+  }
+}
+
+/**
+ * Initialisation.
+ * @private
+ */
+ECW.UI.prototype.init = function(divContainer) {
+
+  ecwSetAttribute(this, "listeEcwLayout", new Array);
+  ecwSetAttribute(this, "ecwAccessKey", null);
+  
+  ecwSetAttribute(this, "activeFlag", true);
+  
+  ecwSetAttribute(this, "uiEnterKeyActive", true);
+  
+  ecwSetAttribute(this, "autovalidateOnTableRefresh", false);
+  
+  ecwSetAttribute(this, "onEnter", null);
+  ecwSetAttribute(this, "onEscape", null);
+
+  ecwSetAttribute(this, "underLay", new ECW.UnderLay());
+
+  /* Compte les champs qui demande un warning de validation */
+  this.patternMsg = 0;
+
+  /* Constructeur */
+  this.constructeur(divContainer);
+
+  /* Surcharge le(s) submit(s) */
+  //ecwOverrideSubmits();
+
+  /* Positionne le focus */
+  if (this.listeEcwLayout.length != 0) {
+    this.listeEcwLayout[0].computeFocus();
+  }
+}
+
+ECW.UI.prototype.activeUIEnterKey = function() {
+  this.uiEnterKeyActive=true;
+}
+
+ECW.UI.prototype.desactiveUIEnterKey = function() {
+  this.uiEnterKeyActive=false;
+}
+
+ECW.UI.prototype.desactiveUIEnterKey = function() {
+  this.uiEnterKeyActive=false;
+}
+
+ECW.UI.prototype.setAutovalidateOnTableRefresh = function(validate) {
+  this.autovalidateOnTableRefresh=validate;
+}
+
+
+/**
+ * Liste des objets Layout (ECW.Layout)
+ * @private
+ */
+ECW.UI.prototype.listeEcwLayout = null;
+
+/**
+ * Access key (ECW.AccessKey)
+ * @private
+ */
+ECW.UI.prototype.ecwAccessKey = null;
+
+/**
+ * Control destinataire du focus
+ * @private
+ */
+ECW.UI.prototype.ecwControlToFocus = null;
+
+/**
+ * Ev&egrave;nement d&eacute;clench&eacute; lors de l'utilisation des touches [Alt] + [?]
+ */
+ECW.UI.prototype.onHelp = null;
+
+/**
+ * Ev&egrave;nement d&eacute;clench&eacute; lors de l'utilisation des touches [Shift] + [ESC]
+ */
+ECW.UI.prototype.onHome = null;
+
+/**
+ * Ev&egrave;nement d&eacute;clench&eacute; lors de l'utilisation des touches [Alt] + [p]
+ */
+ECW.UI.prototype.onPrint = null;
+
+/**
+ * Ev&egrave;nement d&eacute;clench&eacute; lors de l'utilisation de la touche [Entr&eacute;e]
+ */
+ECW.UI.prototype.onEnter = null;
+
+/**
+ * Ev&egrave;nement d&eacute;clench&eacute; lors de l'utilisation de la touche [ESC]
+ */
+ECW.UI.prototype.onEscape = null;
+
+/**
+ * Compte les champs qui demande un warning de validation.
+ * @private
+ */
+ECW.UI.prototype.patternMsg = null;
+
+/**
+ * Message affiche.
+ * @private
+ */
+ECW.UI.prototype.message = null;
+
+/**
+ * Hauteur en pixel reservee pour les bandeaux de message et d'aide.
+ * @private
+ */
+ECW.UI.prototype.ecwMessageDivHeight = null;
+
+/**
+ * Div permettant de rendre l'interface modale.
+ * @private
+ */
+ECW.UI.prototype.underLay = null;
+
+/**
+ * Flag indiquant si l'aide contextuelle est active
+ * @private
+ */
+ECW.UI.prototype.helpContextDisabled = false;
+
+/**
+ * Hauteur de la page
+ * @private
+ */
+ECW.UI.prototype.ihmHeight = null;
+
+/**
+ * Flag de generation automatique d'identifiant
+ * @private
+ */
+ECW.UI.prototype.autoId = false;
+
+/**
+ * Token pour gestion id session
+ * @private
+ */
+ECW.UI.prototype.uiTokenParam = "";
+
+/**
+ * Mode debug
+ * @private
+ */
+ECW.UI.prototype.setModeDebug = function() {
+  this.modeDebug = true;
+}
+
+/**
+ * Constructeur de ECW.UI
+ * @private
+ */
+ECW.UI.prototype.constructeur = function(divContainer) {
+
+  if (document.getElementById("ecwAutoId")) {
+    this.autoId = document.getElementById("ecwAutoId").value;
+  }
+  
+  if (document.getElementById("uiTokenParam")) {
+    this.uiTokenParam = document.getElementById("uiTokenParam").value;
+  }
+  
+  /* Si un container est indique au constructeur de ECW.UI */
+  if (divContainer != null) {
+    this.createEcwLayout(divContainer);
+
+  } else {
+
+    /* Recherche des Layout dans document.body */
+    var allDiv = document.body.getElementsByTagName("DIV");
+    for (var i = 0; i < allDiv.length; i++) {
+      var currentDiv = allDiv[i];
+      var divClass = currentDiv.className;
+      if (divClass == "ecwLayout") {
+      	this.createEcwLayout(currentDiv);
+      }
+    }
+
+    /* Si aucun ecwLayout, on prend le document.body */
+    if (this.listeEcwLayout.length == 0) {
+      this.createEcwLayout(document.body);
+    }
+  }
+
+  /* Objet ECW.UI */
+  ecwActiveUI = this;
+
+  /* Suppression du sablier d'attente au chargement */
+  if (document.getElementById("sablier")) {
+    document.getElementById("sablier").style.display = "none";
+  }
+  
+  /* Evenement onkeydown sur la page */
+  document.onkeydown = OnKey;
+  // reactivation de la fonction onEnter sur relachement de la touche
+  document.onkeyup   = function() {ecwActiveUI.activeUIEnterKey();};
+
+  /* Pour Mozilla 1.7.5, probleme de rafraichissement */
+  /* si on utilise des fieldset */
+  if (ECW_isGecko) {
+    document.body.style.display = "none";
+    document.body.style.display = "";
+  }
+  
+  /* Recherche la hauteur de l ihm */
+  for (i = 0 ; i < this.listeEcwLayout.length ; i++) {
+    var noeud = this.listeEcwLayout[i].noeudDOM;
+    if (ECW_isIE) {
+      if (noeud.scrollHeight > this.ihmHeight)
+        this.ihmHeight = noeud.scrollHeight;
+    } else {
+      if (noeud.offsetHeight > this.ihmHeight)
+        this.ihmHeight = noeud.offsetHeight;
+    }
+  }
+}
+
+/**
+ * Affiche la div sablier de chargement.
+ */
+ECW.UI.prototype.showSablier = function() {
+	var divSablier = document.getElementById("sablier");
+	divSablier.style.display = "block";
+	document.body.lastScrollTop = document.body.scrollTop;
+	document.body.scrollTop = 0;
+}
+
+/**
+ * Masque la div sablier de chargement.
+ */
+ECW.UI.prototype.hideSablier = function() {
+	document.getElementById("sablier").style.display = "none";
+	var value = 0;
+	if(document.body.lastScrollTop){
+      value = document.body.lastScrollTop;
+	}
+	setTimeout('document.body.scrollTop = '+value+';', 0);
+}
+
+
+/**
+ * Affiche un calque qui grise la page et qui verrouille les raccourcis claviers.
+ */
+ECW.UI.prototype.disableIHM = function() {
+  if(!getInstancePopupManager().existPopup(ecwIdPopupBlockIHM)){
+    var html = "";
+    html += "<script src='"+ecwBaseRef+"/ecw.js'></script>";
+    html += "<script>";
+    html += "with(ecwActivePopup) {";
+    html += "UI.onEnter = function(){return false;};"; 
+    html += "UI.onEscape = function(){return false;};";    
+    html += "}";
+    html += "</script>";
+    html += "<input type='text'>";
+    ecwOpenPopupHTML(html, ecwIdPopupBlockIHM, false);   
+    getInstancePopupManager().forceHiddenPopup();   
+    //getInstancePopupManager().setFullHeightUnderLay(true); //affichage avec sablier sur l'ecran
+    getInstancePopupManager().setFullHeightUnderLay();  
+  }
+}
+
+/**
+ * Masque le calque qui grise la page et qui verrouille les raccourcis claviers.
+ */
+ECW.UI.prototype.enableIHM = function() {
+  if(getInstancePopupManager().existPopup(ecwIdPopupBlockIHM)){
+    ecwCloseDesactivationsPopup();
+  }
+}
+
+/**
+ * suspendre le mode automatique de desactivation dans une page
+ * @param identifiant du bouton 
+ * (parametre facultatif : si non present alors 
+ * l'ensemble des boutons de la page est pris en compte)
+ */
+ECW.UI.prototype.suspendAutoDisable = function(idButton) {
+	if (idButton) {
+		ecwAddButtonToSuspend(idButton);
+	} else ecwAutoDisableIHM = false;
+}
+
+/**
+ * Creation des objets ECW.Layout
+ * @private
+ */
+ECW.UI.prototype.createEcwLayout = function(noeudDOM) {
+  
+  var ecwLayout = new ECW.Layout(noeudDOM, this, this.listeEcwLayout.length);
+  var precedent = null;
+  if(this.listeEcwLayout.length>0){
+    precedent = this.listeEcwLayout[this.listeEcwLayout.length - 1];
+    ecwSetAttribute(precedent, "suivant", ecwLayout);
+  }
+  ecwSetAttribute(ecwLayout, "precedent", precedent);
+  this.listeEcwLayout[this.listeEcwLayout.length] = ecwLayout;
+}
+
+/**
+ * Creation des objets ECW.Layout
+ * @param idLayout Identifiant du layout (0-N)
+ * @private
+ */
+ECW.UI.prototype.setFilterDimensionOnTableForLayout = function(idLayout) {
+  this.listeEcwLayout[idLayout].setFilterDimensionOnTable();
+}
+
+/**
+ * Creation des objets ECW.Layout  (CAS DU TABLE V2)
+ * @param idLayout Identifiant du layout (0-N)
+ * @private
+ */
+ECW.UI.prototype.setFilterDimensionOnTableV2ForLayout = function(idLayout) {
+  this.listeEcwLayout[idLayout].setFilterDimensionOnTableV2();
+}
+
+/**
+ * Retourne l'objet <b>ECW.Layout</b> correspondant &agrave;
+ * l'identifiant sp&eacute;cifi&eacute; (id).
+ * @param id Identifiant du layout
+ */
+ECW.UI.prototype.getLayout = function(id) {
+  var elem = document.getElementById(id);
+  if (elem) {
+    return elem.ecwLayout;
+  }
+  alert("ECW.UI.getLayout('" + id + "') : ce layout n'existe pas dans la page !");
+  return null;
+}
+
+/**
+ * Retourne l'objet <b>ECW.Table</b> correspondant &agrave;
+ * l'identifiant sp&eacute;cifi&eacute; (id).
+ * @param id Identifiant de la liste de valeurs
+ */
+ECW.UI.prototype.getTable = function(id) {
+  var elem = document.getElementById(id);
+  if (elem) {
+    return elem.ecwTable;
+  }
+  alert("ECW.UI.getTable('" + id + "') : cette table n'existe pas dans la page !");
+  return null;
+}
+
+/**
+ * Retourne l'objet <b>ECW.Control</b> correspondant &agrave;
+ * l'identifiant sp&eacute;cifi&eacute; (id).
+ * @param id Identifiant du champ
+ */
+ECW.UI.prototype.getControl = function(id) {
+  var elem = document.getElementById(id);
+  if (elem) {
+    return elem.ecwControl;
+  }
+  alert("ECW.UI.getControl('" + id + "') : ce control n'existe pas dans la page !");
+  return null;
+}
+
+/**
+ * Retourne l'objet <b>ECW.ComboBox</b> correspondant &agrave;
+ * l'identifiant sp&eacute;cifi&eacute; (id).
+ * @param id Identifiant de la ComboBox
+ */
+ECW.UI.prototype.getComboBox = function(id) {
+  var elem = document.getElementById(id);
+  if (elem) {
+    return elem.ecwComboBox;
+  }
+  alert("ECW.UI.getComboBox('" + id + "') : cette combobox n'existe pas dans la page !");
+  return null;
+}
+
+/**
+ * Retourne l'objet <b>ECW.Calendar</b> correspondant &agrave;
+ * l'identifiant sp&eacute;cifi&eacute; (id).
+ * @param id Identifiant du Calendar
+ */
+ECW.UI.prototype.getCalendar = function(id) {
+  var elem = document.getElementById(id);
+  if (elem) {
+    return elem.ecwCalendar;
+  }
+  alert("ECW.UI.getCalendar('" + id + "') : ce calendar n'existe pas dans la page !");
+  return null;
+}
+
+/**
+ * Retourne l'objet <b>ECW.TimeField</b> correspondant &agrave;
+ * l'identifiant sp&eacute;cifi&eacute; (id).
+ * @param id Identifiant du TimeField
+ */
+ECW.UI.prototype.getTimeField = function(id) {
+  var elem = document.getElementById(id);
+  if (elem) {
+    return elem.ecwTimeField;
+  }
+  alert("ECW.UI.getTimeField('" + id + "') : ce champ heure n'existe pas dans la page !");
+  return null;
+}
+
+/**
+ * Retourne l'objet <b>ECW.TabFolder</b> correspondant &agrave;
+ * l'identifiant sp&eacute;cifi&eacute; (id).
+ * @param id Identifiant du groupe d'onglets
+ */
+ECW.UI.prototype.getTabFolder = function(id) {
+  var elem = document.getElementById(id);
+  if (elem) {
+    return elem.ecwTabFolder;
+  }
+  alert("ECW.UI.getTabFolder('" + id + "') : ce tabfolder n'existe pas dans la page !");
+  return null;
+}
+
+/**
+ * Retourne l'objet <b>ECW.TreeView</b> correspondant &agrave;
+ * l'identifiant sp&eacute;cifi&eacute; (id).
+ * @param id Identifiant de l'arbre
+ */
+ECW.UI.prototype.getTreeView = function(id) {
+  var elem = document.getElementById(id);
+  if (elem) {
+    return elem.ecwTreeView;
+  }
+  alert("ECW.UI.getTreeView('" + id + "') : ce treeview n'existe pas dans la page !");
+  return null;
+}
+
+/**
+ * Retourne l'objet <b>ECW.Menu</b> correspondant &agrave;
+ * l'identifiant sp&eacute;cifi&eacute; (id).
+ * @param id Identifiant du menu
+ */
+ECW.UI.prototype.getMenu = function(id) {
+  var elem = document.getElementById(id);
+  if (elem) {
+    return elem.ecwMenu;
+  }
+  alert("ECW.UI.getMenu('" + id + "') : ce menu n'existe pas dans la page !");
+  return null;
+}
+
+/**
+ * Retourne l'objet <b>ECW.Grid</b> correspondant &agrave;
+ * l'identifiant sp&eacute;cifi&eacute; (id).
+ * @param id Identifiant du grid
+ */
+ECW.UI.prototype.getGrid = function(id) {
+  var elem = document.getElementById(id);
+  if (elem) {
+    return elem.ecwGrid;
+  }
+  alert("ECW.UI.getGrid('" + id + "') : ce grid n'existe pas dans la page !");
+  return null;
+}
+
+/**
+ * Retourne l'objet <b>ECW.Container</b> correspondant &agrave;
+ * l'identifiant sp&eacute;cifi&eacute; (id).
+ * @param id Identifiant du container
+ */
+ECW.UI.prototype.getContainer = function(id) {
+  var elem = document.getElementById(id);
+  if (elem) {
+    return elem.ecwContainer;
+  }
+  alert("ECW.UI.getContainer('" + id + "') : ce container n'existe pas dans la page !");
+  return null;
+}
+
+/**
+ * Affiche une aide contextuelle (appelee par Champ.activer())
+ * @private
+ */
+ECW.UI.prototype.setHelpContext = function(text) {
+
+  /* Calcul pour que le message ne soit pas sur les bouttons en pied de page */
+  var height = ecwHelpContextHeight;
+  var messageBar = document.getElementById("EcwMessageBar");
+  if (messageBar && messageBar.style.display == "") {
+    height += ecwMessageBarHeight;
+  }
+  if(this.ihmHeight + height > document.body.scrollHeight){
+    // avoid superficial scrollbars on frames in IE11
+    if (!ECW_isIE11) {
+        document.body.style.height = document.body.scrollHeight+height;
+    }
+    if (ECW_isIE) {
+      var div = document.createElement("div");
+      document.body.appendChild(div);
+      div.style.height = height;
+    }
+  }
+
+  /* Test si l'aide contextuelle a ete desactivee */
+  if(this.helpContextDisabled){
+	  return;
+  }
+  
+  /* Creation si necessaire de la DIV d'aide */
+  var helpContext = document.getElementById("EcwHelpContext");
+  if (!helpContext) {
+    helpContext = document.createElement("DIV");
+    helpContext.id = "EcwHelpContext";
+    document.body.appendChild(helpContext);
+  }
+  /* Positionner l'aide au dessus de la barre de message si elle existe */
+  if (messageBar && messageBar.style.display == "") {
+    helpContext.style.bottom = messageBar.offsetHeight;
+  } else {
+    helpContext.style.bottom = "0";
+  }
+
+  /* IFRAME ajoutee sous IE pour corriger le bug d'affichage */
+  var iframe = null;
+  if (ECW_isIE) {
+    iframe = document.getElementById("EcwHelpIFrame");
+    if (!iframe) {
+      iframe = document.createElement("IFRAME");
+      iframe.id = "EcwHelpIFrame";
+      document.body.appendChild(iframe);
+    }
+  }
+  
+  /* Affiche ou masque la zone d'aide selon que le texte est rempli */
+  if (text == "") {
+    helpContext.style.display = "none";
+    if (iframe) {
+      iframe.style.display = "none";
+    }
+    if (document.getElementById("helpContext")) {
+      document.getElementById("helpContext").innerHTML = "vide";
+      document.getElementById("helpContext").className = "styleHiddenHelpContext";
+    }
+  } else {
+    helpContext.style.display = "";
+    helpContext.innerHTML = text;
+    if (iframe) {
+      iframe.style.display = "";
+    }
+    if (document.getElementById("helpContext")) {
+      document.getElementById("helpContext").innerHTML = text;
+      document.getElementById("helpContext").className = "styleHelpContext";
+    }
+  }
+}
+
+
+/**
+ * Desactive l'aide contextuelle
+ */
+ECW.UI.prototype.setDisableHelpContext = function(){
+  this.helpContextDisabled = true;
+}
+
+/**
+ * Active l'aide contextuelle
+ */
+ECW.UI.prototype.setEnableHelpContext = function(){
+  this.helpContextDisabled = false;
+}
+
+
+/**
+ * Affiche un message avec un code gravit&eacute; (I,E,W)
+ */
+ECW.UI.prototype.setMessage = function(gravite, text) {
+  
+  /* Calcul pour que le message ne soit pas sur les bouttons en pied de page */
+  var height = ecwMessageBarHeight;
+  var helpContext = document.getElementById("EcwHelpContext");
+  if (helpContext && helpContext.style.display == "") {
+    height += ecwHelpContextHeight;
+  }
+  if(this.ihmHeight + height > document.body.scrollHeight){
+    document.body.style.height = document.body.offsetHeight+height;
+    if (ECW_isIE) {
+      var div = document.createElement("div");
+      document.body.appendChild(div);
+      div.style.height = height;
+    }
+  }
+  
+  /* Creation si necessaire de la DIV de message */
+  var messageBar = document.getElementById("EcwMessageBar");
+  if (!messageBar) {
+    messageBar = document.createElement("DIV");
+    messageBar.id = "EcwMessageBar";
+    messageBar.style.zIndex = 2147483647;//Affichage au niveau maxi (cas de popup)
+    document.body.appendChild(messageBar);
+  }
+  /* Fixe en majuscule la gravite et verifie si le code existe sinon > O */
+  gravite = gravite.toUpperCase();
+  if ("IWE" .indexOf(gravite) ==  - 1) {
+    gravite = "O";
+  }
+  /* Fixe la classe CSS au text et rend visible la barre de message */
+  messageBar.className = "EcwMessageBar" + gravite;
+  messageBar.innerHTML = text;
+  messageBar.style.display = "";
+
+  /* IFRAME ajoutee sous IE pour corriger le bug d'affichage */
+  if (ECW_isIE) {
+    var iframe = document.getElementById("EcwMessageIFrame");
+    if (!iframe) {
+      iframe = document.createElement("IFRAME");
+      iframe.id = "EcwMessageIFrame";
+      document.body.appendChild(iframe);
+    }
+    iframe.style.display = "block";
+  }
+
+  this.message = text;
+  this.msgGravite = gravite;
+}
+
+/**
+ * Efface le message si il existe
+ */
+ECW.UI.prototype.clearMessage = function() {
+  var messageBar = document.getElementById("EcwMessageBar");
+  if (messageBar) {
+    messageBar.style.display = "none";
+  }
+  var iframe = document.getElementById("EcwMessageIFrame");
+  if (iframe) {
+    iframe.style.display = "none";
+  }
+  this.message = null;
+  this.msgGravite = null;
+}
+
+/**
+ * Renvoie le message si il existe
+ */
+ECW.UI.prototype.getMessage = function() {
+  return this.message;
+}
+
+/**
+ * Methode attribuant un poid a une gravite
+ * @private
+ */
+ECW.UI.prototype.getLevel = function(gravite) {
+	var level=0;
+	if (gravite) {
+		if (gravite=='I') level=1;
+		else if (gravite=='W') level=2;
+		else if (gravite=='E') level=3;
+	}
+	return level;
+}
+
+/**
+ * Ajout d'un message avec un code gravit&eacute; (I,E,W)
+ * Si la gravite du message a ajoute est superieur au message courant
+ * alors le bandeau prend la gravite la plus critique
+ */
+ECW.UI.prototype.addMessage = function(gravite, text) {	
+	if (this.message) {
+		var grvMsg='O';
+		if (this.getLevel(gravite)>this.getLevel(this.msgGravite))
+			grvMsg = gravite;
+		else
+			grvMsg = this.msgGravite;
+		this.setMessage(grvMsg,this.message+"<BR>"+text);		
+	} else {
+		this.setMessage(gravite,text);
+	}	
+}
+
+/**
+ * Cr&eacute;e un document HTML qui peut &ecirc;tre imprimable
+ */
+ECW.UI.prototype.softCopy = function() {
+  var htmlActuel = document.getElementsByTagName("HTML");
+  var htmlCopy = document.createElement("HTML");
+  // Recuperation des balises LINK pour les styles
+  /*  var cloneHead=htmlActuel[0].getElementsByTagName("HEAD")[0].cloneNode(true);
+  for (var i=cloneHead.childNodes.length-1;i>=0;i--){
+  if (cloneHead.childNodes[i].nodeName=="SCRIPT"){
+  cloneHead.removeChild(cloneHead.childNodes[i]);
+  }
+  }*/
+  // Copie de la balise BODY et de toutes ses branches
+  var cloneBody = htmlActuel[0].getElementsByTagName("BODY")[0].cloneNode(true);
+  htmlCopy.appendChild(cloneBody);
+  // Suppression de toutes les balises non visibles
+  this.filtreHtmlInvisible(htmlActuel[0].getElementsByTagName("BODY")[0],
+    htmlCopy.getElementsByTagName("BODY")[0]);
+  // Insertion de la balise HEAD
+  //  htmlCopy.insertBefore(cloneHead, htmlCopy.firstChild);
+  return htmlCopy;
+}
+
+/**
+ * Supprime les enfants du noeud specifie qui sont invisibles
+ * @private
+ */
+ECW.UI.prototype.filtreHtmlInvisible = function(noeudDOM, noeudDOMCopy) {
+  for (var i = noeudDOM.childNodes.length - 1; i >= 0; i--) {
+    /* Suppression si l'enfant n'est pas visible OU champ de classe 'ecwInvisible' */
+    /* OU balise DIV de classe 'ecwTableHead' */
+    if ((noeudDOM.childNodes[i].style && noeudDOM.childNodes[i].style.display == "none") ||
+      (noeudDOM.childNodes[i].className && isClass(noeudDOM.childNodes[i], "ecwInvisible")) ||
+      (noeudDOM.childNodes[i].nodeName == "DIV" && isClass(noeudDOM.childNodes[i],
+      "ecwTableHead"))) {
+      noeudDOMCopy.removeChild(noeudDOMCopy.childNodes[i]);
+    } else {
+      /* Suppression des lignes invisibles dans une liste */
+      if (noeudDOM.childNodes[i].nodeName == "TR" && noeudDOM.nodeName == "TBODY" && isClass
+        (noeudDOM.parentNode.parentNode, "ecwTableBody")) {
+        var entete = noeudDOM.parentNode.parentNode.getElementsByTagName("THEAD");
+        var enteteHauteur = 0;
+        if (entete != null) {
+          enteteHauteur = entete[0].offsetHeight;
+        }
+        var scrollTopDIV = noeudDOM.parentNode.parentNode.scrollTop;
+        var offsetHeightDIV = noeudDOM.parentNode.parentNode.offsetHeight;
+        if (noeudDOM.childNodes[i].offsetTop < scrollTopDIV + enteteHauteur ||
+          noeudDOM.childNodes[i].offsetTop >= scrollTopDIV + offsetHeightDIV) {
+          noeudDOMCopy.removeChild(noeudDOMCopy.childNodes[i]);
+        }
+      } else {
+        /* Suppression des balises invisibles de l'enfant */
+        this.filtreHtmlInvisible(noeudDOM.childNodes[i], noeudDOMCopy.childNodes[i]);
+      }
+    }
+  }
+}
+
+/**
+ * Controle si l'element est considere comme un ECW.Control. 
+ * @param id Identifiant de l'element du DOM.
+ * @param methodName Nom de la methode.
+ * @private
+ */
+ECW.UI.prototype.getAndCheckEcwControl = function(id, methodName) {
+  var elt = document.getElementById(id);
+  /* Absence */
+  if (!elt) {
+    alert("Erreur ECW\nMethode [" + methodName + "]\n"
+      + "L'identifiant id=[" + id + "] n'existe pas !!!");
+  }
+  /* Mauvais type */
+  else if (!elt.ecwControl) {
+    alert("Erreur ECW\nMethode [" + methodName + "]\n"
+      + "L'identifiant id=[" + id + "] ne reference pas un objet ECW.Control !!!");
+    elt = null;
+  }
+  return elt;
+}
+
+/**
+ * Renseigne que la saisie du champ est obligatoire
+ * @param id (int) du champ
+ * @param message Message d'erreur
+ */
+ECW.UI.prototype.addRequired = function(id, message) {
+  /* Recherche le champ */
+  var elt = this.getAndCheckEcwControl(id, "addRequired");
+  /* Si on a trouve le champ */
+  if (elt) {
+    /* On renseigne le fait que la saisie est obligatoire */
+    elt.ecwControl.setRequired(message);
+  }
+}
+
+/**
+ * Suppression de l'aspect obligatoire pour un champ
+ * @param id (int) du champ
+ */
+ECW.UI.prototype.removeRequired = function(id) {
+  /* Recherche le champ */
+  var elt = this.getAndCheckEcwControl(id, "removeRequired");
+  /* Si on a trouve le champ */
+  if (elt) {
+    /* On renseigne le fait que la saisie n'est pas obligatoire */
+    elt.ecwControl.removeRequired();
+  }
+}
+
+/**
+ * Ajoute un <i>validator</i> &agrave; un champ. Le <i>validator</i> est un pattern
+ * (expression r&eacute;guli&eagrave;re) ou une fonction.
+ * <br>
+ * Il est possible d'ajouter plusieurs <i>validators</i>.
+ * @param id (int) du champ
+ * @param validator un pattern (string) ou une fonction
+ * @param message Message d'erreur
+ */
+ECW.UI.prototype.addValidator = function(id, validator, message) {
+  /* Recherche le champ */
+  var elt = this.getAndCheckEcwControl(id, "addValidator");
+  /* Si on a trouve le champ */
+  if (elt && elt.ecwControl) {
+    if ("string" == typeof validator) {
+      if ("date" == validator) {
+        elt.ecwControl.addValidator(ecwDateValidator, message);
+      } else {
+        /* On regarde si on trouve une traduction pour le pattern */
+        transPattern = ecw.I18N.get(validator);
+        /* si ce n'est pas le cas */
+        /* i18n retourne la chaine entoure de "" */
+        if (transPattern == '"' + validator + '"') {
+          /* On prend le pattern tel quel */
+          transPattern = validator;
+        }
+        /* On renseigne le pattern */
+        elt.ecwControl.addValidator("^" + transPattern + "$", message);
+      }
+    } else if ("function" == typeof validator) {
+      elt.ecwControl.addValidator(validator, message);
+    }
+  }
+}
+
+/**
+ * Suppression d'un <i>validator</i> sur un champ. Si le <i>validator</i> n'est
+ * pas pr&eacute;cis&eacute;, tous les <i>validators</i> sont supprim&eacute;s.
+ * @param id (int) du champ
+ * @param validator un pattern (string) ou une fonction &agrave; supprimer.
+ */
+ECW.UI.prototype.removeValidator = function(id, validator) {
+  /* Recherche le champ */
+  var elt = this.getAndCheckEcwControl(id, "removeValidator");
+  /* Si on a trouve le champ */
+  if (elt && elt.ecwControl) {
+    if ("string" == typeof validator) {
+      /* On regarde si on trouve une traduction pour le pattern */
+      transPattern = ecw.I18N.get(validator);
+      /* si ce n'est pas le cas */
+      /* i18n retourne la chaine entoure de "" */
+      if (transPattern == '"' + validator + '"') {
+        /* On prend le pattern tel quel */
+        transPattern = validator;
+      }
+      /* On renseigne le pattern */
+      elt.ecwControl.removeValidator("^" + transPattern + "$");
+    } else if ("function" == typeof validator) {
+      elt.ecwControl.removeValidator(validator);
+    } else {
+      elt.ecwControl.clearValidators();
+    }
+  }
+}
+
+/**
+ * Test de validation des champs
+ * @type boolean
+ */
+ECW.UI.prototype.validate = function() {
+
+  var result = true;
+  /* Parcours des layouts */
+  for (var i = 0; i < this.listeEcwLayout.length; i++) {
+    var result = this.listeEcwLayout[i].validate();
+    if (!result) {
+      break;
+    }
+  }
+  return result;
+}
+
+/**
+ * Test de validation d'un champ
+ * @param idControl Identifiant du champ
+ * @type boolean
+ */
+ECW.UI.prototype.validateControl = function(idControl) {
+
+  var input = document.getElementById(idControl);
+  var result = this.isValidate(input);
+  if (result) {
+    this.clearMessage();
+  } else {
+    /* focus sur le champ et affichage du message */
+    this.setFocusAndMessageError(input);
+  }
+  /* Cas d'une zone de saisie distante */
+  if(input.ecwControl && input.ecwControl.remoteInputArea){
+    var ecwLayout = input.ecwControl.ecwLayout;
+    ecwLayout.controlRemoteInputArea(input.ecwControl.remoteInputArea);
+  }
+  return result;
+}
+
+/**
+ * Test de validation d'un champ.
+ * @param noeud Noeud DOM du champ.
+ * @type boolean
+ * @private
+ */
+ECW.UI.prototype.isValidate = function(noeud) {
+
+  /* C'est un control */
+  if (noeud.ecwControl) {
+    /* si le control n'est pas valide */
+    if (!noeud.ecwControl.validate()) {
+      return false;
+    }
+  }
+  return true;
+}
+
+/**
+ * Positionnement du focus sur le champ en erreur
+ * et affichage du message
+ * @param noeud : input du champ
+ * @private
+ */
+ECW.UI.prototype.setFocusAndMessageError = function(noeud) {
+  /* Si contenu dans un onglet, focus sur onglet */
+  if (noeud.ecwControl.ecwTabItem) {
+    noeud.ecwControl.ecwTabItem.ecwTabFolder.activateItem(noeud.ecwControl.ecwTabItem.noeudDOM.id);
+  }
+    
+  /* Focus sur champ */
+  noeud.ecwControl.setFocusAndSelect();
+  
+  /* Affichage du message */
+  if (noeud.ecwControl.messageError) {
+    this.setMessage("W", noeud.ecwControl.messageError);
+  }
+}
+
+/**
+ * Active la gestion des raccourcis clavier
+ */
+ECW.UI.prototype.activeAccessKey = function(idNodeToUse) {
+
+  var nodeToUse = document.body;
+  if (idNodeToUse != null) {
+    nodeToUse = document.getElementById(idNodeToUse);
+  }
+  if (!this.ecwAccessKey) {
+    ecwSetAttribute(this, "ecwAccessKey", new ECW.AccessKey(nodeToUse));
+  } else {
+    this.ecwAccessKey.activate();
+  }
+  
+  /**
+   * Dans le cas ou il y a des onglets dans la page, il faut recalculer la taille des onglets
+   * car il est possible que l'ajout d'accessKey augmente la taille d'affichage
+   */
+   this.refreshTabInLayout();
+}
+
+/**
+ * D&eacute;sactive la gestion des raccourcis clavier
+ */
+ECW.UI.prototype.desactiveAccessKey = function() {
+  if (this.ecwAccessKey) {
+    this.ecwAccessKey.desactivate();
+  }
+}
+
+function ecwActiveUIFocusChampActif() {
+  if (ecwActiveUI && ecwActiveUI.champActif) {
+    ecwActiveUI.champActif.setFocus();
+  }
+}
+
+/**
+ * Recalcul des tables en mode auto-height
+ * @type boolean
+ */
+ECW.UI.prototype.processEcwTableAutoHeight = function() {
+
+  /* Parcours des layouts */
+  for (var i = 0; i < this.listeEcwLayout.length; i++) {
+    this.listeEcwLayout[i].processEcwTableAutoHeight();
+  }
+}
+
+/**
+ * Methode de redimensionnement de la zone body d'une ihm ECW
+ * @private
+ */
+ECW.UI.prototype.processEcwBodyIhmAutoHeight = function() {	
+	var bodyLayoutEcw = $('tr td.ecwBodyIhm')[0];   	
+    if (bodyLayoutEcw) {
+    	var titleLayoutEcw = $('tr td.ecwTitleZoneIhm')[0];
+    	var actionLayoutEcw = $('tr.ecwActionIhm')[0];
+    	var zoneContextEcw = $('div.#EcwHelpContext')[0];
+    	var hTotal;
+		if (document.body) {			
+			hTotal = (document.body.clientHeight);
+		} else {			
+			hTotal = (window.innerHeight);
+		}
+		var hTitle=0;
+		if (titleLayoutEcw)  hTitle = titleLayoutEcw.offsetHeight;
+		var hAction=0;
+		if (actionLayoutEcw)  hAction = actionLayoutEcw.offsetHeight;
+		var hContext=0;
+		if (zoneContextEcw)  hContext = zoneContextEcw.offsetHeight;
+		if (hContext<10) hContext=16;
+		//alert("DEBUG screen SIZE ihmheight="+ this.ihmHeight +"\n hTotal="+hTotal+"\n hTitle="+hTitle+"\n hAction="+hAction+" \n hContext="+hContext);
+		var marge = 23;
+		if (ECW_isIE) { marge = 40; hContext=23; }
+		//resize de la zone body ECW		
+		bodyLayoutEcw.style.height = (hTotal - hTitle - hAction - hContext - marge) + 'px'; 
+    }
+}
+
+/**
+ * Renvoie la hauteur en pixel des deux DIV message (message aide a la saisie et message info-warning-error).
+ * @private
+ */
+ECW.UI.prototype.getMessageDivHeight = function() {
+  if (!this.ecwMessageDivHeight) {
+    this.ecwMessageDivHeight = 5;
+    var div = document.createElement("DIV");
+    div.style.left = "-2000px";
+    div.innerHTML = "vide";
+    document.body.appendChild(div);
+    div.className = "styleHelpContext";
+    this.ecwMessageDivHeight += div.offsetHeight;
+    div.className = "EcwMessageBarI";
+    this.ecwMessageDivHeight += div.offsetHeight;
+    document.body.removeChild(div);
+  }
+  return this.ecwMessageDivHeight;
+}
+
+/**
+ * Sollicitation Ajax et interpretation par le moteur XML.
+ * @param url Url a solliciter.
+ * @param param Parametre.
+ * @param idPosition Identifiant dans le DOM pour eventuellement positionner la reponse.
+ * @param debug Mode debug.
+ * @param asynchronous mode .
+ */
+ECW.UI.prototype.sendForm = function(url, param, idPosition, debug,asynchronous) {
+
+  if (asynchronous == null) {
+    asynchronous=true;
+  }
+  /* Affichage de l'url */
+  if (debug || this.modeDebug) {
+    this.modeDebug = debug;
+    alert('Requete ajax \nurl : '+url+'\nparam : '+param);
+  }
+
+  this.underLay.show(); 
+	
+  if (idPosition != null && idPosition!='') {
+    ecwIdPosition = idPosition;
+  }else{
+    ecwIdPosition = null;
+  }
+
+  window.ajaxRequest = $.ajax({
+    type: "POST",
+    url: url,
+    data: param,
+    dataType: "xml",
+    async: asynchronous,
+    success: function(resultAJAX) {
+      ecwActiveUI.underLay.hide();
+      if (typeof(resultAJAX) == "string"){
+        alert("String result :\n"+resultAJAX);
+      }
+      /* Message XML */
+      else {
+        if (this.modeDebug) {
+          var serializer = new XMLSerializer();
+          var str = serializer.serializeToString(resultAJAX);
+          alert('Resultat requete ajax \n'+str);
+        }
+        ecwActiveUI.processAction(resultAJAX);
+      }
+    },
+    error: function(request, error) {
+      ecwActiveUI.underLay.hide();
+      if (request.status != "0") {
+        alert("ERROR :\n" + error + " / status=" + request.status + "\n" + request.responseText);
+      }
+    }
+  });
+}
+
+/**
+ * Interpretation du message XML par le moteur.
+ * @param xmlAction Message XML des actions a realiser.
+ * @private
+ */
+ECW.UI.prototype.processAction = function(xmlAction) {
+
+  for (var i = 0; i < xmlAction.childNodes.length; i++) {
+
+    var currentRoot = xmlAction.childNodes[i];
+    if ((currentRoot.nodeType == 1) && (currentRoot.nodeName == "action")) {
+
+      for (var j = 0; j < currentRoot.childNodes.length; j++) {
+
+        var currentAction = currentRoot.childNodes[j];
+        if ((currentAction.nodeType == 1)) {
+          new ECW.Action(currentAction, this);
+        }
+      }
+    }
+  }
+}
+
+/**
+ * Refresh de la date de mise a jour
+ */
+ECW.UI.prototype.refreshDateTime = function() {
+
+  for (var i = 0; i < this.listeEcwLayout.length; i++) {
+    this.listeEcwLayout[i].setCurrentDate();
+  }
+}
+
+/**
+ * Delegation de la synchronisation du header
+ * a chaque tableV2
+ */
+ECW.UI.prototype.forceSynchroTableHeader = function() {
+	/* Parcours des layouts */
+  	for (var i = 0; i < this.listeEcwLayout.length; i++) {
+    	this.listeEcwLayout[i].forceSynchroTableHeader();
+  	}	
+}
+
+/**
+ * Refresh des onglets contenu dans les Layout
+ * @private
+ */
+ECW.UI.prototype.refreshTabInLayout = function() {
+  /* Parcours des layouts */
+  if (this.listeEcwLayout && this.listeEcwLayout.length>0) {
+  	for (var i = 0; i < this.listeEcwLayout.length; i++) {
+    	this.listeEcwLayout[i].setSizeAllTabFolder();
+  	}
+  }
+}

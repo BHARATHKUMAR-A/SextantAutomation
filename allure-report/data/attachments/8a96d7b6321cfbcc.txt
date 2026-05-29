@@ -1,1 +1,0 @@
-✅ Data matched for column 'Typology (Class Code)': Expected Application Data: '-', Found from Excel: ''

@@ -1,0 +1,741 @@
+/**
+ * @fileoverview D&eacute;finition de l'objet <b>ECW.GridField</b>
+ * @author u218179
+ * @version $Revision: 1.16 $
+ */
+
+/**
+ * D&eacute;fini l'objet <b>ECW.GridField</b>
+ * @private
+ */
+ECW.GridField = function(){}
+
+/**
+ * ToString.
+ * @return string
+ * @private
+ */
+ECW.GridField.prototype.toString = function() {
+  return 'ECW.GridField';
+}
+
+/**
+ * Noeud DOM
+ * @private
+ */
+ECW.GridField.prototype.noeudDOM = null;
+
+/**
+ * Grid
+ * @private
+ */
+ECW.GridField.prototype.ecwGrid = null;
+
+/**
+ * Derniere valeur
+ * @private
+ */
+ECW.GridField.prototype.lastValue = null;
+
+/**
+ * Valeur par defaut
+ * @private
+ */
+ECW.GridField.prototype.defaultValue = null;
+
+/**
+ * Indique si la valeur est differente de la valeur par defaut
+ * @return boolean
+ * @private
+ */
+ECW.GridField.prototype.isDirty = function() {
+  return (this.noeudDOM.value != this.defaultValue);
+}
+
+/**
+ * Indique si la valeur est differente de la derniere valeur
+ * @return boolean
+ * @private
+ */
+ECW.GridField.prototype.isModified = function() {
+  return (this.noeudDOM.value != this.lastValue);
+}
+
+/**
+ * Constructeur de l'objet GridField
+ * @param Grid
+ * @param Node
+ * @private
+ */
+ECW.GridField.prototype.constructeur = function(grid, noeud) {
+  this.ecwGrid = grid;
+  ecwSetAttribute(this, "noeudDOM", noeud);
+  ecwSetAttribute(noeud, "ecwGridField", this);
+  ecwSetAttribute(noeud, "ecwGrid", grid);
+  this.lastValue = noeud.value;
+  this.isHidden=(noeud.parentNode && noeud.parentNode.style.display && noeud.parentNode.style.display=="none")?true:false;
+  this.initEvents();
+}
+
+/**
+ * Initialisation des evenements
+ * @private
+ */
+ECW.GridField.prototype.initEvents = function() {
+  if (this.noeudDOM.onfocus) {
+    this.noeudDOM.ecwonfocus = this.noeudDOM.onfocus;
+    this.noeudDOM.onfocus = function(event) {
+
+      this.ecwonfocus(event);
+      this.ecwGridField.onFocus(event);
+    }
+  } else {
+    this.noeudDOM.onfocus = function(event) {
+      this.ecwGridField.onFocus(event);
+    }
+  }
+
+  this.noeudDOM.onblur = function(event) {
+    this.ecwGridField.onBlur(event);
+  }
+  this.noeudDOM.onkeydown = function(event) {
+    this.ecwGridField.onKeydown(event);
+  }
+  this.noeudDOM.onkeypress = function(event) {
+    this.ecwGridField.onKeypress(event);
+  }
+  this.noeudDOM.onkeyup = function(event) {
+    this.ecwGridField.onKeyup(event);
+  }
+}
+
+/**
+ * Validation
+ * @param event
+ * @return boolean
+ * @private
+ */
+ECW.GridField.prototype.validate = function(event) {
+  event.isFieldModified = this.isModified();
+  var ok = (this.isModified()) ? this.onChange(event): true;
+  if (ok) {
+    this.stopModeEdit(event);
+    this.lastValue = this.noeudDOM.value;
+  }
+  return ok;
+}
+
+/**
+ * Action a declencher sur le onBlur d'un champ.
+ * @param event
+ * @return boolean
+ * @private
+ */
+ECW.GridField.prototype.onBlur = function(event) {
+  if (window.event)
+    event = window.event;
+  /* stop l'eventuel mode d'edition */
+  if (this.validate(event)) {
+    return this.ecwGrid.ecwOnFieldBlur(event);
+  }
+  return this.stopEvent(event);
+}
+
+/**
+ * Action a declencher sur le onFocus d'un champ.
+ * @param event
+ * @return boolean
+ * @private
+ */
+ECW.GridField.prototype.onFocus = function(event) {
+  if (window.event)
+    event = window.event;
+  return this.ecwGrid.ecwOnFieldFocus(event);
+}
+
+/**
+ * On intercepte sur onKyDown les touche qui ne sont pas g&eacute;r&eacute;es
+ * par la couche superieure (Grid ou metier).
+ * @param event
+ * @return boolean
+ * @private
+ */
+ECW.GridField.prototype.onKeydown = function(event) {
+  if (window.event)
+    event = window.event;
+  event.leaveEditMode = false;
+
+  if (this.isModeEdit() || this.isModeReplace()) {
+    /* Si escape ou Enter, on ne veut pas que les autres soient informe */
+    if (event.keyCode == 27) {
+      // Escape
+      return this.onEditEscape(event);
+    } else if (event.keyCode == 13 || event.keyCode == 14) {
+      // enter
+      return this.onEditEnter(event);
+    }
+    return this.ecwGrid.ecwOnKeydown(event);
+  } else {
+    if (event.keyCode == 46 || event.keyCode == 8) {
+      // Suppr || Backspace
+      this.onDelete(event);
+    } else if (event.keyCode == 13 || event.keyCode == 14) {
+      // enter
+      return this.onEnter(event);
+    }
+    this.ecwGrid.ecwOnKeydown(event);
+    return this.stopEvent(event);
+  }
+
+}
+
+/**
+ * Action de sortie de saisie.
+ * @param event
+ * @return boolean
+ * @private
+ */
+ECW.GridField.prototype.onEditEscape = function(event) {
+  this.stopModeEdit(event);
+  this.noeudDOM.value = this.defaultValue;
+  this.focusAndSelect();
+  return this.stopEvent(event);
+}
+
+/**
+ * Action d'entrer en mode saisie.
+ * @param event
+ * @return boolean
+ * @private
+ */
+ECW.GridField.prototype.onEditEnter = function(event) {
+  if (this.validate(event)) {
+    this.focusAndSelect();
+  } else {
+    return this.stopEvent(event);
+  }
+}
+
+/**
+ * Action a declencher sur le onEnter.
+ * @param event
+ * @return boolean
+ * @private
+ */
+ECW.GridField.prototype.onEnter = function(event) {
+  this.startModeEdit();
+  return this.stopEvent(event);
+}
+
+/**
+ * Action a declencher sur le onDelete.
+ * @param event
+ * @return boolean
+ * @private
+ */
+ECW.GridField.prototype.onDelete = function(event) {
+  this.startModeReplace();
+}
+
+/*
+ * On gere sur onKeyUp les touches qui ne sont pas interceptees avant,
+ * donc arretees par onKeydown ou onKeypress de le field ou une couche superieure (Grid ou metier)
+ * @param event
+ * @return boolean
+ * @private
+ */
+ECW.GridField.prototype.onKeyup = function(event) {
+  return this.ecwGrid.ecwOnKeyup(event);
+}
+
+/*
+ * Action a declencher sur le onKeypress.
+ * @param event
+ * @return boolean
+ * @private
+ */
+ECW.GridField.prototype.onKeypress = function(event) {
+  /*
+   * Pour rendre le meme comportement sous FireFox et IE,
+   * a savoir:
+   * Avec IE, Keypress n'est pas appele pour les touches non imprimable
+   * Avec FireFox, ces touches ont event.keyCode==0 et event.which!=0
+   * Sous Mozzila, ces touches ont event.keyCode!=0 et event.which==0
+   */
+  if (window.event) {
+    event = window.event;
+    event.which = event.keyCode;
+  }
+  // Pour stopper la propagation des touches fonctions sous Mozzila
+  else if (event.keyCode > 111) {
+    return this.stopEvent(event);
+  } else if (event.keyCode == 13) {
+    return this.stopEvent(event);
+  } else if (event.keyCode != 0) {
+    return ;
+  }
+
+  if (this.ecwGrid.ecwOnKeypress(event)) {
+    //    if (this.isModeEdit() || this.isModeReplace()) {
+    //    } else {
+    //      this.startModeReplace();
+    //    }
+  }
+}
+
+/**
+ * Action a declencher sur la modification d'une valeur.
+ * @param event
+ * @return boolean
+ * @private
+ */
+ECW.GridField.prototype.onChange = function(event) {
+
+  if (!this.ecwGrid.validateControl(this)) {
+    return this.stopEvent(event);
+  } else {
+    if (this.ecwGrid.ecwOnChange(event)) {
+      if (this.isDirty()) {
+        this.setModifiedClass();
+      } else {
+        this.resetModifiedClass();
+      }
+      return true;
+    } else {
+      return false;
+    }
+  }
+}
+
+/**
+ * Arret de la propagation d'un event.
+ * @param event
+ * @return boolean
+ * @private
+ */
+ECW.GridField.prototype.stopEvent = function(event) {
+  this.ecwGrid.stopEvent(event);
+}
+
+/**
+ * Retourn les parametres a poster.
+ * @return string
+ * @private
+ */
+ECW.GridField.prototype.getParam = function() {
+  return this.noeudDOM.name + "=" + escape(this.noeudDOM.value).replace(new RegExp("\\+", "g"), "%2B") + "&";
+}
+
+/**
+ * Marque le noeud comme modifie.
+ * @private
+ */
+ECW.GridField.prototype.setModifiedClass = function() {
+  addClass(this.noeudDOM, "modified");
+}
+
+/**
+ * Marque le noeud comme non modifie.
+ * @private
+ */
+ECW.GridField.prototype.resetModifiedClass = function() {
+  removeClass(this.noeudDOM, "modified");
+}
+
+/**
+ * Marque le noeud comme en erreur.
+ * @private
+ */
+ECW.GridField.prototype.setError = function() {
+  addClass(this.noeudDOM, "error");
+}
+
+/**
+ * Marque le noeud comme non en erreur.
+ * @private
+ */
+ECW.GridField.prototype.resetError = function() {
+  removeClass(this.noeudDOM, "error");
+}
+
+/**
+ * Marque le noeud comme disabled/enable.
+ * @param boolean
+ */
+ECW.GridField.prototype.setDisabled = function(set) {
+  
+  this.noeudDOM.disabled = set;
+  if (set) {
+    removeClass(this.noeudDOM.parentNode, "ecwGridCellSelect");
+    var grid = this.ecwGrid;
+    /* Le field disable est-il le field courant ? */
+    if (grid.getCurrentField().ecwGridField==this) {
+      grid.selectNextCell(grid.getCell(this.noeudDOM));
+    }
+  }
+}
+
+/**
+ * Marque le noeud comme type password.
+ * @param boolean
+ * @private
+ */
+ECW.GridField.prototype.setPasswordControl = function(set) {
+  if (ECW_isIE) {
+    if (set)
+      this.getIECloneControl("password");
+    else
+      this.getIECloneControl("text");
+  } else {
+    if (set)
+      this.noeudDOM.type = "password";
+    else
+      this.noeudDOM.type = "text";
+  }
+}
+
+/**
+ * getIECloneControl.
+ * @param string
+ * @private
+ */
+ECW.GridField.prototype.getIECloneControl = function(type) {
+  var field = this.noeudDOM;
+  if (type == "password")
+    addClass(field, "password");
+  else
+    removeClass(field, "password");
+
+  //  var newNode=document.createElement('INPUT');
+  //  var attributes = field.attributes;
+  //  for (var i=0;i<attributes.length; i++) {
+  //    attribute = attributes[i];
+  //    if (attribute.nodeValue!= null) {
+  //      newNode.setAttribute(attribute.nodeName, (attribute.nodeName=="type") ? type : attribute.nodeValue);
+  //    }
+  //  }
+  //
+  //  var childs = field.childNodes;
+  //  for (var i=0;i<childs.length; i++) {
+  //    child = childs[i];
+  //    if (child != attributes) {
+  //      newNode.appendChild(child.nodeName, (child.nodeName=="type") ? type : child.nodeValue);
+  //    }
+  //  }
+  //
+  //  field.parentNode.replaceChild(newNode,field);
+
+}
+
+/**
+ * Debut du mode edition.
+ * @private
+ */
+ECW.GridField.prototype.startModeEdit = function() {
+  this.fieldEdit = this.noeudDOM;
+  addClass(this.fieldEdit, "edit");
+}
+
+/**
+ * Debut du mode replace.
+ * @private
+ */
+ECW.GridField.prototype.startModeReplace = function() {
+  this.fieldEdit = this.noeudDOM;
+  addClass(this.fieldEdit, "edit");
+  addClass(this.fieldEdit, "replace");
+}
+
+/**
+ * Arret du mode edition.
+ * @private
+ */
+ECW.GridField.prototype.stopModeEdit = function(event) {
+  if (this.fieldEdit) {
+    removeClass(this.fieldEdit, "edit");
+    removeClass(this.fieldEdit, "replace");
+    this.fieldEdit = undefined;
+  }
+  event.leaveEditMode = true;
+}
+
+/**
+ * Indique si on est en mode edition.
+ * @return boolean
+ * @private
+ */
+ECW.GridField.prototype.isModeEdit = function() {
+  if (!this.fieldEdit)
+    return false;
+  return this.fieldEdit && !isClass(this.fieldEdit, 'replace');
+}
+
+/**
+ * Indique si on est en mode replace.
+ * @return boolean
+ * @private
+ */
+ECW.GridField.prototype.isModeReplace = function() {
+  if (!this.fieldEdit)
+    return false;
+  return this.fieldEdit && isClass(this.fieldEdit, 'replace');
+}
+
+/**
+ * Focus et select du field.
+ * @private
+ */
+ECW.GridField.prototype.focusAndSelect = function() {	
+  if(this.noeudDOM.disabled){
+    return;
+  }
+  var field = this.noeudDOM;
+  var champActif = this.ecwGrid.ecwUI.champActif;
+  if (champActif && !champActif.noeudDOM.ecwGridField) {
+    champActif.desactiver();
+  }
+  this.ecwGrid.ecwUI.champActif = this.noeudDOM.ecwControl;
+  ecwFocus(field);
+  if (field.tagName == "INPUT")
+    field.select();
+}
+
+/****************************************************************
+ *
+ */
+
+/**
+ * D&eacute;fini l'objet <b>ECW.GridFieldInput</b>
+ * @param Grid
+ * @param Node
+ * @private
+ */
+ECW.GridFieldInput = function(grid, noeud) {
+  this.constructeur(grid, noeud);
+  noeud.setAttribute("autocomplete", "off");
+  this.defaultValue = noeud.defaultValue;
+}
+
+/**
+ * ToString.
+ * @return string
+ * @private
+ */
+ECW.GridFieldInput.prototype.toString = function() {
+  return 'ECW.GridFieldInput';
+}
+
+/**
+ * GridFieldInput herite de GridField.
+ * @private
+ */
+ECW.GridFieldInput.prototype = new ECW.GridField();
+
+/****************************************************************
+ *
+ */
+
+/**
+ * D&eacute;fini l'objet <b>ECW.GridFieldSelect</b>
+ * @param Grid
+ * @param Node
+ * @private
+ */
+ECW.GridFieldSelect = function(grid, noeud) {
+  this.constructeur(grid, noeud);
+  this.initDefaultValue();
+
+  ecwSetAttribute(this.noeudDOM, "onkeydown", function(event) {
+    return this.ecwGridField.onKeydown(event); 
+  }
+  );
+  ecwSetAttribute(this.noeudDOM, "onchange", function(event) {
+    this.ecwGridField.onChange(event); 
+  }
+  );
+
+  if (this.noeudDOM.onclick) {
+    this.noeudDOM.ecwonclick = this.noeudDOM.onclick;
+    ecwSetAttribute(this.noeudDOM, "onclick", function(event) {
+      this.ecwonclick(event); this.ecwGridField.onClick(event); 
+    }
+    );
+  } else {
+    ecwSetAttribute(this.noeudDOM, "onclick", function(event) {
+      this.ecwGridField.onClick(event); 
+    }
+    );
+  }
+
+}
+
+/**
+ * ToString.
+ * @return string
+ * @private
+ */
+ECW.GridFieldSelect.prototype.toString = function() {
+  return 'ECW.GridFieldSelect';
+}
+
+/**
+ * GridFieldSelect herite de GridField.
+ * @private
+ */
+ECW.GridFieldSelect.prototype = new ECW.GridField();
+
+/**
+ * GridFieldSelect herite de GridField.
+ * @private
+ */
+ECW.GridFieldSelect.prototype.moveOption = 0;
+
+/**
+ * Initialisation des valeurs par defaut.
+ * @private
+ */
+ECW.GridFieldSelect.prototype.initDefaultValue = function() {
+  for (var i = 0; i < this.noeudDOM.options.length; ++i) {
+    // ecwSelected car lors de la creation d'une nouvelle ligne, IE perd le selected
+    if (this.noeudDOM.options[i].getAttribute("ecwSelected") == "selected") {
+      this.noeudDOM.options[i].selected = true;
+      this.defaultValue = this.noeudDOM.options[i].value;
+      break;
+    }
+  }
+  if (!this.defaultValue) {
+    this.defaultValue = "";
+  }
+}
+
+/**
+ * Action a lancer en fct de la touche.
+ * @param event
+ * @return boolean
+ * @private
+ */
+ECW.GridFieldSelect.prototype.onKeydown = function(event) {
+
+  if (window.event)
+    event = window.event;
+  event.leaveEditMode = false;
+  if (this.isModeEdit() || this.isModeReplace()) {
+    /* Si escape ou Enter, on ne veut pas que les autres soient informe */
+    if (event.keyCode == 27) {
+      // Escape
+      return this.onEditEscape(event);
+    } else if (event.keyCode == 13 || event.keyCode == 14) {
+      // enter
+      return this.onEditEnter(event);
+    }
+  } else if (event.altKey && (event.keyCode == 37 || event.keyCode == 38 ||
+    event.keyCode == 39 || event.keyCode == 40)) {
+    this.startModeEdit();
+    this.moveOption = 0;
+    return false;
+  } else if (!event.altKey) {
+    if (event.keyCode == 37 || event.keyCode == 38) {
+      this.moveOption = 1;
+    } else if (event.keyCode == 39 || event.keyCode == 40) {
+      this.moveOption =  - 1;
+    } else if (event.keyCode == 13 || event.keyCode == 14) {
+      // enter
+      return this.onEnter(event);
+    } else if (event.keyCode >= 48 && event.keyCode <= 90) {
+      this.moveOption = 0;
+      this.startModeEdit();
+    }
+  }
+
+  return this.ecwGrid.ecwOnKeydown(event);
+}
+
+/**
+ * Action a declencher sur la modification d'une valeur.
+ * @param event
+ * @return boolean
+ * @private
+ */
+ECW.GridFieldSelect.prototype.onChange = function(event) {
+
+  if (window.event)
+    event = window.event;
+  if (this.moveOption != 0 && !this.isModeEdit() && !this.isModeReplace()) {
+    this.noeudDOM.selectedIndex = this.noeudDOM.selectedIndex + this.moveOption;
+    this.moveOption = 0;
+  }
+  if (this.isModeEdit() || this.isModeReplace()) {
+    this.moveOption = 0;
+  }
+  //  if (!this.getGrid().validateControl(this)) {
+  //    return this.stopEvent(event);
+  //  } else {
+  if (this.ecwGrid.ecwOnChange(event)) {
+    if (this.isDirty()) {
+      this.setModifiedClass();
+    } else {
+      this.resetModifiedClass();
+    }
+    return true;
+  } else {
+    return false;
+  }
+  //  }
+}
+
+/**
+ * Action a declencher sur le onFocus d'un champ.
+ * @param event
+ * @return boolean
+ * @private
+ */
+ECW.GridFieldSelect.prototype.onFocus = function(event) {
+
+  if (window.event)
+    event = window.event;
+  // Sous IE la selection reste sur l'INPUT precedent le SELECT
+  if (ECW_isIE)
+    document.selection.empty();
+
+  var currentCellIndex = this.ecwGrid.getCurrentCellIndex();
+  var currentRowIndex = this.ecwGrid.getCurrentRowIndex();
+  var TD = this.noeudDOM.parentNode;
+  var TR = TD.parentNode;
+  var thisCellIndex = TD.cellIndex;
+  var thisRowIndex = TR.rowIndex;
+  if (currentCellIndex != thisCellIndex || currentRowIndex != thisRowIndex) {
+    this.ecwGrid.setCurrentCellEvent(event);
+    this.ecwGrid.stopEvent(event);
+    return false;
+  }
+  this.ecwGrid.ecwOnFieldFocus(event);
+  ;
+  return true;
+}
+
+/**
+ * Action a declencher sur le onClick d'un champ.
+ * @param event
+ * @return boolean
+ * @private
+ */
+ECW.GridFieldSelect.prototype.onClick = function(event) {
+
+  if (window.event)
+    event = window.event;
+  var field = this.noeudDOM;
+  var currentField = this.ecwGrid.getCurrentField();
+  if (field != currentField) {
+    var cell = field.parentNode;
+    this.ecwGrid.selectCell(cell.parentNode.rowIndex, cell.cellIndex);
+    this.ecwGrid.setCurrentCellEvent(event);
+    return true;
+
+  }
+
+  if (field && !field.ecwGridField.isModeEdit() && !field.ecwGridField.isModeReplace()) {
+    this.ecwGrid.stopEvent(event);
+    return false;
+  }
+  return true;
+}

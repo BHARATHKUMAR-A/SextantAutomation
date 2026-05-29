@@ -1,1 +1,0 @@
-expected Medium description data same as actual data ✅

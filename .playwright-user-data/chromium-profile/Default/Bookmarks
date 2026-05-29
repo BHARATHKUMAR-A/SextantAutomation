@@ -1,0 +1,72 @@
+{
+   "checksum": "ea5b66073d503327636bfad92f6fb410",
+   "roots": {
+      "bookmark_bar": {
+         "children": [ {
+            "date_added": "13395473287264719",
+            "date_last_used": "0",
+            "guid": "68f9731d-7b49-4301-9a39-2fb1f1e1b13c",
+            "id": "6",
+            "name": "Le Portail Groupe",
+            "show_icon": false,
+            "source": "import_fre",
+            "type": "url",
+            "url": "http://portail.inetpsa.com/",
+            "visit_count": 0
+         }, {
+            "date_added": "13395473287294720",
+            "date_last_used": "0",
+            "guid": "68599800-951b-4a05-b134-ccd655034eab",
+            "id": "7",
+            "name": "Reflex",
+            "show_icon": false,
+            "source": "import_fre",
+            "type": "url",
+            "url": "http://reflex.inetpsa.com/",
+            "visit_count": 0
+         }, {
+            "date_added": "13395473391368307",
+            "date_last_used": "0",
+            "guid": "402e4507-2bd1-44de-9a33-e2e89e5c190b",
+            "id": "8",
+            "name": "My IT Portal",
+            "show_icon": false,
+            "source": "import_fre",
+            "type": "url",
+            "url": "https://it-portal.psa-cloud.com/",
+            "visit_count": 0
+         } ],
+         "date_added": "13418746260468369",
+         "date_last_used": "0",
+         "date_modified": "0",
+         "guid": "0bc5d13f-2cba-5d74-951f-3f233fe6c908",
+         "id": "1",
+         "name": "Favourites bar",
+         "source": "unknown",
+         "type": "folder"
+      },
+      "other": {
+         "children": [  ],
+         "date_added": "13418746260468369",
+         "date_last_used": "0",
+         "date_modified": "0",
+         "guid": "82b081ec-3dd3-529c-8475-ab6c344590dd",
+         "id": "2",
+         "name": "Other favourites",
+         "source": "unknown",
+         "type": "folder"
+      },
+      "synced": {
+         "children": [  ],
+         "date_added": "13418746260468369",
+         "date_last_used": "0",
+         "date_modified": "0",
+         "guid": "4cf2e351-0e85-532b-bb37-df045d8f8d0f",
+         "id": "3",
+         "name": "Mobile favourites",
+         "source": "unknown",
+         "type": "folder"
+      }
+   },
+   "version": 1
+}
