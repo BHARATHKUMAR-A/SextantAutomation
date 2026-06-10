@@ -1,13 +1,13 @@
-import { test }   from '../fixtures/testWithLogIn';
+import { test }   from '../../fixtures/testWithLogIn';
 import { expect } from '@playwright/test';
-import { StepHelper }    from '../../utils/StepHelper';
-import { SshHelper }     from '../../utils/sshHelper';
-import { CAL0101Steps }  from '../../steps/CAL0101Steps';
-import { CAL0101Page }   from '../../pages/CAL0101Page';
+import { StepHelper }    from '../../../utils/StepHelper';
+import { SshHelper }     from '../../../utils/sshHelper';
+import { CAL0101Steps }  from '../../../steps/CAL0101Steps';
+import { CAL0101Page }   from '../../../pages/CAL0101Page';
 import * as fs from 'fs';
-import envConfig    from '../../test-data/envConfig.json';
-import credentials  from '../../test-data/credentials.json';
-import { calendarTestState } from '../../utils/calendarTestState';
+import envConfig    from '../../../test-data/envConfig.json';
+import credentials  from '../../../test-data/credentials.json';
+import { calendarTestState } from '../../../utils/calendarTestState';
 
 const USER_ID = credentials.Credentials.username;
 
@@ -303,3 +303,4 @@ test.describe.serial('CAL0101 - Manage calendar element types', () => {
     });
 
 });
+

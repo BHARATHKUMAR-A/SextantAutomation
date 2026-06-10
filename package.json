@@ -4,9 +4,9 @@
   "main": "index.js",
   "scripts": {
     "test": "playwright test",
-    "test:calendar": "playwright test tests/calendar/CAL0101.spec.ts tests/calendar/CAL0102.spec.ts --workers=1",
-    "test:topology": "playwright test tests/topology/ --no-deps",
-    "test:quality": "playwright test tests/quality/ --no-deps",
+    "test:calendar": "playwright test tests/reference_data/calendar/CAL0101.spec.ts tests/reference_data/calendar/CAL0102.spec.ts --workers=1",
+    "test:topology": "playwright test tests/reference_data/topology/ --no-deps",
+    "test:quality": "playwright test tests/reference_data/quality/ --no-deps",
     "test:production": "playwright test tests/production_goals/ tests/production_programme/ --no-deps",
     "test:smoke": "playwright test --no-deps --grep \"Validation of creation\"",
     "test:regression": "playwright test --no-deps",

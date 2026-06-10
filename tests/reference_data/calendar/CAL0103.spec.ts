@@ -1,8 +1,8 @@
-import { test }   from '../fixtures/testWithLogIn';
+import { test }   from '../../fixtures/testWithLogIn';
 import { expect } from '@playwright/test';
-import { StepHelper }   from '../../utils/StepHelper';
-import { CAL0103Steps } from '../../steps/CAL0103Steps';
-import credentials from '../../test-data/credentials.json';
+import { StepHelper }   from '../../../utils/StepHelper';
+import { CAL0103Steps } from '../../../steps/CAL0103Steps';
+import credentials from '../../../test-data/credentials.json';
 
 // ── Architecture note ─────────────────────────────────────────────────────────
 // CAL0103 manages non-working days for a given calendar type + zone.
@@ -77,3 +77,4 @@ test.describe.serial('CAL0103 - Manage non-working days', () => {
     });
 
 });
+

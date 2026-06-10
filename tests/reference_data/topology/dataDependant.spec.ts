@@ -1,7 +1,7 @@
 // 
-import { test } from '../fixtures/testWithLogIn'
-import { demoSteps } from '../../steps/demoSteps';
-import { StepHelper } from '../../utils/StepHelper';
+import { test } from '../../fixtures/testWithLogIn'
+import { demoSteps } from '../../../steps/demoSteps';
+import { StepHelper } from '../../../utils/StepHelper';
 import * as allure from 'allure-js-commons';
 
 test('Verify touchScreen', async ({ page }, testInfo) => {

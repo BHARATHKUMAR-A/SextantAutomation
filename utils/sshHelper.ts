@@ -178,12 +178,29 @@ const PUTTY_LOG_FILE = fs.existsSync(envConfig.logFilePath.puttyLogFile)
   // private verifier!: PuttyLogReader;
 
   async lastlogs(lines: number): Promise<string> {
-    const PUTTY_LOG_FILE = fs.existsSync(envConfig.logFilePath.puttyLogFile)
-      ? envConfig.logFilePath.puttyLogFile
-      : 'C:\\Users\\SF75684\\Sextent_Automation_Workspace\\Sextent\\logs\\putty.log';
-
-    this.verifier = new PuttyLogReader(PUTTY_LOG_FILE);
+    const puttyLogFile = this.resolvePuttyLogFile();
+    this.verifier = new PuttyLogReader(puttyLogFile);
     return this.verifier.tail(lines);
+  }
+
+  private resolvePuttyLogFile(): string {
+    const configuredPath = envConfig.logFilePath.puttyLogFile;
+    const legacyPath = 'C:\\Users\\SF75684\\Sextent_Automation_Workspace\\Sextent\\logs\\putty.log';
+
+    if (fs.existsSync(configuredPath)) {
+      return configuredPath;
+    }
+
+    if (fs.existsSync(legacyPath)) {
+      return legacyPath;
+    }
+
+    throw new Error(
+      `[PuttyLogReader] Log file not found. Checked:\n` +
+      `- ${configuredPath}\n` +
+      `- ${legacyPath}\n` +
+      `Update test-data/envConfig.json or enable PuTTY Session -> Logging.`
+    );
   }
 
   async waitForLog(

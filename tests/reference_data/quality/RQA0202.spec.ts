@@ -1,14 +1,14 @@
-import { test } from '../fixtures/testWithLogIn';
+import { test } from '../../fixtures/testWithLogIn';
 import { expect } from '@playwright/test';
-import { StepHelper } from '../../utils/StepHelper';
-import { SshHelper } from '../../utils/sshHelper';
-import { RQA0202Steps } from '../../steps/RQA0202Steps';
-import { RQA0202Page } from '../../pages/RQA0202Page';
-import { PuttyLogReader } from '../../utils/puttyLogReader';
+import { StepHelper } from '../../../utils/StepHelper';
+import { SshHelper } from '../../../utils/sshHelper';
+import { RQA0202Steps } from '../../../steps/RQA0202Steps';
+import { RQA0202Page } from '../../../pages/RQA0202Page';
+import { PuttyLogReader } from '../../../utils/puttyLogReader';
 import * as fs from 'fs';
-import envConfig from '../../test-data/envConfig.json';
-import credentials from '../../test-data/credentials.json';
-import testConfig from '../../test-data/testConfig.json';
+import envConfig from '../../../test-data/envConfig.json';
+import credentials from '../../../test-data/credentials.json';
+import testConfig from '../../../test-data/testConfig.json';
 
 const DEFAULT_PUTTY_LOG_FILE = 'C:\\Users\\SF75684\\Sextent_Automation_Workspace\\Sextent\\logs\\putty.log';
 const PUTTY_LOG_FILE = fs.existsSync(envConfig.logFilePath.puttyLogFile)
@@ -119,3 +119,4 @@ test.describe.serial('RQA0202 - Manage Announceable Defects', () => {
     });
 
 });
+

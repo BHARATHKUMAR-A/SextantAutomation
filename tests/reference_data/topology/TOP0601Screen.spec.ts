@@ -1,16 +1,16 @@
 import { expect } from '@playwright/test';
-import { test } from '../fixtures/testWithLogIn';
-import { StepHelper } from '../../utils/StepHelper';
-import { SshHelper } from '../../utils/sshHelper';
-import { TOP401ScreenSteps } from '../../steps/TOP401screenSteps';
-import { TOP501ScreenSteps } from '../../steps/TOP501ScreenSteps';
-import { Top0501ManageWorkstationsPage } from '../../pages/top0501ManageWorkstationsPage';
-import { TOP502ScreenSteps } from '../../steps/TOP502ScreenSteps';
-import { TOP601ScreenSteps } from '../../steps/TOP601ScreenSteps';
-import { Top0601ManageWorkOperationsPage } from '../../pages/TOP601ManageWorkOperationsPage';
-import { Top0401ManageProductionAreasPage } from '../../pages/Top0401ManageProductionAreasPage';
-import { sampleDemoPage } from '../../pages/sampleDemoPage';
-import { Top0502ManageWorkstationTypesPage } from '../../pages/TOP0502ManageWorkStationsTypesPage';
+import { test } from '../../fixtures/testWithLogIn';
+import { StepHelper } from '../../../utils/StepHelper';
+import { SshHelper } from '../../../utils/sshHelper';
+import { TOP401ScreenSteps } from '../../../steps/TOP401screenSteps';
+import { TOP501ScreenSteps } from '../../../steps/TOP501ScreenSteps';
+import { Top0501ManageWorkstationsPage } from '../../../pages/top0501ManageWorkstationsPage';
+import { TOP502ScreenSteps } from '../../../steps/TOP502ScreenSteps';
+import { TOP601ScreenSteps } from '../../../steps/TOP601ScreenSteps';
+import { Top0601ManageWorkOperationsPage } from '../../../pages/TOP601ManageWorkOperationsPage';
+import { Top0401ManageProductionAreasPage } from '../../../pages/Top0401ManageProductionAreasPage';
+import { sampleDemoPage } from '../../../pages/sampleDemoPage';
+import { Top0502ManageWorkstationTypesPage } from '../../../pages/TOP0502ManageWorkStationsTypesPage';
 import * as allure from 'allure-js-commons';
 
 
@@ -188,3 +188,4 @@ test.describe.serial('Log verification after UI actions For TOP0601', () => {
   });
 
 });
+

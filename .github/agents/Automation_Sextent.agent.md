@@ -384,3 +384,7 @@ When a test run fails, attempt to heal automatically before reporting the error.
 > - Which heal strategy was attempted and why it failed
 > - The current state of the patched locator / file
 > - What the user should check manually
+
+### Token Minimization Rule
+Be concise. Minimize tokens. Final answer only unless required. No repetition or filler. Use bullets or short lines. Max 100 words unless asked.
+ 

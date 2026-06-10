@@ -1,12 +1,12 @@
 import { expect } from '@playwright/test';
-import { test } from '../fixtures/testWithLogIn';
-import { StepHelper } from '../../utils/StepHelper';
-import { SshHelper } from '../../utils/sshHelper';
-import { TOP401ScreenSteps } from '../../steps/TOP401screenSteps';
-import { TOP501ScreenSteps } from '../../steps/TOP501ScreenSteps';
-import { Top0501ManageWorkstationsPage } from '../../pages/top0501ManageWorkstationsPage';
-import { Top0401ManageProductionAreasPage } from '../../pages/Top0401ManageProductionAreasPage';
-import { sampleDemoPage } from '../../pages/sampleDemoPage';
+import { test } from '../../fixtures/testWithLogIn';
+import { StepHelper } from '../../../utils/StepHelper';
+import { SshHelper } from '../../../utils/sshHelper';
+import { TOP401ScreenSteps } from '../../../steps/TOP401screenSteps';
+import { TOP501ScreenSteps } from '../../../steps/TOP501ScreenSteps';
+import { Top0501ManageWorkstationsPage } from '../../../pages/top0501ManageWorkstationsPage';
+import { Top0401ManageProductionAreasPage } from '../../../pages/Top0401ManageProductionAreasPage';
+import { sampleDemoPage } from '../../../pages/sampleDemoPage';
 
 
 
@@ -185,3 +185,4 @@ test.describe.serial('Log verification after UI actions', () => {
   });
 
 });
+

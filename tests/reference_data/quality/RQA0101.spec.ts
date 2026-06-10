@@ -1,12 +1,12 @@
-import { test } from '../fixtures/testWithLogIn';
-import { StepHelper } from '../../utils/StepHelper';
-import { SshHelper } from '../../utils/sshHelper';
-import { RQA0101Steps } from '../../steps/RQA0101Steps';
-import { RQA0101Page } from '../../pages/RQA0101Page';
-import { PuttyLogReader } from '../../utils/puttyLogReader';
+import { test } from '../../fixtures/testWithLogIn';
+import { StepHelper } from '../../../utils/StepHelper';
+import { SshHelper } from '../../../utils/sshHelper';
+import { RQA0101Steps } from '../../../steps/RQA0101Steps';
+import { RQA0101Page } from '../../../pages/RQA0101Page';
+import { PuttyLogReader } from '../../../utils/puttyLogReader';
 import * as fs from 'fs';
-import envConfig from '../../test-data/envConfig.json';
-import credentials from '../../test-data/credentials.json';
+import envConfig from '../../../test-data/envConfig.json';
+import credentials from '../../../test-data/credentials.json';
 
 const DEFAULT_PUTTY_LOG_FILE = 'C:\\Users\\SF75684\\Sextent_Automation_Workspace\\Sextent\\logs\\putty.log';
 const PUTTY_LOG_FILE = fs.existsSync(envConfig.logFilePath.puttyLogFile)
@@ -123,3 +123,4 @@ test.describe.serial('RQA0101 - Manage Attributes', () => {
     });
 
 });
+

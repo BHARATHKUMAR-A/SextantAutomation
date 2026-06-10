@@ -1,13 +1,13 @@
-import { test } from '../fixtures/testWithLogIn';
-import { StepHelper } from '../../utils/StepHelper';
-import { SshHelper } from '../../utils/sshHelper';
-import { RQA0102Steps } from '../../steps/RQA0102Steps';
-import { RQA0102Page } from '../../pages/RQA0102Page';
-import { PuttyLogReader } from '../../utils/puttyLogReader';
+import { test } from '../../fixtures/testWithLogIn';
+import { StepHelper } from '../../../utils/StepHelper';
+import { SshHelper } from '../../../utils/sshHelper';
+import { RQA0102Steps } from '../../../steps/RQA0102Steps';
+import { RQA0102Page } from '../../../pages/RQA0102Page';
+import { PuttyLogReader } from '../../../utils/puttyLogReader';
 import * as fs from 'fs';
-import envConfig from '../../test-data/envConfig.json';
-import credentials from '../../test-data/credentials.json';
-import testConfig from '../../test-data/testConfig.json';
+import envConfig from '../../../test-data/envConfig.json';
+import credentials from '../../../test-data/credentials.json';
+import testConfig from '../../../test-data/testConfig.json';
 
 const DEFAULT_PUTTY_LOG_FILE = 'C:\\Users\\SF75684\\Sextent_Automation_Workspace\\Sextent\\logs\\putty.log';
 const PUTTY_LOG_FILE = fs.existsSync(envConfig.logFilePath.puttyLogFile)
@@ -358,3 +358,4 @@ test.describe.serial('RQA0102 - Manage Measured Parameter Attributes (Unit radio
     });
 
 });
+

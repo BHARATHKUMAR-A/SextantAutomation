@@ -1,9 +1,9 @@
 import { expect } from '@playwright/test';
-import { test } from '../fixtures/testWithLogIn';
-import { PuttyLogReader } from '../../utils/puttyLogReader';
-import envConfig from '../../test-data/envConfig.json';
-import credentials from '../../test-data/credentials.json';
-import { StepHelper } from '../../utils/StepHelper';
+import { test } from '../../fixtures/testWithLogIn';
+import { PuttyLogReader } from '../../../utils/puttyLogReader';
+import envConfig from '../../../test-data/envConfig.json';
+import credentials from '../../../test-data/credentials.json';
+import { StepHelper } from '../../../utils/StepHelper';
 import * as fs from 'fs';
 
 // ── Configuration ────────────────────────────────────────────────────────────
@@ -56,3 +56,4 @@ test.describe('Log verification after UI actions', () => {
  
 
 });
+

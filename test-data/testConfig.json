@@ -1,3 +1,17 @@
-{
-    "workshop": "EBAS1"
-}
+[
+    {
+        "workshop": "EBAS1"
+    },
+    {
+        "QUA0101": { 
+            "oldProduct": "MASGBC2224465",
+            "rangeNumber": "0000000"
+        },
+        "QUA0801": { 
+            "oldProduct": "MASGBC2285718",
+            "newProduct": "CL20260100721N",
+            "Oldsupplier": "T03102827",
+            "newSupplier": "X16237483"
+        }
+    }
+]

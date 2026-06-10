@@ -1,12 +1,12 @@
-import { test }   from '../fixtures/testWithLogIn';
+import { test }   from '../../fixtures/testWithLogIn';
 import { expect } from '@playwright/test';
-import { StepHelper }   from '../../utils/StepHelper';
-import { SshHelper }    from '../../utils/sshHelper';
-import { CAL0102Steps } from '../../steps/CAL0102Steps';
-import { CAL0102Page }  from '../../pages/CAL0102Page';
-import envConfig   from '../../test-data/envConfig.json';
-import credentials from '../../test-data/credentials.json';
-import { calendarTestState } from '../../utils/calendarTestState';
+import { StepHelper }   from '../../../utils/StepHelper';
+import { SshHelper }    from '../../../utils/sshHelper';
+import { CAL0102Steps } from '../../../steps/CAL0102Steps';
+import { CAL0102Page }  from '../../../pages/CAL0102Page';
+import envConfig   from '../../../test-data/envConfig.json';
+import credentials from '../../../test-data/credentials.json';
+import { calendarTestState } from '../../../utils/calendarTestState';
 
 // ── Architecture note ─────────────────────────────────────────────────────────
 // CAL0102 is intentionally a STANDALONE spec file (not embedded in CAL0101).
@@ -258,3 +258,4 @@ test.describe.serial('CAL0102 - Manage calendars', () => {
     });
 
 });
+
