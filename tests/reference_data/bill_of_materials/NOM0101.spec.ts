@@ -195,7 +195,7 @@ test.describe.serial('NOM0101 - Manage manufactured products', () => {
 
     });
 
-    test.only(`verify user able to transitioned to "View product tree  (NOM0305)" after clicking on manage the components button in NOM0101 `, async ({ page }, testInfo) => { 
+    test(`verify user able to transitioned to "View product tree  (NOM0305)" after clicking on manage the components button in NOM0101 `, async ({ page }, testInfo) => { 
         const helper = new StepHelper(page, testInfo);
         const nom0101Steps = new NOM0101Steps(page, testInfo, helper);
         const nom0101Page = new NOM0101Page(page);
