@@ -310,6 +310,15 @@ export class NOM0101Steps {
         console.log(`✅ Product deletion confirmed: ${productCode}`);
     }
 
+    async duplicateAlreadyExistError(productCode: string): Promise<void> {
+
+        await this.filterTableByProduct(productCode);
+        await this.helper.clickElement(this.nom0101Page.duplicateButton, 'Click Duplicate button');
+
+        await this.helper.clickElement(this.nom0101Page.validateButton, 'Click Validate button after entering duplicate product details');
+        await this.page.waitForTimeout(1000);
+    }
+
 
     async duplicateProduct(productCode: string): Promise<{ productCode: string; repereOrgane: string }> {
         const duplicateProductCode = await this.sshHelper.generateRandomNumeric(10);
@@ -345,6 +354,8 @@ export class NOM0101Steps {
 
     async compareProducts(product1Code: string, product2Code: string): Promise<void> {
         await this.helper.clickElement(this.nom0101Page.compareButton, 'Click Compare button to open product comparison');
+
+        await this.helper.assertElementHasText(this.nom0101Page.compareTwoProductsNom0102Title, 'Compare two Product  (NOM0102)', 'Verify navigation to NOM0102 - Compare two products');
         
         // Select first product
         await this.page.locator('frame[name="main"]').contentFrame().locator('#comboProduit1 span').click();

@@ -136,7 +136,7 @@ export class PuttyLogReader {
   }
 
   /**
-   * Extract and validate named capture groups from a regex match.
+   * Extract and validate named capture groups from a regex match.   
    * Returns an object with the captured groups for inspection and validation.
    *
    * @example

@@ -128,6 +128,22 @@ test.describe.serial('NOM0101 - Manage manufactured products', () => {
         await helper.captureScreenshot('NOM0101_deletion_error_message');
     });
 
+    test(`verify "The product number 10 char must be filled with zeros"  if the user enter less than 10 char and click on create button`, async ({ page }, testInfo) => {
+        const helper = new StepHelper(page, testInfo);
+        const nom0101Steps = new NOM0101Steps(page, testInfo, helper);
+        const nom0101Page = new NOM0101Page(page);
+
+        // Navigate to the screen
+        await nom0101Steps.navigateToNOM0101();
+        await helper.clickElement(nom0101Page.createButton, 'Click Create button');
+        await helper.enterText(nom0101Page.productField, '12345', 'Enter product code with less than 10 characters');
+        await helper.clickElement(nom0101Page.validateButton, 'Click Validate button');
+
+        await helper.assertElementHasText(nom0101Page.errorMessageProductNumMustBeFilled, 'The product number 10 char must be filled', 'Verify error message for product number with less than 10 characters');
+        console.log('✅ Error message verified for product number with less than 10 characters');
+        await helper.captureScreenshot('NOM0101_product_number_error_message');
+    });
+
 
     test('Create manufactured product with all properties + SSH log validation', async ({ page }, testInfo) => {
         const helper = new StepHelper(page, testInfo);
@@ -195,27 +211,27 @@ test.describe.serial('NOM0101 - Manage manufactured products', () => {
 
     });
 
-    test(`verify user able to transitioned to "View product tree  (NOM0305)" after clicking on manage the components button in NOM0101 `, async ({ page }, testInfo) => { 
+    test(`verify user able to transitioned to "View product tree  (NOM0305)" after clicking on manage the components button in NOM0101 `, async ({ page }, testInfo) => {
         const helper = new StepHelper(page, testInfo);
         const nom0101Steps = new NOM0101Steps(page, testInfo, helper);
         const nom0101Page = new NOM0101Page(page);
 
         // Navigate to the screen
         await nom0101Steps.navigateToNOM0101();
-        await nom0101Steps.manageCompositionForManageCompounds('SG6 0928793000');
+        await nom0101Steps.manageCompositionForManageCompounds(`${createdProductCode}`);
 
         // Capture screenshot for report
         await helper.captureScreenshot('NOM0101_navigate_to_NOM0305_from_components');
 
     });
-    test(`verify user able to transitioned to  " Manage the composition  (NOM0302)"  after clicking on manage the compounds button in NOM0101 `, async ({ page }, testInfo) => { 
+    test(`verify user able to transitioned to  " Manage the composition  (NOM0302)"  after clicking on manage the compounds button in NOM0101 `, async ({ page }, testInfo) => {
         const helper = new StepHelper(page, testInfo);
         const nom0101Steps = new NOM0101Steps(page, testInfo, helper);
         const nom0101Page = new NOM0101Page(page);
 
         // Navigate to the screen
         await nom0101Steps.navigateToNOM0101();
-        await nom0101Steps.manageCompositionForManageComponents('SG6 0928793000');
+        await nom0101Steps.manageCompositionForManageComponents(`${createdProductCode}`);
 
         // Capture screenshot for report
         await helper.captureScreenshot('NOM0101_navigate_to_NOM0302_from_compounds');
@@ -246,6 +262,23 @@ test.describe.serial('NOM0101 - Manage manufactured products', () => {
         // Capture screenshot for report
         await helper.captureScreenshot('NOM0101_product_modified');
     });
+
+    test(`verify error message "A product already exist for the ID 1152206017" while creating duplicate product`, async ({ page }, testInfo) => {
+        const helper = new StepHelper(page, testInfo);
+        const nom0101Steps = new NOM0101Steps(page, testInfo, helper);
+        const nom0101Page = new NOM0101Page(page);
+
+        // Navigate to the screen
+        await nom0101Steps.navigateToNOM0101();
+        await nom0101Steps.duplicateAlreadyExistError(`${createdProductCode}`);
+        const main = page.locator('frame[name="main"]').contentFrame();
+        let errorMessageDuplicateProduct = main.getByText(`A product already exist for the ID ${createdProductCode}`, { exact: true });
+        await helper.assertElementHasText(errorMessageDuplicateProduct, `A product already exist for the ID ${createdProductCode}`, 'Duplication done message should be visible after duplication');
+
+        // Capture screenshot for report
+        await helper.captureScreenshot('NOM0101_creation_success_with_log');
+    });
+
 
 
 

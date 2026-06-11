@@ -30,6 +30,7 @@ export class NOM0101Page {
     validateButton: Locator;
     creationDoneMessage: Locator;
     decompositionDateFieldPen: Locator;
+
     creationDoneparticularProperties: Locator;
     naturePen: Locator;
     natureOption: Locator;
@@ -49,6 +50,7 @@ export class NOM0101Page {
     columnKPen: Locator;
     columnKOption: Locator;
     columnKRightArrow: Locator;
+    
     nextPageButton: Locator;
     viewButton: Locator;
     page: Page;
@@ -88,6 +90,8 @@ export class NOM0101Page {
     manageComposition: Locator;
     manageComponents: Locator;
     manageCompounds: Locator;
+    errorMessageProductNumMustBeFilled: Locator;
+    compareTwoProductsNom0102Title: Locator;
 
 
     constructor(page: Page) {
@@ -200,6 +204,8 @@ export class NOM0101Page {
         this.manageComponents = main.getByText('Manage the components');
         this.manageCompounds = main.getByText('Manage the compounds');
         this.manageCompositionOptionNOM0302 = main.getByText('Manage the composition  (NOM0302)');
+        this.errorMessageProductNumMustBeFilled = main.getByText('The product number 10 char must be filled', { exact: true });
+        this.compareTwoProductsNom0102Title = main.getByText('Compare two Product  (NOM0102)', { exact: true });
 
     }
 
